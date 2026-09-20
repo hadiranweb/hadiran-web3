@@ -1,0 +1,15 @@
+CREATE TABLE IF NOT EXISTS conversations (
+  id SERIAL PRIMARY KEY,
+  title VARCHAR(256),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS messages (
+  id SERIAL PRIMARY KEY,
+  conversation_id INTEGER NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  role VARCHAR(16) NOT NULL,
+  content TEXT NOT NULL,
+  citations JSONB,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);

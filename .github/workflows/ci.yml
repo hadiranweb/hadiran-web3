@@ -1,0 +1,118 @@
+name: Hadiran CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+
+  build:
+    name: Next build
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/ci
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+
+  lint-diagnostics:
+    name: Lint diagnostics (advisory)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Report lint without blocking gates
+        shell: bash
+        run: |
+          set +e
+          npm run lint > lint-report.txt 2>&1
+          lint_status=$?
+          cat lint-report.txt
+          if [ "$lint_status" -ne 0 ]; then
+            echo '::warning title=Lint diagnostics::Lint findings are advisory and do not block typecheck, build, or deploy.'
+            {
+              echo '## Lint diagnostics'
+              echo
+              echo 'Advisory only. Required gates remain typecheck and build.'
+              echo
+              echo '```text'
+              tail -n 120 lint-report.txt
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit 0
+
+  deploy:
+    name: Deploy to Liara
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [typecheck, build]
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      deployments: write
+    concurrency:
+      group: liara-production-hadiranweb
+      cancel-in-progress: false
+    env:
+      LIARA_API_TOKEN: ${{ secrets.LIARA_API_TOKEN }}
+      LIARA_TEAM_ID: ${{ secrets.LIARA_TEAM_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Validate deployment secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${LIARA_API_TOKEN:-}" || { echo 'Missing LIARA_API_TOKEN repository secret.' >&2; exit 1; }
+      - name: Install Liara CLI
+        run: npm install --global @liara/cli@9.5.1
+      - name: Deploy hadiranweb
+        shell: bash
+        run: |
+          set -euo pipefail
+          extra=()
+          if [ -n "${LIARA_TEAM_ID:-}" ]; then
+            extra+=(--team-id "$LIARA_TEAM_ID")
+          fi
+          liara deploy \
+            --app hadiranweb \
+            --api-token "$LIARA_API_TOKEN" \
+            --port 3000 \
+            --no-app-logs \
+            --message "GitHub ${GITHUB_SHA}" \
+            "${extra[@]}"
