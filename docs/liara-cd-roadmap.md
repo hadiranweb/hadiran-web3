@@ -120,4 +120,4 @@ migrate: `liara_pre_start.sh` فایل‌های `0001`…`0004` به ترتیب�
 
 ## ۴. استپ بعدی بعد از تأیید این فایل
 
-F.۳: job دیپلوی روی `main` + هوک `liara_pre_start.sh`. سپس E (ریپو و secret؛ توکن در چت نمی‌آید).
+کنسول لیارا: App `hadiranweb` + Postgres `hadiranweb-db` + env ران‌تایم. GitHub: secret `LIARA_API_TOKEN` (توکن در چت نیاید).
