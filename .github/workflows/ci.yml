@@ -75,7 +75,7 @@ jobs:
 
   deploy:
     name: Deploy to Liara
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     needs: [typecheck, build]
     runs-on: ubuntu-latest
     environment: production
@@ -113,6 +113,6 @@ jobs:
             --app hadiranweb \
             --api-token "$LIARA_API_TOKEN" \
             --port 3000 \
-            --no-app-logs \
+            --no-cache \
             --message "GitHub ${GITHUB_SHA}" \
             "${extra[@]}"

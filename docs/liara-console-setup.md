@@ -31,7 +31,7 @@
 
 `DATABASE_URL` و کلید SMS **وارد GitHub نمی‌شوند.** فقط env برنامه در لیارا.
 
-`workflow_dispatch` گیت‌ها را اجرا می‌کند ولی **دیپلوی نمی‌کند**. برای استقرار: push به `main` یا Re-run همان runی که از `push` آمده.
+`workflow_dispatch` روی `main` هم دیپلوی می‌کند (بدون commit خالی). گیت‌های typecheck و build سر جایشان می‌مانند.
 
 ---
 
