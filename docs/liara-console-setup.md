@@ -11,7 +11,7 @@
 |---|---|---|
 | شناسهٔ App | `hadiranweb` | `liara.json` → `app` و `liara deploy --app hadiranweb` |
 | پلتفرم | **NextJS** | `liara.json` → `platform: next` |
-| نسخهٔ Node | **۲۲** | `liara.json` → `next.version` |
+| نسخهٔ Node | **۲۲** (پیش‌فرض پلتفرم Next لیارا) | در کنسول برنامه؛ در `liara.json` فیلد version نگذار — API رد می‌کند |
 | پورت | **۳۰۰۰** | `liara.json` → `port` |
 | شناسهٔ Postgres | `hadiranweb-db` | قرارداد استقرار |
 | ساب‌دامین موقت | `https://hadiranweb.liara.run` | `NEXT_PUBLIC_SITE_URL` |

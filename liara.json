@@ -1,8 +1,5 @@
 {
   "platform": "next",
   "app": "hadiranweb",
-  "port": 3000,
-  "next": {
-    "version": "22"
-  }
+  "port": 3000
 }
