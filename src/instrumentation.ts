@@ -6,4 +6,11 @@ export async function register() {
     hostname: process.env.HOSTNAME || "unset",
     node: process.version,
   });
+
+  try {
+    const { runHadiranMigrations } = await import("@/db/run-migrations");
+    await runHadiranMigrations();
+  } catch (error) {
+    console.error("[hadiran] migrate failed; UI stays up", error);
+  }
 }

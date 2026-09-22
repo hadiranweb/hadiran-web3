@@ -113,6 +113,5 @@ jobs:
             --app hadiranweb \
             --api-token "$LIARA_API_TOKEN" \
             --port 3000 \
-            --no-cache \
             --message "GitHub ${GITHUB_SHA}" \
             "${extra[@]}"

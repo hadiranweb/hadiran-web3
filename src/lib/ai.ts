@@ -141,6 +141,20 @@ export async function retrieveForQuery(query: string): Promise<AIResponse> {
     };
   }
 
+  try {
+    return await retrieveFromDatabase(query);
+  } catch (error) {
+    console.error("[hadiran] retrieve failed", error);
+    return {
+      answer:
+        "خانه روشن است؛ جدول‌های دانش هنوز آماده نیستند. یک استقرار بعد از مایگریشن این را درست می‌کند.",
+      references: EMPTY_REFERENCES,
+      related: [],
+    };
+  }
+}
+
+async function retrieveFromDatabase(query: string): Promise<AIResponse> {
   const tokens = normalize(query);
   if (tokens.length === 0) {
     return {

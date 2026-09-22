@@ -24,10 +24,18 @@ export const metadata: Metadata = {
 };
 
 export default async function EcosystemPage() {
-  const [knowledgeCount] = await db.select({ value: count() }).from(knowledge);
-  const [projectCount] = await db.select({ value: count() }).from(projects);
-  const [courseCount] = await db.select({ value: count() }).from(courses);
-  const [topicCount] = await db.select({ value: count() }).from(topics);
+  let knowledgeCount = { value: 0 };
+  let projectCount = { value: 0 };
+  let courseCount = { value: 0 };
+  let topicCount = { value: 0 };
+  try {
+    [knowledgeCount] = await db.select({ value: count() }).from(knowledge);
+    [projectCount] = await db.select({ value: count() }).from(projects);
+    [courseCount] = await db.select({ value: count() }).from(courses);
+    [topicCount] = await db.select({ value: count() }).from(topics);
+  } catch (error) {
+    console.error("[hadiran] ecosystem counts failed", error);
+  }
 
   const stats = [
     { label: "مقاله و یادداشت", value: knowledgeCount.value, icon: BookOpen, href: "/knowledge" },
