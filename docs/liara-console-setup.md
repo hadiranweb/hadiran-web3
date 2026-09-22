@@ -198,7 +198,8 @@ Smoke:
 | اتصال به DB رد می‌شود | URI عمومی است، یا App و DB شبکهٔ متفاوت دارند، یا رمز اشتباه است |
 | صفحات DB پنج‌صد | همان `DATABASE_URL`؛ خانه بدون DB هم HTML می‌دهد |
 | `COPY failed: stat app/public` | پوشهٔ `public/` باید در ریشهٔ ریپو باشد (حتی خالی با `.gitkeep`) |
-| `container is unhealthy` و لاگ برنامه خالی | هوک استارت Next را بالا نیاورده. بعد از این فیکس باید `[hadiran] pre-start` و `[hadiran] boot` در لاگ برنامه باشد |
+| `healthCheck.startPeriod must be <= 3000` | فیلد healthCheck سفارشی در `liara.json` نگذار؛ سقف API لیارا ۳۰۰۰ است |
+| `container is unhealthy` و لاگ برنامه خالی | هوک استارت Next را بالا نیاورده. باید `[hadiran] pre-start` و `[hadiran] boot` در لاگ برنامه باشد |
 | `/api/health` → `db: false` | UI زنده است؛ URI شبکهٔ خصوصی `hadiranweb-db` را چک کن |
 | OTP ارسال نمی‌شود | `SMSIR_API_KEY` و `SMSIR_TEMPLATE_ID` |
 
