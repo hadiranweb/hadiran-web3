@@ -5,5 +5,12 @@
   "next": {
     "mirror": false,
     "nodeVersion": "22"
+  },
+  "healthCheck": {
+    "command": "CMD curl --fail http://localhost:3000/ || exit 1",
+    "interval": 5000,
+    "timeout": 8000,
+    "retries": 6,
+    "startPeriod": 25000
   }
 }

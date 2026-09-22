@@ -12,7 +12,10 @@ if (!databaseUrl) {
   process.exit(1);
 }
 
-const client = new pg.Client({ connectionString: databaseUrl });
+const client = new pg.Client({
+  connectionString: databaseUrl,
+  connectionTimeoutMillis: 8000,
+});
 
 async function main() {
   await client.connect();

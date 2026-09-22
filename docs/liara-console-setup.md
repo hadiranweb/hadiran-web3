@@ -80,7 +80,7 @@ postgresql://USER:PASSWORD@hadiranweb-db:5432/postgres
 نشانهٔ اتصال داخلی: host برابر شناسهٔ دیتابیس است (`hadiranweb-db`)، پورت معمولاً `5432`، بدون `bromo.liara.cloud` و بدون پورت تصادفی عمومی.
 
 کد برنامه فقط همین متغیر را می‌خواند: `src/db/index.ts` → `process.env.DATABASE_URL`.  
-هوک `liara_pre_start.sh` هم بدون این متغیر استارت را قطع می‌کند.
+هوک `liara_pre_start.sh` مایگریشن را با timeout می‌زند؛ بدون این متغیر هم Next باید بالا بیاید.
 
 این URI را در چت و در گیت نگذار.
 
@@ -171,7 +171,7 @@ HADIRAN_OWNER_PHONES=
 Smoke:
 
 - `https://hadiranweb.liara.run/` باید خانه (چت) را بدهد.
-- `https://hadiranweb.liara.run/api/health` اگر DB وصل باشد `{ "ok": true }`.
+- `https://hadiranweb.liara.run/api/health` باید `{ "ok": true }` بدهد؛ `db: true` یعنی Postgres وصل است.
 - صفحات دانش/موضوع تا وقتی seed نزده باشی ممکن است خالی باشند؛ ۵۰۰ یعنی معمولاً `DATABASE_URL` اشتباه یا شبکهٔ جدا.
 
 ---
@@ -194,10 +194,12 @@ Smoke:
 |---|---|
 | `Missing LIARA_API_TOKEN` | Secret گیت‌هاب؛ نباید در این مرحله پیش بیاید |
 | برنامه پیدا نشد / app does not exist | شناسه در کنسول باید دقیقاً `hadiranweb` باشد، در همان تیم |
-| `DATABASE_URL is required` در لاگ استارت | متغیر روی App ست نشده |
+| `DATABASE_URL is required` در لاگ استارت | متغیر روی App ست نشده — UI باید باز هم بالا بیاید |
 | اتصال به DB رد می‌شود | URI عمومی است، یا App و DB شبکهٔ متفاوت دارند، یا رمز اشتباه است |
-| صفحات DB پنج‌صد | همان `DATABASE_URL`؛ خانه ممکن است بدون DB هم HTML بدهد |
-| `COPY failed: stat app/public` | پوشهٔ `public/` باید در ریشهٔ ریپو باشد (حتی خالی با `.gitkeep`)؛ ایمیج ران‌تایم Next لیارا آن را کپی می‌کند |
+| صفحات DB پنج‌صد | همان `DATABASE_URL`؛ خانه بدون DB هم HTML می‌دهد |
+| `COPY failed: stat app/public` | پوشهٔ `public/` باید در ریشهٔ ریپو باشد (حتی خالی با `.gitkeep`) |
+| `container is unhealthy` و لاگ برنامه خالی | هوک استارت Next را بالا نیاورده. بعد از این فیکس باید `[hadiran] pre-start` و `[hadiran] boot` در لاگ برنامه باشد |
+| `/api/health` → `db: false` | UI زنده است؛ URI شبکهٔ خصوصی `hadiranweb-db` را چک کن |
 | OTP ارسال نمی‌شود | `SMSIR_API_KEY` و `SMSIR_TEMPLATE_ID` |
 
 لاگ برنامه در کنسول لیارا → تاریخچه / لاگ. هوک مایگریشن باید خط `apply 0000_baseline.sql` تا `0004_…` را نشان بدهد (دفعات بعد `skip`).

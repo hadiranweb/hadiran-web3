@@ -132,6 +132,15 @@ function buildAnswer(refs: ChatReferences): string {
 }
 
 export async function retrieveForQuery(query: string): Promise<AIResponse> {
+  if (!process.env.DATABASE_URL) {
+    return {
+      answer:
+        "خانه روشن است؛ اتصال دانش هنوز برقرار نیست. مسئله‌ات را بگو، به‌محض وصل شدن دیتابیس بازیابی فعال می‌شود.",
+      references: EMPTY_REFERENCES,
+      related: [],
+    };
+  }
+
   const tokens = normalize(query);
   if (tokens.length === 0) {
     return {
