@@ -126,9 +126,26 @@ jobs:
           if [ -n "${LIARA_TEAM_ID:-}" ]; then
             extra+=(--team-id "$LIARA_TEAM_ID")
           fi
+          # Default: Liara layer cache (v8 path, ~3.5 min when healthy).
+          # --no-cache is the exception when that cache burns the 15-minute
+          # budget before npm ci starts — never the everyday default.
+          no_cache=0
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.no_cache }}" = "true" ]; then
+            no_cache=1
+            echo 'Liara cache: --no-cache (workflow_dispatch)'
+          fi
+          if [ "${{ github.run_attempt }}" -gt 1 ]; then
+            no_cache=1
+            echo "Liara cache: --no-cache (run attempt ${{ github.run_attempt }})"
+          fi
+          if git log -1 --pretty=%B | grep -qF '[no-cache]'; then
+            no_cache=1
+            echo 'Liara cache: --no-cache (commit message)'
+          fi
+          if [ "$no_cache" -eq 1 ]; then
             extra+=(--no-cache)
-            echo 'Liara --no-cache requested from workflow_dispatch.'
+          else
+            echo 'Liara cache: use layer cache (v8 path)'
           fi
           liara deploy \
             --app hadiranweb \
