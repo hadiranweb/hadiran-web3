@@ -12,7 +12,17 @@ export async function runHadiranMigrations(): Promise<void> {
     connectionString: url,
     connectionTimeoutMillis: 8000,
   });
-  await client.connect();
+  try {
+    await Promise.race([
+      client.connect(),
+      new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error("database connect timed out after 8000ms")), 8000);
+      }),
+    ]);
+  } catch (error) {
+    await client.end().catch(() => {});
+    throw error;
+  }
   try {
     await client.query(`
       CREATE TABLE IF NOT EXISTS _hadiran_schema_migrations (
