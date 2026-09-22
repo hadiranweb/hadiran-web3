@@ -1,11 +1,24 @@
+# Hadiran CI/CD
+# CI (typecheck + Next build) is cheap and runs on PR and main.
+# Liara CD runs only after those gates, on main or manual dispatch.
+# Docs-only pushes do not spend the 15-minute Liara build budget.
+# Production deploys are serialized and never cancelled mid-flight.
 name: Hadiran CI
 
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      no_cache:
+        description: Rebuild the Liara image without cache (only if the image is corrupt)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -18,6 +31,7 @@ jobs:
   typecheck:
     name: Typecheck
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -30,6 +44,7 @@ jobs:
   build:
     name: Next build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     env:
       DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/ci
       NEXT_PUBLIC_SITE_URL: http://localhost:3000
@@ -45,6 +60,7 @@ jobs:
   lint-diagnostics:
     name: Lint diagnostics (advisory)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -78,7 +94,7 @@ jobs:
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     needs: [typecheck, build]
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 18
     environment: production
     permissions:
       contents: read
@@ -109,6 +125,10 @@ jobs:
           extra=()
           if [ -n "${LIARA_TEAM_ID:-}" ]; then
             extra+=(--team-id "$LIARA_TEAM_ID")
+          fi
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.no_cache }}" = "true" ]; then
+            extra+=(--no-cache)
+            echo 'Liara --no-cache requested from workflow_dispatch.'
           fi
           liara deploy \
             --app hadiranweb \
