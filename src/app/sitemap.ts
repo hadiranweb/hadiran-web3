@@ -20,9 +20,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   try {
     const { db } = await import("@/db");
-    const { knowledge, projects, courses, projectDocuments, topics } = await import("@/db/schema");
+    const { knowledge, memoryItems, projects, courses, projectDocuments, topics } = await import("@/db/schema");
+    const { eq, and, isNotNull } = await import("drizzle-orm");
     const [knowledgeRows, projectRows, courseRows, documentRows, topicRows] = await Promise.all([
-      db.select({ slug: knowledge.slug, updatedAt: knowledge.updatedAt }).from(knowledge),
+      db
+        .select({ slug: knowledge.slug, updatedAt: knowledge.updatedAt })
+        .from(knowledge)
+        .innerJoin(memoryItems, eq(knowledge.memoryItemId, memoryItems.id))
+        .where(and(isNotNull(knowledge.memoryItemId), eq(memoryItems.visibility, "public"), eq(memoryItems.lifecycle, "approved"))),
       db.select({ slug: projects.slug, updatedAt: projects.updatedAt, id: projects.id }).from(projects),
       db.select({ slug: courses.slug, updatedAt: courses.updatedAt }).from(courses),
       db

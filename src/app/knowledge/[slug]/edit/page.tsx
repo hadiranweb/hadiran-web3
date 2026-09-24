@@ -1,11 +1,11 @@
 import { db } from "@/db";
-import { knowledge, knowledgeSlides } from "@/db/schema";
+import { knowledge, knowledgeSlides, semanticRecords } from "@/db/schema";
 import { eq, asc } from "drizzle-orm";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { KnowledgeComposer } from "@/components/knowledge/KnowledgeComposer";
-import { requirePageAccount } from "@/lib/auth/guard";
+import { requirePageOwner } from "@/lib/auth/guard";
 
 export const dynamic = "force-dynamic";
 
@@ -23,9 +23,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function EditKnowledgePage({ params }: Props) {
   const { slug } = await params;
-  await requirePageAccount(`/knowledge/${slug}/edit`);
+  await requirePageOwner(`/knowledge/${slug}/edit`);
   const [item] = await db.select().from(knowledge).where(eq(knowledge.slug, slug));
   if (!item) notFound();
+  if (item.memoryItemId) {
+    const [source] = await db
+      .select()
+      .from(semanticRecords)
+      .where(eq(semanticRecords.promotedMemoryId, item.memoryItemId));
+    if (source) redirect(`/workspace/records/${source.id}`);
+  }
 
   let slides: (typeof knowledgeSlides.$inferSelect)[] = [];
   try {

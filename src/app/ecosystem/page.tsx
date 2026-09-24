@@ -1,6 +1,6 @@
 import { db } from "@/db";
-import { knowledge, projects, courses, topics } from "@/db/schema";
-import { count } from "drizzle-orm";
+import { knowledge, memoryItems, projects, courses, topics } from "@/db/schema";
+import { count, eq } from "drizzle-orm";
 import Link from "next/link";
 import { Brain, User, BookOpen, FlaskConical, GraduationCap, Hash, MessageCircle } from "lucide-react";
 import type { Metadata } from "next";
@@ -29,7 +29,11 @@ export default async function EcosystemPage() {
   let courseCount = { value: 0 };
   let topicCount = { value: 0 };
   try {
-    [knowledgeCount] = await db.select({ value: count() }).from(knowledge);
+    [knowledgeCount] = await db
+      .select({ value: count() })
+      .from(knowledge)
+      .innerJoin(memoryItems, eq(knowledge.memoryItemId, memoryItems.id))
+      .where(eq(memoryItems.visibility, "public"));
     [projectCount] = await db.select({ value: count() }).from(projects);
     [courseCount] = await db.select({ value: count() }).from(courses);
     [topicCount] = await db.select({ value: count() }).from(topics);

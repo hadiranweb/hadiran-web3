@@ -14,6 +14,7 @@ import { ArrowLeft, Hash, FlaskConical, Pencil } from "lucide-react";
 import type { Metadata } from "next";
 import { KnowledgeView } from "@/components/knowledge/KnowledgeView";
 import { getCurrentAccount } from "@/lib/auth/session";
+import { getPublicKnowledgeBySlug } from "@/lib/knowledge/public";
 
 export const dynamic = "force-dynamic";
 
@@ -31,8 +32,8 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const [item] = await db.select().from(knowledge).where(eq(knowledge.slug, slug));
-  if (!item) return { title: "یافت نشد" };
+  const item = await getPublicKnowledgeBySlug(slug);
+  if (!item) return { title: "یافت نشد", robots: { index: false, follow: false } };
   return {
     title: item.titleFa,
     description: item.summaryFa ?? undefined,
@@ -48,7 +49,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function KnowledgeItemPage({ params }: Props) {
   const { slug } = await params;
-  const [item] = await db.select().from(knowledge).where(eq(knowledge.slug, slug));
+  const item = await getPublicKnowledgeBySlug(slug);
   if (!item) notFound();
   const account = await getCurrentAccount();
 
@@ -85,7 +86,7 @@ export default async function KnowledgeItemPage({ params }: Props) {
           <ArrowLeft className="h-4 w-4" />
           بازگشت به دانشنامه
         </Link>
-        {account && (
+        {account?.role === "owner" && (
           <Link
             href={`/knowledge/${item.slug}/edit`}
             className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-800"

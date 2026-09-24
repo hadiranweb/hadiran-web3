@@ -29,7 +29,8 @@ home:
 
 worlds:
   person:     { path: /hadiran,    role: who Hadiran is }
-  knowledge:  { path: /knowledge,  role: living wiki / notes / research / ideas }
+  knowledge:  { path: /knowledge,  role: published projection of approved public memory }
+  workspace:  { path: /workspace,  role: owner capture desk, noindex, not in primary nav }
   lab:        { path: /lab,        role: projects, documents, collaboration }
   academy:    { path: /courses,    role: courses and lessons }
   ecosystem:  { path: /ecosystem,  role: map of the four worlds }
@@ -73,7 +74,8 @@ out_of_scope:
 | گفتگو | `/` | شفاف‌سازی مسئله و هم‌فکری |
 | اکوسیستم | `/ecosystem` | نقشهٔ چهار جهان و اتصال‌ها |
 | شخص | `/hadiran` | کیست، مسیر، دیدگاه، مهارت |
-| دانشنامه | `/knowledge` | مقاله، یادداشت، پژوهش، ایده — با اسلاید در صورت وجود |
+| دانشنامه | `/knowledge` | نمود عمومی حافظهٔ تأییدشده |
+| میز کار | `/workspace` | ثبت خام owner؛ noindex؛ خارج ناو اصلی |
 | آزمایشگاه | `/lab` | پروژه به‌عنوان ظرف: مسئله، چشم‌انداز، اسناد، همکاری |
 | آکادمی | `/courses` | دوره و درس |
 | موضوعات | `/topics` | پل گراف؛ جهان پنجم در نوار اصلی نیست |
@@ -95,7 +97,7 @@ out_of_scope:
 
 The product home is the conversation itself (`/`). The former marketing landing lives at `/ecosystem`. Knowledge, lab projects, and courses are first-class entities with stable Latin slugs. Topics are a **graph bridge** across those silos, not a fifth primary navigation world.
 
-Writing and editing knowledge requires a session. Reading the public graph does not.
+Capture happens at `/workspace` (owner). The public graph only shows approved public memory.
 
 ---
 
@@ -108,10 +110,14 @@ Writing and editing knowledge requires a session. Reading the public graph does 
 /hadiran                  person / about
 /signin                   OTP sign-in (noindex)
 
-/knowledge                knowledge index
-/knowledge/new            compose (session, noindex)
-/knowledge/[slug]         one knowledge unit
-/knowledge/[slug]/edit    edit (session, noindex)
+/knowledge                knowledge index (approved public memory only)
+/knowledge/new            redirects to /workspace/capture
+/knowledge/[slug]         projection of a memory item
+/knowledge/[slug]/edit    redirects to the source record when linked
+
+/workspace                owner desk (noindex)
+/workspace/capture        new semantic record
+/workspace/records/[id]   edit + explicit promote
 
 /lab                      projects
 /lab/[slug]               one project

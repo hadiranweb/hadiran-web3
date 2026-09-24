@@ -1,6 +1,8 @@
 import { db } from "@/db";
-import { knowledge, knowledgeTopics, topics } from "@/db/schema";
-import { eq, like, or } from "drizzle-orm";
+import { knowledge, knowledgeTopics, memoryItems, topics } from "@/db/schema";
+import { and, eq, like, or } from "drizzle-orm";
+import { publicKnowledgeFilter } from "@/lib/knowledge/public";
+import { getCurrentAccount } from "@/lib/auth/session";
 import Link from "next/link";
 import { BookOpen, Hash, Search, PenLine } from "lucide-react";
 import type { Metadata } from "next";
@@ -35,18 +37,29 @@ interface Props {
 
 export default async function KnowledgePage({ searchParams }: Props) {
   const { topic, q } = await searchParams;
+  const account = await getCurrentAccount();
 
-  let baseQuery = db.select().from(knowledge);
-  if (q) {
-    baseQuery = baseQuery.where(
-      or(
-        like(knowledge.titleFa, `%${q}%`),
-        like(knowledge.summaryFa, `%${q}%`),
-        like(knowledge.bodyFa, `%${q}%`)
-      )
-    ) as typeof baseQuery;
+  let allKnowledge: (typeof knowledge.$inferSelect)[] = [];
+  try {
+    const filters = [publicKnowledgeFilter];
+    if (q) {
+      filters.push(
+        or(
+          like(knowledge.titleFa, `%${q}%`),
+          like(knowledge.summaryFa, `%${q}%`),
+          like(knowledge.bodyFa, `%${q}%`)
+        )
+      );
+    }
+    const rows = await db
+      .select({ item: knowledge })
+      .from(knowledge)
+      .innerJoin(memoryItems, eq(knowledge.memoryItemId, memoryItems.id))
+      .where(and(...filters));
+    allKnowledge = rows.map((row) => row.item);
+  } catch (error) {
+    console.error("[hadiran] knowledge list", error);
   }
-  const allKnowledge = await baseQuery;
 
   const topicLinks = await db
     .select({
@@ -79,13 +92,15 @@ export default async function KnowledgePage({ searchParams }: Props) {
       <header className="mb-10 text-center">
         <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl">دانشنامه</h1>
         <p className="mt-3 text-slate-600">مقالات، یادداشت‌ها، تحقیق‌ها و ایده‌های هادیران</p>
-        <Link
-          href="/knowledge/new"
-          className="mt-5 inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
-        >
-          <PenLine className="h-4 w-4" />
-          نوشتن مطلب
-        </Link>
+        {account?.role === "owner" ? (
+          <Link
+            href="/workspace/capture"
+            className="mt-5 inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+          >
+            <PenLine className="h-4 w-4" />
+            نوشتن مطلب
+          </Link>
+        ) : null}
       </header>
 
       <form action="/knowledge" method="get" className="mx-auto mb-8 flex max-w-xl gap-2">

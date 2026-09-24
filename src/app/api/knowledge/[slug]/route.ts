@@ -4,6 +4,7 @@ import { knowledge, knowledgeSlides } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { slugify } from "@/lib/markdown";
 import { requireAccount } from "@/lib/auth/guard";
+import { getPublicKnowledgeBySlug } from "@/lib/knowledge/public";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +39,7 @@ interface Ctx {
 
 export async function GET(_request: Request, { params }: Ctx) {
   const { slug } = await params;
-  const [item] = await db.select().from(knowledge).where(eq(knowledge.slug, slug));
+  const item = await getPublicKnowledgeBySlug(slug);
   if (!item) return NextResponse.json({ error: "not_found" }, { status: 404 });
   const slides = await db
     .select()
@@ -54,6 +55,9 @@ export async function PATCH(request: Request, { params }: Ctx) {
     const { slug } = await params;
     const [existing] = await db.select().from(knowledge).where(eq(knowledge.slug, slug));
     if (!existing) return NextResponse.json({ error: "not_found" }, { status: 404 });
+    if (existing.memoryItemId) {
+      return NextResponse.json({ error: "ویرایش نمود از /workspace است." }, { status: 409 });
+    }
 
     const body = (await request.json()) as Record<string, unknown>;
     const titleFa =

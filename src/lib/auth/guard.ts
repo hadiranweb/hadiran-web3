@@ -23,3 +23,22 @@ export async function requirePageAccount(nextPath: string) {
   }
   return account;
 }
+
+export async function requireOwner(): Promise<
+  { account: SessionAccount; error: null } | { account: null; error: NextResponse }
+> {
+  const auth = await requireAccount();
+  if (auth.error) return auth;
+  if (auth.account.role !== "owner") {
+    return { account: null, error: NextResponse.json({ error: "forbidden" }, { status: 403 }) };
+  }
+  return auth;
+}
+
+export async function requirePageOwner(nextPath: string) {
+  const account = await requirePageAccount(nextPath);
+  if (account.role !== "owner") {
+    redirect("/");
+  }
+  return account;
+}

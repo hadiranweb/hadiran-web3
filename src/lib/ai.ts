@@ -7,7 +7,9 @@ import {
   knowledgeTopics,
   projectTopics,
   courseTopics,
+  memoryItems,
 } from "@/db/schema";
+import { publicKnowledgeFilter } from "@/lib/knowledge/public";
 import { and, eq, ilike, inArray, or } from "drizzle-orm";
 
 export interface RetrievedEntity {
@@ -178,9 +180,10 @@ async function retrieveFromDatabase(query: string): Promise<AIResponse> {
         body: knowledge.bodyFa,
       })
       .from(knowledge)
+      .innerJoin(memoryItems, eq(knowledge.memoryItemId, memoryItems.id))
       .where(
         and(
-          eq(knowledge.aiIndexable, true),
+          publicKnowledgeFilter,
           or(
             ...patterns.flatMap((p) => [
               ilike(knowledge.titleFa, p),

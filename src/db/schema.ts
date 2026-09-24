@@ -101,6 +101,7 @@ export const knowledge = pgTable("knowledge", {
   bodyFa: text("body_fa"),
   aiIndexable: boolean("ai_indexable").default(true),
   versionable: boolean("versionable").default(true),
+  memoryItemId: varchar("memory_item_id", { length: 64 }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
@@ -315,6 +316,120 @@ export const rateLimitBuckets = pgTable(
   },
   (t) => [primaryKey({ columns: [t.bucketKey, t.windowStart] })]
 );
+
+export const semanticRecords = pgTable("semantic_records", {
+  id: text("id").primaryKey(),
+  recordType: text("record_type").notNull().default("semantic_record"),
+  kind: text("kind").notNull().default("observation"),
+  titleFa: varchar("title_fa", { length: 256 }).notNull(),
+  titleEn: varchar("title_en", { length: 256 }),
+  slug: varchar("slug", { length: 128 }),
+  status: text("status").notNull().default("captured"),
+  visibility: text("visibility").notNull().default("private"),
+  intent: text("intent"),
+  summaryFa: text("summary_fa"),
+  bodyFa: text("body_fa"),
+  language: text("language").notNull().default("fa"),
+  ownerId: integer("owner_id").references(() => accounts.id, { onDelete: "set null" }),
+  promotedMemoryId: text("promoted_memory_id"),
+  schemaVersion: text("schema_version").notNull().default("0.1"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+export const knowledgeClaims = pgTable("knowledge_claims", {
+  id: text("id").primaryKey(),
+  recordType: text("record_type").notNull().default("knowledge_claim"),
+  subject: text("subject"),
+  predicate: text("predicate").notNull().default("asserts"),
+  objectValue: text("object_value"),
+  statementFa: text("statement_fa"),
+  statementEn: text("statement_en"),
+  lifecycle: text("lifecycle").notNull().default("candidate"),
+  confidence: text("confidence").notNull().default("hypothesis"),
+  sourceRecordId: text("source_record_id").references(() => semanticRecords.id, { onDelete: "set null" }),
+  createdBy: integer("created_by").references(() => accounts.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+export const knowledgeReviews = pgTable("knowledge_reviews", {
+  id: text("id").primaryKey(),
+  recordType: text("record_type").notNull().default("knowledge_review"),
+  claimId: text("claim_id").references(() => knowledgeClaims.id, { onDelete: "set null" }),
+  reviewerId: integer("reviewer_id").references(() => accounts.id, { onDelete: "set null" }),
+  decision: text("decision").notNull().default("approve"),
+  rationaleFa: text("rationale_fa"),
+  status: text("status").notNull().default("completed"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+export const memoryItems = pgTable("memory_items", {
+  id: text("id").primaryKey(),
+  recordType: text("record_type").notNull().default("memory_item"),
+  kind: text("kind").notNull().default("validated_pattern"),
+  titleFa: varchar("title_fa", { length: 256 }).notNull(),
+  titleEn: varchar("title_en", { length: 256 }),
+  summaryFa: text("summary_fa"),
+  bodyFa: text("body_fa"),
+  lifecycle: text("lifecycle").notNull().default("approved"),
+  visibility: text("visibility").notNull().default("public"),
+  confidence: text("confidence").notNull().default("validated"),
+  sourceClaimId: text("source_claim_id").references(() => knowledgeClaims.id, { onDelete: "set null" }),
+  sourceRecordId: text("source_record_id").references(() => semanticRecords.id, { onDelete: "set null" }),
+  promotionId: text("promotion_id"),
+  revision: integer("revision").notNull().default(1),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+export const knowledgePromotions = pgTable("knowledge_promotions", {
+  id: text("id").primaryKey(),
+  recordType: text("record_type").notNull().default("knowledge_promotion"),
+  claimId: text("claim_id").references(() => knowledgeClaims.id, { onDelete: "set null" }),
+  reviewId: text("review_id").references(() => knowledgeReviews.id, { onDelete: "set null" }),
+  targetMemoryId: text("target_memory_id").references(() => memoryItems.id, { onDelete: "set null" }),
+  targetKind: text("target_kind").notNull().default("validated_pattern"),
+  promotedBy: integer("promoted_by").references(() => accounts.id, { onDelete: "set null" }),
+  rationaleFa: text("rationale_fa"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+export const graphEdges = pgTable("graph_edges", {
+  id: text("id").primaryKey(),
+  sourceType: text("source_type").notNull(),
+  sourceId: text("source_id").notNull(),
+  relationType: text("relation_type").notNull(),
+  targetType: text("target_type").notNull(),
+  targetId: text("target_id").notNull(),
+  edgeClass: text("edge_class").notNull().default("publication"),
+  status: text("status").notNull().default("active"),
+  confidence: text("confidence").notNull().default("validated"),
+  createdBy: integer("created_by").references(() => accounts.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+export const evidenceSources = pgTable("evidence_sources", {
+  id: text("id").primaryKey(),
+  recordType: text("record_type").notNull().default("evidence_source"),
+  sourceType: text("source_type").notNull().default("human_input"),
+  sourceId: text("source_id"),
+  titleFa: text("title_fa"),
+  locator: text("locator"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+export const provenanceRecords = pgTable("provenance_records", {
+  id: text("id").primaryKey(),
+  recordType: text("record_type").notNull().default("provenance_record"),
+  subjectType: text("subject_type").notNull(),
+  subjectId: text("subject_id").notNull(),
+  sourceType: text("source_type").notNull().default("human_input"),
+  actorId: integer("actor_id").references(() => accounts.id, { onDelete: "set null" }),
+  transformation: text("transformation"),
+  capturedAt: timestamp("captured_at", { withTimezone: true }).defaultNow(),
+  schemaVersion: text("schema_version").notNull().default("0.1"),
+});
 
 export const conversations = pgTable("conversations", {
   id: serial("id").primaryKey(),
