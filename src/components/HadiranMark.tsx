@@ -8,7 +8,7 @@ export function HadiranMark({ className = "h-8 w-8", title = "هادیران" }:
   return (
     <svg
       viewBox="0 0 131.28 129.38"
-      className={className}
+      className={`hadiran-mark ${className}`}
       role="img"
       aria-label={title}
       xmlns="http://www.w3.org/2000/svg"
@@ -38,7 +38,7 @@ export function HadiranWordmark({
 }) {
   return (
     <span className={`inline-flex items-center gap-2 ${className}`}>
-      <HadiranMark className={`${markClassName} text-[#1b1464] dark:text-white`} />
+      <HadiranMark className={markClassName} />
       <span className="font-bold text-slate-900 dark:text-slate-100">هادیران</span>
     </span>
   );

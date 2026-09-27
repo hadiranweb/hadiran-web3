@@ -23,8 +23,8 @@ export default async function SignInPage({
 
   return (
     <main className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-4 py-16">
-      <HadiranMark className="mb-4 h-12 w-12 text-[#1b1464]" />
-      <p className="mb-2 text-sm font-medium text-[#1b1464]">هادیران</p>
+      <HadiranMark className="mb-4 h-12 w-12" />
+      <p className="hadiran-brand-text mb-2 text-sm font-medium">هادیران</p>
       <h1 className="text-3xl font-bold text-slate-900">ورود با موبایل</h1>
       <p className="mt-2 mb-8 text-sm leading-7 text-slate-500">
         رمز لازم نیست. یک کد کوتاه به شمارهٔ ایرانی‌ات پیامک می‌شود.

@@ -19,7 +19,7 @@ export function WorkspaceChrome() {
         <div>
           <p className="text-xs text-slate-500">فقط owner · ایندکس نمی‌شود</p>
           <Link href="/workspace" className="inline-flex items-center gap-2 text-xl font-bold text-slate-900">
-            <HadiranMark className="h-7 w-7 text-[#1b1464]" />
+            <HadiranMark className="h-7 w-7" />
             میز کار
           </Link>
         </div>

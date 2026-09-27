@@ -29,7 +29,7 @@ export default async function ShopPage() {
   return (
     <main className="mx-auto max-w-5xl px-4 py-10">
       <header className="mb-10 text-center">
-        <HadiranMark className="mx-auto mb-4 h-12 w-12 text-[#1b1464]" />
+        <HadiranMark className="mx-auto mb-4 h-12 w-12" />
         <h1 className="text-3xl font-bold text-slate-900">فروشگاه</h1>
         <p className="mt-3 text-slate-600">
           پرداخت روی ریل بیرونی است. سایت پول را نگه نمی‌دارد؛ بعد از تأیید دریافت، دسترسی دیجیتال باز می‌شود.

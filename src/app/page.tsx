@@ -70,7 +70,7 @@ export default function HomePage() {
       />
 
       <header className="mb-8 text-center">
-        <HadiranMark className="mx-auto mb-4 h-14 w-14 text-[#1b1464] dark:text-white" />
+        <HadiranMark className="mx-auto mb-4 h-14 w-14" />
         <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 sm:text-4xl">
           مسئله‌ات را بگو؛ با هم شفافش می‌کنیم
         </h1>

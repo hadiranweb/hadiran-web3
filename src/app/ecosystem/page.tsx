@@ -53,7 +53,7 @@ export default async function EcosystemPage() {
     <main className="mx-auto max-w-7xl px-4 py-10">
       <section className="mx-auto max-w-3xl space-y-6 text-center lg:max-w-none lg:text-right">
         <div className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-sm font-medium text-indigo-700">
-          <HadiranMark className="h-4 w-4 text-[#1b1464]" />
+          <HadiranMark className="h-4 w-4" />
           <span>نقشهٔ اکوسیستم</span>
         </div>
         <h1 className="text-4xl font-extrabold leading-tight text-slate-900 sm:text-5xl">
