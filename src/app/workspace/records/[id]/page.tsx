@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/db";
 import { semanticRecords } from "@/db/schema";
@@ -26,10 +25,7 @@ export default async function WorkspaceRecordPage({ params }: Props) {
   if (!item) notFound();
 
   return (
-    <main className="mx-auto max-w-3xl space-y-8 px-4 py-10">
-      <Link href="/workspace" className="inline-block text-sm text-slate-500 hover:text-indigo-600">
-        بازگشت به میز کار
-      </Link>
+    <main className="mx-auto max-w-3xl space-y-8 px-4 py-8">
       <div>
         <p className="text-xs text-slate-500">
           {item.status} · {item.visibility} · {item.id}
