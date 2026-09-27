@@ -1,12 +1,14 @@
 import Link from "next/link";
+import { HadiranMark } from "@/components/HadiranMark";
 
 export function Footer() {
   return (
     <footer className="border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
       <div className="mx-auto max-w-7xl px-4 py-8">
         <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            © {new Date().getFullYear()} هادیران — فضای هم‌فکری و طراحی سیستم‌ها
+          <p className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+            <HadiranMark className="h-6 w-6 text-[#1b1464] dark:text-white" />
+            <span>© {new Date().getFullYear()} هادیران — فضای هم‌فکری و طراحی سیستم‌ها</span>
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-slate-500 dark:text-slate-400">
             <Link href="/" className="hover:text-indigo-600 dark:hover:text-indigo-400">

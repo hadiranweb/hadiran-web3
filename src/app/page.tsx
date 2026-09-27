@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { HomeChat } from "@/components/HomeChat";
 import { siteConfig } from "@/lib/site";
+import { HadiranMark } from "@/components/HadiranMark";
 import {
   BookOpen,
   FlaskConical,
@@ -69,7 +70,7 @@ export default function HomePage() {
       />
 
       <header className="mb-8 text-center">
-        {/* تیتر متصل‌کننده، فعال و دعوت‌کننده به اقدام بر اساس NLP و Rapport */}
+        <HadiranMark className="mx-auto mb-4 h-14 w-14 text-[#1b1464] dark:text-white" />
         <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 sm:text-4xl">
           مسئله‌ات را بگو؛ با هم شفافش می‌کنیم
         </h1>

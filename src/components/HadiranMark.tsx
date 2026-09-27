@@ -1,0 +1,45 @@
+type HadiranMarkProps = {
+  className?: string;
+  title?: string;
+};
+
+/** In-site mark from the Hadiran SVG. Color via `currentColor`. */
+export function HadiranMark({ className = "h-8 w-8", title = "هادیران" }: HadiranMarkProps) {
+  return (
+    <svg
+      viewBox="0 0 131.28 129.38"
+      className={className}
+      role="img"
+      aria-label={title}
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        fill="currentColor"
+        d="M91.92,9.26c-24.66,6.35-44.23,20.68-54.92,44.2-3.24,7.12-4.17,12.74-6.03,20.13-.08.33,0,.75-.48.84-1.44-11.79-2.19-23.83-5.7-35.22C21.12,27.28,14.77,15.9,6.6,6.5,5.1,4.77,2.46,1.71.72.38.48.2.42-.08,0,.02v129.36l25.15-8.45,5.33-42.91,6.24,37.92,8.4-3.84c-2.95-2.96-4.87-6.75-5.88-10.8-5.03-20.16,2.4-41.43,18.63-54.1,1.36-1.06,2.87-1.91,4.25-2.95.66-5.03,1.58-10,2.7-14.94l1.66.11c16.28,15.87,36.56,27.01,54.22,41.06,3.13,2.49,5.89,5.02,8.67,7.89.6.61.88,1.69,1.91,1.57V.02c-13.09,3.14-26.32,5.88-39.36,9.24Z"
+      />
+      <path
+        fill="currentColor"
+        d="M99.48,76.34c-.35-.22-3.11-2.05-3.24-1.91-1.16,12.12-5.01,23.69-11.28,34.08,4.91,1.6,9.91,3.02,15.04,3.8,7.38,1.13,18.81,2.09,25.44-1.84,3.57-2.12,3.46-4.34,2.18-8.02-3.32-9.55-19.67-20.74-28.13-26.11Z"
+      />
+      <path
+        fill="currentColor"
+        d="M82.84,72.58c-1.96-3.99-6.68-10.21-11.31-11.01-9.19-1.58-25.03,13.8-25.7,22.56-.6,7.77,11.18,15.5,17.53,17.89.4.15.72.71,1.46.59.61-.09,2.92-1.24,3.66-1.59,2.04-.95,4.31-2.19,6.23-3.37.81-.5,10.09-7.68,10.98-10.14,1.3-3.59-1.16-11.49-2.85-14.94Z"
+      />
+    </svg>
+  );
+}
+
+export function HadiranWordmark({
+  className = "",
+  markClassName = "h-8 w-8",
+}: {
+  className?: string;
+  markClassName?: string;
+}) {
+  return (
+    <span className={`inline-flex items-center gap-2 ${className}`}>
+      <HadiranMark className={`${markClassName} text-[#1b1464] dark:text-white`} />
+      <span className="font-bold text-slate-900 dark:text-slate-100">هادیران</span>
+    </span>
+  );
+}

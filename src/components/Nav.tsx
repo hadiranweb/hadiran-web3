@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Brain, User, BookOpen, FlaskConical, GraduationCap, Layers, Menu, X, ShoppingBag } from "lucide-react";
+import { User, BookOpen, FlaskConical, GraduationCap, Layers, Menu, X, ShoppingBag } from "lucide-react";
 import { useState } from "react";
 import { SessionMenu } from "@/components/auth/SessionMenu";
+import { HadiranWordmark } from "@/components/HadiranMark";
 
 const primaryLinks = [
   { href: "/ecosystem", label: "اکوسیستم", icon: Layers },
@@ -23,8 +24,7 @@ export function Nav() {
     <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/80 backdrop-blur dark:border-slate-800 dark:bg-slate-950/80">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
         <Link href="/" className="flex items-center gap-2">
-          <Brain className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
-          <span className="text-lg font-bold text-slate-900 dark:text-slate-100">هادیران</span>
+          <HadiranWordmark className="text-lg" markClassName="h-8 w-8" />
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">

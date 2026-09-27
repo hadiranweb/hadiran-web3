@@ -19,6 +19,10 @@ export const metadata: Metadata = {
     template: "%s | هادیران",
   },
   description: siteConfig.description,
+  icons: {
+    icon: [{ url: "/brand/hadiran-icon.png", type: "image/png" }],
+    apple: [{ url: "/brand/hadiran-icon.png" }],
+  },
   openGraph: {
     siteName: siteConfig.nameFa,
     locale: "fa_IR",

@@ -2,7 +2,8 @@ import { db } from "@/db";
 import { knowledge, memoryItems, projects, courses, topics } from "@/db/schema";
 import { count, eq } from "drizzle-orm";
 import Link from "next/link";
-import { Brain, User, BookOpen, FlaskConical, GraduationCap, Hash, MessageCircle } from "lucide-react";
+import { User, BookOpen, FlaskConical, GraduationCap, Hash, MessageCircle } from "lucide-react";
+import { HadiranMark } from "@/components/HadiranMark";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -52,7 +53,7 @@ export default async function EcosystemPage() {
     <main className="mx-auto max-w-7xl px-4 py-10">
       <section className="mx-auto max-w-3xl space-y-6 text-center lg:max-w-none lg:text-right">
         <div className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-sm font-medium text-indigo-700">
-          <Brain className="h-4 w-4" />
+          <HadiranMark className="h-4 w-4 text-[#1b1464]" />
           <span>نقشهٔ اکوسیستم</span>
         </div>
         <h1 className="text-4xl font-extrabold leading-tight text-slate-900 sm:text-5xl">

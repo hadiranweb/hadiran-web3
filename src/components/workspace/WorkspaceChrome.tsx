@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { HadiranMark } from "@/components/HadiranMark";
 
 const links = [
   { href: "/workspace", label: "نمای کلی", exact: true },
@@ -17,7 +18,8 @@ export function WorkspaceChrome() {
       <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 px-4 py-4">
         <div>
           <p className="text-xs text-slate-500">فقط owner · ایندکس نمی‌شود</p>
-          <Link href="/workspace" className="text-xl font-bold text-slate-900">
+          <Link href="/workspace" className="inline-flex items-center gap-2 text-xl font-bold text-slate-900">
+            <HadiranMark className="h-7 w-7 text-[#1b1464]" />
             میز کار
           </Link>
         </div>
