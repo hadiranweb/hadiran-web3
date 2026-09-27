@@ -14,15 +14,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: absoluteUrl("/courses"), lastModified: now, changeFrequency: "weekly", priority: 0.8 },
     { url: absoluteUrl("/topics"), lastModified: now, changeFrequency: "weekly", priority: 0.7 },
     { url: absoluteUrl("/contact"), lastModified: now, changeFrequency: "monthly", priority: 0.5 },
+    { url: absoluteUrl("/shop"), lastModified: now, changeFrequency: "weekly", priority: 0.7 },
   ];
 
   if (!process.env.DATABASE_URL) return entries;
 
   try {
     const { db } = await import("@/db");
-    const { knowledge, memoryItems, projects, courses, projectDocuments, topics } = await import("@/db/schema");
+    const { knowledge, memoryItems, projects, courses, projectDocuments, topics, shopListings } = await import("@/db/schema");
     const { eq, and, isNotNull } = await import("drizzle-orm");
-    const [knowledgeRows, projectRows, courseRows, documentRows, topicRows] = await Promise.all([
+    const [knowledgeRows, projectRows, courseRows, documentRows, topicRows, shopRows] = await Promise.all([
       db
         .select({ slug: knowledge.slug, updatedAt: knowledge.updatedAt })
         .from(knowledge)
@@ -38,6 +39,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         })
         .from(projectDocuments),
       db.select({ slug: topics.slug, createdAt: topics.createdAt }).from(topics),
+      db
+        .select({ slug: shopListings.slug, updatedAt: shopListings.updatedAt })
+        .from(shopListings)
+        .where(eq(shopListings.published, true)),
     ]);
 
     for (const row of knowledgeRows) {
@@ -85,6 +90,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         url: absoluteUrl(`/topics/${row.slug}`),
         lastModified: row.createdAt ?? now,
         changeFrequency: "monthly",
+        priority: 0.6,
+      });
+    }
+
+    for (const row of shopRows) {
+      entries.push({
+        url: absoluteUrl(`/shop/${row.slug}`),
+        lastModified: row.updatedAt ?? now,
+        changeFrequency: "weekly",
         priority: 0.6,
       });
     }

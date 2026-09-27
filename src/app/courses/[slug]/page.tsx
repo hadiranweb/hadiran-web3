@@ -5,6 +5,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GraduationCap, Clock, Layers, ArrowLeft, BookOpen, FlaskConical, Wrench } from "lucide-react";
 import type { Metadata } from "next";
+import { getCurrentAccount } from "@/lib/auth/session";
+import { hasCourseEntitlement, listingForPaidCourse } from "@/lib/shop/access";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +18,18 @@ export default async function CoursePage({ params }: Props) {
   const { slug } = await params;
   const [course] = await db.select().from(courses).where(eq(courses.slug, slug));
   if (!course) notFound();
+  const account = await getCurrentAccount();
+  let shopListing: { slug: string; titleFa: string } | null = null;
+  let entitled = true;
+  try {
+    const listing = await listingForPaidCourse(course.id);
+    if (listing) {
+      shopListing = { slug: listing.slug, titleFa: listing.titleFa };
+      entitled = account?.role === "owner" || (account ? await hasCourseEntitlement(account.id, course.id) : false);
+    }
+  } catch (error) {
+    console.error("[hadiran] course shop gate", error);
+  }
 
   const courseLessons = await db
     .select()
@@ -92,6 +106,14 @@ export default async function CoursePage({ params }: Props) {
         </div>
 
         <div className="p-6 sm:p-10">
+          {shopListing && !entitled ? (
+            <div className="mb-8 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+              <p>دسترسی کامل این دوره از فروشگاه و بعد از تأیید دریافت باز می‌شود.</p>
+              <Link href={`/shop/${shopListing.slug}`} className="mt-2 inline-block font-medium text-indigo-700">
+                رفتن به {shopListing.titleFa}
+              </Link>
+            </div>
+          ) : null}
           <div className="grid gap-8 md:grid-cols-3">
             <div className="md:col-span-2">
               <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-slate-900">

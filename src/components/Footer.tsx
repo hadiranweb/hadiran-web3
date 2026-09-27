@@ -27,6 +27,9 @@ export function Footer() {
             <Link href="/courses" className="hover:text-indigo-600 dark:hover:text-indigo-400">
               دوره‌ها
             </Link>
+            <Link href="/shop" className="hover:text-indigo-600 dark:hover:text-indigo-400">
+              فروشگاه
+            </Link>
             <Link href="/topics" className="hover:text-indigo-600 dark:hover:text-indigo-400">
               موضوعات
             </Link>

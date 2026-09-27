@@ -33,6 +33,7 @@ worlds:
   workspace:  { path: /workspace,  role: owner capture desk, noindex, not in primary nav }
   lab:        { path: /lab,        role: projects, documents, collaboration }
   academy:    { path: /courses,    role: courses and lessons }
+  shop:       { path: /shop,       role: Hadiran products; out-of-band pay, owner confirms }
   ecosystem:  { path: /ecosystem,  role: map of the four worlds }
 
 bridges:
@@ -130,6 +131,10 @@ Capture happens at `/workspace` (owner). The public graph only shows approved pu
 /courses                  academy
 /courses/[slug]           one course
 
+/shop                     product catalog (out-of-band settlement)
+/shop/[slug]              one listing
+/shop/orders/[id]         buyer order (session, noindex)
+
 /topics                   topic index
 /topics/[slug]            topic hub: related knowledge + lab + courses
 
@@ -138,7 +143,7 @@ Capture happens at `/workspace` (owner). The public graph only shows approved pu
 
 `?topic=` only filters a list. Canonical topic pages are `/topics/[slug]`. UUIDs never appear in public paths.
 
-Primary nav: home, ecosystem, person, knowledge, lab, courses, sign-in.  
+Primary nav: home, ecosystem, person, knowledge, lab, courses, shop, sign-in.  
 Footer: topics, contact.
 
 ---

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Brain, User, BookOpen, FlaskConical, GraduationCap, Layers, Menu, X } from "lucide-react";
+import { Brain, User, BookOpen, FlaskConical, GraduationCap, Layers, Menu, X, ShoppingBag } from "lucide-react";
 import { useState } from "react";
 import { SessionMenu } from "@/components/auth/SessionMenu";
 
@@ -12,6 +12,7 @@ const primaryLinks = [
   { href: "/knowledge", label: "دانشنامه", icon: BookOpen },
   { href: "/lab", label: "آزمایشگاه", icon: FlaskConical },
   { href: "/courses", label: "دوره‌ها", icon: GraduationCap },
+  { href: "/shop", label: "فروشگاه", icon: ShoppingBag },
 ];
 
 export function Nav() {

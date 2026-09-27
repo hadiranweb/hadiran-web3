@@ -9,6 +9,7 @@ import {
   jsonb,
   pgEnum,
   primaryKey,
+  unique,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -430,6 +431,69 @@ export const provenanceRecords = pgTable("provenance_records", {
   capturedAt: timestamp("captured_at", { withTimezone: true }).defaultNow(),
   schemaVersion: text("schema_version").notNull().default("0.1"),
 });
+
+export const shopPayoutDestinations = pgTable("shop_payout_destinations", {
+  id: integer("id").primaryKey(),
+  accountHandle: text("account_handle").notNull(),
+  accountAlias: text("account_alias"),
+  updatedBy: integer("updated_by").references(() => accounts.id, { onDelete: "set null" }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+export const shopListings = pgTable("shop_listings", {
+  id: text("id").primaryKey(),
+  slug: varchar("slug", { length: 128 }).notNull().unique(),
+  titleFa: varchar("title_fa", { length: 256 }).notNull(),
+  titleEn: varchar("title_en", { length: 256 }),
+  summaryFa: text("summary_fa"),
+  bodyFa: text("body_fa"),
+  accessBodyFa: text("access_body_fa"),
+  kind: text("kind").notNull().default("digital_entitlement"),
+  amount: integer("amount").notNull(),
+  currency: varchar("currency", { length: 8 }).notNull().default("IRR"),
+  courseId: integer("course_id").references(() => courses.id, { onDelete: "set null" }),
+  published: boolean("published").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+export const shopOrders = pgTable("shop_orders", {
+  id: text("id").primaryKey(),
+  buyerId: integer("buyer_id")
+    .notNull()
+    .references(() => accounts.id, { onDelete: "cascade" }),
+  listingId: text("listing_id")
+    .notNull()
+    .references(() => shopListings.id, { onDelete: "restrict" }),
+  amount: integer("amount").notNull(),
+  currency: varchar("currency", { length: 8 }).notNull().default("IRR"),
+  state: text("state").notNull().default("awaiting_payment_reference"),
+  paymentReference: text("payment_reference"),
+  declineReason: text("decline_reason"),
+  payoutHandleSnapshot: text("payout_handle_snapshot"),
+  payoutAliasSnapshot: text("payout_alias_snapshot"),
+  settledAt: timestamp("settled_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+export const shopEntitlements = pgTable(
+  "shop_entitlements",
+  {
+    id: serial("id").primaryKey(),
+    accountId: integer("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    listingId: text("listing_id")
+      .notNull()
+      .references(() => shopListings.id, { onDelete: "cascade" }),
+    orderId: text("order_id")
+      .notNull()
+      .references(() => shopOrders.id, { onDelete: "cascade" }),
+    grantedAt: timestamp("granted_at", { withTimezone: true }).defaultNow(),
+  },
+  (t) => [unique().on(t.accountId, t.listingId)]
+);
 
 export const conversations = pgTable("conversations", {
   id: serial("id").primaryKey(),

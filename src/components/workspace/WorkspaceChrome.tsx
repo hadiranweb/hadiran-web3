@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const links = [
   { href: "/workspace", label: "نمای کلی", exact: true },
   { href: "/workspace/capture", label: "ثبت جدید", exact: false },
+  { href: "/workspace/shop", label: "فروشگاه", exact: false },
 ];
 
 export function WorkspaceChrome() {
