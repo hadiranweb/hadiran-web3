@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { otpChallenges } from "@/db/schema";
 import { InvalidPhoneError, maskPhone, normalizePhone } from "@/lib/auth/phone";
@@ -45,6 +45,17 @@ export async function POST(request: Request) {
       }
       throw error;
     }
+
+    await db
+      .update(otpChallenges)
+      .set({ consumedAt: new Date() })
+      .where(
+        and(
+          eq(otpChallenges.phone, phone),
+          eq(otpChallenges.purpose, "login"),
+          isNull(otpChallenges.consumedAt),
+        ),
+      );
 
     const code = sixDigitCode();
     const [inserted] = await db

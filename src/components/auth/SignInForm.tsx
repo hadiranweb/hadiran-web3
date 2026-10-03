@@ -26,6 +26,7 @@ function persianError(code: string) {
     password_login_failed: "ورود با رمز ناموفق بود.",
     password_set_failed: "ذخیرهٔ رمز ناموفق بود.",
     unauthorized: "نشست منقضی شد. دوباره وارد شو.",
+    jwt_not_configured: "ورود روی سرور کامل تنظیم نشده. کمی بعد دوباره تلاش کن.",
   };
   return map[code] || "خطایی رخ داد. دوباره تلاش کنید.";
 }

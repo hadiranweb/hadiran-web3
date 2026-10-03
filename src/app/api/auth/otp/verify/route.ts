@@ -125,6 +125,9 @@ export async function POST(request: Request) {
         });
         return NextResponse.json({ error: "account_disabled" }, { status: 403 });
       }
+      if (error instanceof Error && error.name === "JwtSecretMissingError") {
+        return NextResponse.json({ error: "jwt_not_configured" }, { status: 503 });
+      }
       throw error;
     }
   } catch (error) {

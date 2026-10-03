@@ -3,9 +3,10 @@ import { db } from "@/db";
 import { accounts, sessions } from "@/db/schema";
 import { and, eq, isNull, gt } from "drizzle-orm";
 import { hashSecret, randomSessionToken } from "./crypto";
-import { SESSION_COOKIE, SESSION_DAYS, ownerPhones } from "./config";
+import { SESSION_COOKIE, SESSION_DAYS, isProduction, ownerPhones } from "./config";
 import { needsPasswordSetup } from "./password";
 import { requestIp, requestUserAgent } from "./request";
+import { assertJwtReadyForIssue, jwtConfigured, sessionJtiFromCookie, signSessionJwt } from "./jwt";
 
 export type SessionAccount = {
   id: number;
@@ -18,24 +19,32 @@ export function sessionCookieOptions() {
   return {
     httpOnly: true,
     sameSite: "lax" as const,
-    secure: process.env.NODE_ENV === "production",
+    secure: isProduction(),
     path: "/",
     maxAge: SESSION_DAYS * 24 * 60 * 60,
   };
 }
 
 export async function createSession(accountId: number, meta?: { ip?: string; userAgent?: string | null }) {
-  const token = randomSessionToken();
+  assertJwtReadyForIssue();
+  const jti = randomSessionToken();
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
   await db.insert(sessions).values({
     accountId,
-    tokenHash: hashSecret(token),
+    tokenHash: hashSecret(jti),
     expiresAt,
     ipAddress: meta?.ip ?? null,
     userAgent: meta?.userAgent ?? null,
     lastSeenAt: new Date(),
   });
-  return token;
+  if (jwtConfigured()) {
+    return signSessionJwt({
+      sub: String(accountId),
+      jti,
+      exp: Math.floor(expiresAt.getTime() / 1000),
+    });
+  }
+  return jti;
 }
 
 export async function setSessionCookie(token: string) {
@@ -57,7 +66,9 @@ export async function getCurrentAccount(): Promise<SessionAccount | null> {
   const token = await readSessionToken();
   if (!token) return null;
   try {
-    const tokenHash = hashSecret(token);
+    const parsed = sessionJtiFromCookie(token);
+    if (!parsed) return null;
+    const tokenHash = hashSecret(parsed.jti);
     const [row] = await db
       .select({
         id: accounts.id,
@@ -73,12 +84,13 @@ export async function getCurrentAccount(): Promise<SessionAccount | null> {
           eq(sessions.tokenHash, tokenHash),
           isNull(sessions.revokedAt),
           gt(sessions.expiresAt, new Date()),
-          eq(accounts.isActive, true)
-        )
+          eq(accounts.isActive, true),
+        ),
       )
       .limit(1);
 
     if (!row) return null;
+    if (parsed.accountId && parsed.accountId !== row.id) return null;
 
     await db
       .update(sessions)
@@ -100,10 +112,12 @@ export async function revokeCurrentSession() {
   const token = await readSessionToken();
   if (!token) return;
   try {
+    const parsed = sessionJtiFromCookie(token);
+    const jti = parsed?.jti || token;
     await db
       .update(sessions)
       .set({ revokedAt: new Date() })
-      .where(eq(sessions.tokenHash, hashSecret(token)));
+      .where(eq(sessions.tokenHash, hashSecret(jti)));
   } catch {
     // local logout still proceeds
   }

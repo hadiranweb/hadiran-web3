@@ -140,6 +140,7 @@ OTP_TTL_SECONDS=120
 OTP_MAX_ATTEMPTS=5
 HADIRAN_OWNER_PHONES=
 HADIRAN_OWNER_PASSWORD=
+HADIRAN_JWT_SECRET=
 ```
 
 - `SMSIR_CODE_PARAMETER` باید با پارامتر قالب Verify در پنل SMS.ir یکی باشد؛ در کد پیش‌فرض `CODE` است.

@@ -34,6 +34,7 @@
 - قالب Verify پنل SMS.ir باید پارامتر `CODE` (یا `SMSIR_CODE_PARAMETER`) داشته باشد
 - `HADIRAN_OWNER_PHONES` نقش owner را هنگام اولین ورود می‌سازد
 - `HADIRAN_OWNER_PASSWORD` فقط روی لیارا؛ با همان شماره، UI برگشتی (رمز + OTP)
+- `HADIRAN_JWT_SECRET` (≥۳۲ نویسه) روی همان App لیارا در هر منطقه‌ای که `hadiranweb` بالا می‌آید؛ کوکی نشست JWT است، ابطال در جدول `sessions`
 - مایگریشن `0007_account_password.sql` ستون هش رمز کاربران
 - جدول‌های `accounts`, `otp_challenges`, `sessions`, `auth_events`, `rate_limit_buckets`
 
