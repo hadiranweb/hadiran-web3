@@ -26,6 +26,7 @@ function persianError(code: string) {
     sms_provider_rejected: "قالب Verify یا نام پارامتر (معمولاً CODE بدون #) با پنل SMS.ir یکی نیست.",
     account_disabled: "این حساب غیرفعال است.",
     otp_send_failed: "ارسال کد ناموفق بود.",
+    lookup_failed: "چک شماره روی سرور شکست خورد. اگر مالک هستی و رمز لیارا ست است، همین شماره باید کادر رمز بیاورد.",
     otp_verify_failed: "تأیید کد ناموفق بود.",
     password_login_failed: "ورود با رمز ناموفق بود.",
     password_set_failed: "ذخیرهٔ رمز ناموفق بود.",

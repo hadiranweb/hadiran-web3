@@ -7,6 +7,7 @@ import { enforceRateLimit, RateLimitExceededError, rateLimitHeaders } from "@/li
 import { recordAuthEvent } from "@/lib/auth/audit";
 import { requestIp } from "@/lib/auth/request";
 import { phoneHasOwnerEnvPassword } from "@/lib/auth/password";
+import { ensureAccountPasswordColumns } from "@/lib/auth/schema-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -32,15 +33,33 @@ export async function POST(request: Request) {
       throw error;
     }
 
-    const [account] = await db.select().from(accounts).where(eq(accounts.phone, phone)).limit(1);
-    const has_password = phoneHasOwnerEnvPassword(phone) || Boolean(account?.passwordHash);
+    const ownerPass = phoneHasOwnerEnvPassword(phone);
+    let accountId: number | null = null;
+    let hasDbPassword = false;
+    try {
+      await ensureAccountPasswordColumns();
+      const [account] = await db
+        .select({ id: accounts.id, passwordHash: accounts.passwordHash })
+        .from(accounts)
+        .where(eq(accounts.phone, phone))
+        .limit(1);
+      accountId = account?.id ?? null;
+      hasDbPassword = Boolean(account?.passwordHash);
+    } catch (error) {
+      console.error("[hadiran] auth lookup db", error);
+      if (!ownerPass) {
+        return NextResponse.json({ error: "lookup_failed" }, { status: 503 });
+      }
+    }
+
+    const has_password = ownerPass || hasDbPassword;
 
     await recordAuthEvent({
       request,
       eventType: "auth_lookup",
       outcome: "success",
       phone,
-      accountId: account?.id ?? null,
+      accountId,
       startedAt,
     });
 
@@ -57,6 +76,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "invalid_phone" }, { status: 400 });
     }
     console.error("auth lookup:", error);
-    return NextResponse.json({ error: "otp_send_failed" }, { status: 500 });
+    return NextResponse.json({ error: "lookup_failed" }, { status: 500 });
   }
 }

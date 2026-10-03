@@ -7,6 +7,7 @@ import { SESSION_COOKIE, SESSION_DAYS, isProduction, ownerPhones } from "./confi
 import { needsPasswordSetup } from "./password";
 import { requestIp, requestUserAgent } from "./request";
 import { assertJwtReadyForIssue, jwtConfigured, sessionJtiFromCookie, signSessionJwt } from "./jwt";
+import { ensureAccountPasswordColumns } from "./schema-guard";
 
 export type SessionAccount = {
   id: number;
@@ -135,6 +136,7 @@ export async function completePhoneLogin(input: {
   request: Request;
 }): Promise<{ account: LoginAccount; needs_password: boolean }> {
   const role = roleForPhone(input.phone);
+  await ensureAccountPasswordColumns();
   const [existing] = await db.select().from(accounts).where(eq(accounts.phone, input.phone)).limit(1);
   let account = existing;
   if (!account) {
