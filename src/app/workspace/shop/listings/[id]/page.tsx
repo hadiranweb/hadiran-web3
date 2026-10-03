@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { db } from "@/db";
-import { courses, shopListings } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { courses, shopListingImages, shopListings } from "@/db/schema";
+import { eq, asc } from "drizzle-orm";
 import { requirePageOwner } from "@/lib/auth/guard";
 import { ListingEditor } from "@/components/shop/ListingEditor";
 import type { Metadata } from "next";
@@ -22,6 +22,17 @@ export default async function EditListingPage({ params }: Props) {
   await requirePageOwner(`/workspace/shop/listings/${id}`);
   const [item] = await db.select().from(shopListings).where(eq(shopListings.id, id));
   if (!item) notFound();
+  let imageUrls: string[] = [];
+  try {
+    const rows = await db
+      .select()
+      .from(shopListingImages)
+      .where(eq(shopListingImages.listingId, item.id))
+      .orderBy(asc(shopListingImages.position));
+    imageUrls = rows.map((row) => row.imageUrl);
+  } catch (error) {
+    console.error("[hadiran] listing images", error);
+  }
   let courseRows: { id: number; titleFa: string; slug: string }[] = [];
   try {
     courseRows = await db.select({ id: courses.id, titleFa: courses.titleFa, slug: courses.slug }).from(courses);
@@ -43,6 +54,11 @@ export default async function EditListingPage({ params }: Props) {
           accessBodyFa: item.accessBodyFa,
           amount: item.amount,
           currency: item.currency,
+          kind: item.kind,
+          usdRatio: item.usdRatio,
+          comparePrice: item.comparePrice,
+          specs: item.specs,
+          imageUrls,
           courseId: item.courseId,
           published: item.published,
         }}

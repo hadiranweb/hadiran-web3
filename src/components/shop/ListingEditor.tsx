@@ -1,161 +1,191 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Save } from "lucide-react";
+import { useState } from "react";
+import { shopKindFa, type ShopKind } from "@/lib/shop/kinds";
 
-export type ListingDraft = {
-  id?: string;
-  slug?: string;
+type CourseOpt = { id: number; titleFa: string; slug: string };
+type SpecRow = { key: string; value: string };
+
+type Initial = {
+  id: string;
+  slug: string;
   titleFa: string;
-  titleEn?: string | null;
-  summaryFa?: string | null;
-  bodyFa?: string | null;
-  accessBodyFa?: string | null;
+  titleEn: string | null;
+  summaryFa: string | null;
+  bodyFa: string | null;
+  accessBodyFa: string | null;
   amount: number;
-  currency?: string;
-  courseId?: number | null;
-  published?: boolean;
+  currency: string;
+  kind?: string;
+  usdRatio?: number | null;
+  comparePrice?: number | null;
+  specs?: SpecRow[] | null;
+  imageUrls?: string[];
+  courseId: number | null;
+  published: boolean;
 };
 
 export function ListingEditor({
-  initial,
   courses,
+  initial,
 }: {
-  initial?: ListingDraft;
-  courses: { id: number; titleFa: string; slug: string }[];
+  courses: CourseOpt[];
+  initial?: Initial;
 }) {
   const router = useRouter();
-  const [titleFa, setTitleFa] = useState(initial?.titleFa ?? "");
-  const [titleEn, setTitleEn] = useState(initial?.titleEn ?? "");
-  const [slug, setSlug] = useState(initial?.slug ?? "");
-  const [summaryFa, setSummaryFa] = useState(initial?.summaryFa ?? "");
-  const [bodyFa, setBodyFa] = useState(initial?.bodyFa ?? "");
-  const [accessBodyFa, setAccessBodyFa] = useState(initial?.accessBodyFa ?? "");
-  const [amount, setAmount] = useState(String(initial?.amount ?? ""));
-  const [courseId, setCourseId] = useState(initial?.courseId ? String(initial.courseId) : "");
-  const [published, setPublished] = useState(Boolean(initial?.published));
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [kind, setKind] = useState<ShopKind>(
+    initial?.kind === "physical_good" || initial?.kind === "course_access"
+      ? initial.kind
+      : "digital_entitlement",
+  );
+  const [specs, setSpecs] = useState<SpecRow[]>(initial?.specs?.length ? initial.specs : [{ key: "", value: "" }]);
+  const [imageUrls, setImageUrls] = useState((initial?.imageUrls ?? []).join("\n"));
 
-  async function onSubmit(event: FormEvent) {
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSaving(true);
+    setBusy(true);
     setError(null);
+    const form = new FormData(event.currentTarget);
     const payload = {
-      titleFa,
-      titleEn,
-      slug,
-      summaryFa,
-      bodyFa,
-      accessBodyFa,
-      amount: Number(amount),
-      courseId: courseId || null,
-      published,
+      titleFa: String(form.get("titleFa") ?? ""),
+      titleEn: String(form.get("titleEn") ?? ""),
+      slug: String(form.get("slug") ?? ""),
+      summaryFa: String(form.get("summaryFa") ?? ""),
+      bodyFa: String(form.get("bodyFa") ?? ""),
+      accessBodyFa: String(form.get("accessBodyFa") ?? ""),
+      amount: Number(form.get("amount")),
+      currency: String(form.get("currency") ?? "IRR"),
+      kind,
+      usdRatio: String(form.get("usdRatio") ?? "").trim() || null,
+      comparePrice: String(form.get("comparePrice") ?? "").trim() || null,
+      specs: specs.filter((row) => row.key.trim() && row.value.trim()),
+      images: imageUrls,
+      courseId: String(form.get("courseId") ?? "") || null,
+      published: form.get("published") === "on",
     };
-    try {
-      const res = initial?.id
-        ? await fetch(`/api/workspace/shop/listings/${initial.id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          })
-        : await fetch("/api/workspace/shop/listings", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          });
-      const data = (await res.json()) as { error?: string };
-      if (!res.ok) {
-        setError(data.error || "ذخیره نشد.");
-        return;
-      }
-      router.push("/workspace/shop");
-      router.refresh();
-    } catch {
-      setError("ذخیره نشد.");
-    } finally {
-      setSaving(false);
+    const url = initial ? `/api/workspace/shop/listings/${initial.id}` : "/api/workspace/shop/listings";
+    const res = await fetch(url, {
+      method: initial ? "PATCH" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = (await res.json()) as { error?: string };
+    setBusy(false);
+    if (!res.ok) {
+      setError(data.error ?? "ذخیره نشد.");
+      return;
     }
+    router.push("/workspace/shop");
+    router.refresh();
   }
 
   return (
-    <form onSubmit={(event) => void onSubmit(event)} className="space-y-4">
+    <form onSubmit={onSubmit} className="space-y-4">
+      {error ? <p className="rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-800">{error}</p> : null}
       <label className="block text-sm">
-        <span className="mb-1 block font-medium text-slate-700">عنوان فارسی</span>
-        <input
-          required
-          minLength={3}
-          value={titleFa}
-          onChange={(e) => setTitleFa(e.target.value)}
-          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2"
-        />
+        عنوان فارسی
+        <input name="titleFa" required defaultValue={initial?.titleFa} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" />
       </label>
       <label className="block text-sm">
-        <span className="mb-1 block font-medium text-slate-700">اسلاگ لاتین</span>
-        <input
-          value={slug}
-          onChange={(e) => setSlug(e.target.value)}
-          dir="ltr"
-          placeholder="from title_en if empty"
-          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2"
-        />
+        عنوان لاتین (برای اسلاگ)
+        <input name="titleEn" defaultValue={initial?.titleEn ?? ""} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" dir="ltr" />
       </label>
       <label className="block text-sm">
-        <span className="mb-1 block font-medium text-slate-700">عنوان انگلیسی (برای اسلاگ)</span>
-        <input
-          value={titleEn}
-          onChange={(e) => setTitleEn(e.target.value)}
-          dir="ltr"
-          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2"
-        />
+        اسلاگ
+        <input name="slug" defaultValue={initial?.slug} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" dir="ltr" />
+      </label>
+      <fieldset className="rounded-2xl border border-slate-200 p-3">
+        <legend className="px-1 text-sm font-medium text-slate-700">نوع کالا</legend>
+        <div className="flex flex-wrap gap-3 text-sm">
+          {(["digital_entitlement", "physical_good", "course_access"] as const).map((value) => (
+            <label key={value} className="flex items-center gap-2">
+              <input type="radio" name="kind" checked={kind === value} onChange={() => setKind(value)} />
+              {shopKindFa(value)}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      <label className="block text-sm">
+        خلاصه
+        <textarea name="summaryFa" rows={3} defaultValue={initial?.summaryFa ?? ""} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" />
       </label>
       <label className="block text-sm">
-        <span className="mb-1 block font-medium text-slate-700">مبلغ (ریال)</span>
-        <input
-          required
-          type="number"
-          min={1}
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          dir="ltr"
-          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2"
-        />
+        توضیح
+        <textarea name="bodyFa" rows={8} defaultValue={initial?.bodyFa ?? ""} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" />
       </label>
       <label className="block text-sm">
-        <span className="mb-1 block font-medium text-slate-700">خلاصهٔ عمومی</span>
+        متن پس از تأیید پرداخت {kind === "physical_good" ? "(برای فیزیکی: هماهنگی ارسال)" : "(لینک یا دستور دسترسی)"}
+        <textarea name="accessBodyFa" rows={5} defaultValue={initial?.accessBodyFa ?? ""} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" />
+      </label>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <label className="block text-sm">
+          مبلغ (ریال)
+          <input name="amount" type="number" min={1} required defaultValue={initial?.amount ?? 0} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" dir="ltr" />
+        </label>
+        <label className="block text-sm">
+          نسبت دلاری (اختیاری)
+          <input name="usdRatio" type="number" step="0.0001" min={0} defaultValue={initial?.usdRatio ?? ""} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" dir="ltr" />
+        </label>
+        <label className="block text-sm">
+          قیمت مقایسه (ریال)
+          <input name="comparePrice" type="number" min={0} defaultValue={initial?.comparePrice ?? ""} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" dir="ltr" />
+        </label>
+      </div>
+      <p className="text-xs text-slate-500">
+        اگر نسبت دلاری و نرخ هفته در فروشگاه ثبت شده باشد، مبلغ از نسبت × نرخ محاسبه می‌شود. پرداخت همچنان خارج از سایت است.
+      </p>
+      <input type="hidden" name="currency" defaultValue={initial?.currency ?? "IRR"} />
+      <label className="block text-sm">
+        نشانی تصاویر (هر خط یک URL؛ اولی جلد است)
         <textarea
-          value={summaryFa}
-          onChange={(e) => setSummaryFa(e.target.value)}
-          rows={2}
-          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2"
+          rows={4}
+          value={imageUrls}
+          onChange={(e) => setImageUrls(e.target.value)}
+          className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+          dir="ltr"
+          placeholder="https://…"
         />
       </label>
-      <label className="block text-sm">
-        <span className="mb-1 block font-medium text-slate-700">توضیح ویترین</span>
-        <textarea
-          value={bodyFa}
-          onChange={(e) => setBodyFa(e.target.value)}
-          rows={6}
-          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2"
-        />
-      </label>
-      <label className="block text-sm">
-        <span className="mb-1 block font-medium text-slate-700">محتوای تحویل بعد از تسویه</span>
-        <textarea
-          value={accessBodyFa}
-          onChange={(e) => setAccessBodyFa(e.target.value)}
-          rows={6}
-          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2"
-        />
-      </label>
-      <label className="block text-sm">
-        <span className="mb-1 block font-medium text-slate-700">قفل دوره (اختیاری)</span>
-        <select
-          value={courseId}
-          onChange={(e) => setCourseId(e.target.value)}
-          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2"
+      <div className="space-y-2">
+        <p className="text-sm font-medium text-slate-700">مشخصات</p>
+        {specs.map((row, index) => (
+          <div key={index} className="grid grid-cols-2 gap-2">
+            <input
+              value={row.key}
+              onChange={(e) => {
+                const next = [...specs];
+                next[index] = { ...next[index], key: e.target.value };
+                setSpecs(next);
+              }}
+              placeholder="ویژگی"
+              className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            />
+            <input
+              value={row.value}
+              onChange={(e) => {
+                const next = [...specs];
+                next[index] = { ...next[index], value: e.target.value };
+                setSpecs(next);
+              }}
+              placeholder="مقدار"
+              className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            />
+          </div>
+        ))}
+        <button
+          type="button"
+          className="text-sm text-indigo-700"
+          onClick={() => setSpecs((rows) => (rows.length >= 15 ? rows : [...rows, { key: "", value: "" }]))}
         >
+          + ردیف مشخصات
+        </button>
+      </div>
+      <label className="block text-sm">
+        دورهٔ مرتبط (برای دسترسی آموزشی)
+        <select name="courseId" defaultValue={initial?.courseId ?? ""} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2">
           <option value="">بدون دوره</option>
           {courses.map((course) => (
             <option key={course.id} value={course.id}>
@@ -165,17 +195,11 @@ export function ListingEditor({
         </select>
       </label>
       <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={published} onChange={(e) => setPublished(e.target.checked)} />
-        انتشار در /shop
+        <input type="checkbox" name="published" defaultChecked={initial?.published} />
+        منتشر شود
       </label>
-      {error ? <p className="text-sm text-rose-600">{error}</p> : null}
-      <button
-        type="submit"
-        disabled={saving}
-        className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-      >
-        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-        ذخیرهٔ کالا
+      <button disabled={busy} className="rounded-full bg-indigo-700 px-5 py-2 text-sm font-medium text-white disabled:opacity-60">
+        {busy ? "در حال ذخیره…" : "ذخیره"}
       </button>
     </form>
   );

@@ -7,6 +7,9 @@ import { formatMoney } from "@/lib/shop/money";
 import { orderStateFa } from "@/lib/shop/states";
 import { PayoutForm } from "@/components/shop/PayoutForm";
 import { OwnerOrderActions } from "@/components/shop/OwnerOrderActions";
+import { UsdRateForm } from "@/components/shop/UsdRateForm";
+import { getShopUsdRate } from "@/lib/shop/price-engine";
+import { shopKindFa } from "@/lib/shop/kinds";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -26,6 +29,7 @@ export default async function WorkspaceShopPage() {
     buyerPhone: string;
   }[] = [];
   let payout: typeof shopPayoutDestinations.$inferSelect | null = null;
+  let usdRate: number | null = null;
   try {
     listings = await db.select().from(shopListings).orderBy(desc(shopListings.updatedAt));
     const orderRows = await db
@@ -43,6 +47,7 @@ export default async function WorkspaceShopPage() {
     orders = orderRows;
     const [row] = await db.select().from(shopPayoutDestinations).where(eq(shopPayoutDestinations.id, 1));
     payout = row ?? null;
+    usdRate = await getShopUsdRate();
   } catch (error) {
     console.error("[hadiran] workspace shop", error);
   }
@@ -63,6 +68,7 @@ export default async function WorkspaceShopPage() {
           تا مقصد دریافت ذخیره نشود، خریدار نمی‌تواند سفارش بسازد.
         </p>
       ) : null}
+      <UsdRateForm initialRate={usdRate} />
       <PayoutForm
         initial={payout ? { accountHandle: payout.accountHandle, accountAlias: payout.accountAlias } : null}
       />
@@ -101,7 +107,8 @@ export default async function WorkspaceShopPage() {
                 >
                   <p className="font-medium text-slate-900">{item.titleFa}</p>
                   <p className="mt-1 text-xs text-slate-500">
-                    {item.published ? "منتشر" : "پیش‌نویس"} · {formatMoney(item.amount, item.currency)}
+                    {item.published ? "منتشر" : "پیش‌نویس"} · {shopKindFa(item.kind)} ·{" "}
+                    {formatMoney(item.amount, item.currency)}
                   </p>
                 </Link>
               </li>

@@ -7,6 +7,7 @@ import {
   boolean,
   timestamp,
   jsonb,
+  doublePrecision,
   pgEnum,
   primaryKey,
   unique,
@@ -442,6 +443,13 @@ export const shopPayoutDestinations = pgTable("shop_payout_destinations", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
 
+export type ShopSpec = { key: string; value: string };
+
+export const shopSettings = pgTable("shop_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+});
+
 export const shopListings = pgTable("shop_listings", {
   id: text("id").primaryKey(),
   slug: varchar("slug", { length: 128 }).notNull().unique(),
@@ -453,10 +461,24 @@ export const shopListings = pgTable("shop_listings", {
   kind: text("kind").notNull().default("digital_entitlement"),
   amount: integer("amount").notNull(),
   currency: varchar("currency", { length: 8 }).notNull().default("IRR"),
+  usdRatio: doublePrecision("usd_ratio"),
+  comparePrice: integer("compare_price"),
+  specs: jsonb("specs").$type<ShopSpec[]>(),
+  coverImageUrl: text("cover_image_url"),
   courseId: integer("course_id").references(() => courses.id, { onDelete: "set null" }),
   published: boolean("published").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+export const shopListingImages = pgTable("shop_listing_images", {
+  id: serial("id").primaryKey(),
+  listingId: text("listing_id")
+    .notNull()
+    .references(() => shopListings.id, { onDelete: "cascade" }),
+  imageUrl: text("image_url").notNull(),
+  thumbUrl: text("thumb_url"),
+  position: integer("position").notNull().default(0),
 });
 
 export const shopOrders = pgTable("shop_orders", {

@@ -30,5 +30,9 @@ export const MIGRATION_FILES: { id: string; sql: string }[] = [
   {
     "id": "0007_account_password.sql",
     "sql": "ALTER TABLE accounts ADD COLUMN IF NOT EXISTS password_hash TEXT;\nALTER TABLE accounts ADD COLUMN IF NOT EXISTS password_set_at TIMESTAMPTZ;\n"
+  },
+  {
+    "id": "0008_shop_catalog.sql",
+    "sql": "-- Hadiran shop catalog: physical + digital, USD ratio pricing, gallery, specs.\n-- Payment remains out-of-band. No PSP.\n\nCREATE TABLE IF NOT EXISTS shop_settings (\n  key TEXT PRIMARY KEY,\n  value TEXT NOT NULL\n);\n\nALTER TABLE shop_listings ADD COLUMN IF NOT EXISTS usd_ratio DOUBLE PRECISION;\nALTER TABLE shop_listings ADD COLUMN IF NOT EXISTS compare_price INTEGER;\nALTER TABLE shop_listings ADD COLUMN IF NOT EXISTS specs JSONB;\nALTER TABLE shop_listings ADD COLUMN IF NOT EXISTS cover_image_url TEXT;\n\nCREATE TABLE IF NOT EXISTS shop_listing_images (\n  id SERIAL PRIMARY KEY,\n  listing_id TEXT NOT NULL REFERENCES shop_listings(id) ON DELETE CASCADE,\n  image_url TEXT NOT NULL,\n  thumb_url TEXT,\n  position INTEGER NOT NULL DEFAULT 0\n);\n\nCREATE INDEX IF NOT EXISTS shop_listing_images_listing_idx\n  ON shop_listing_images (listing_id, position);\n"
   }
 ];
