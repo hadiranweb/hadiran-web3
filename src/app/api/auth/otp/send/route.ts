@@ -126,6 +126,7 @@ export async function POST(request: Request) {
           phone,
           errorCode: error.message,
           startedAt,
+          metadata: { provider_http: error.providerStatus ?? null },
         });
         return NextResponse.json({ error: error.message }, { status: error.statusCode });
       }

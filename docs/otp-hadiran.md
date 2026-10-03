@@ -35,6 +35,7 @@
 - `HADIRAN_OWNER_PHONES` نقش owner را هنگام اولین ورود می‌سازد
 - `HADIRAN_OWNER_PASSWORD` فقط روی لیارا؛ با همان شماره، UI برگشتی (رمز + OTP)
 - `HADIRAN_JWT_SECRET` (≥۳۲ نویسه) روی همان App لیارا در هر منطقه‌ای که `hadiranweb` بالا می‌آید؛ کوکی نشست JWT است، ابطال در جدول `sessions`
+- اگر لیارا به `api.sms.ir` نرسد: خطای `sms_provider_timeout` / `unreachable`؛ مالک با `HADIRAN_OWNER_PASSWORD` بدون پیامک وارد می‌شود. در صورت نیاز `SMSIR_API_BASE` پروکسی.
 - مایگریشن `0007_account_password.sql` ستون هش رمز کاربران
 - جدول‌های `accounts`, `otp_challenges`, `sessions`, `auth_events`, `rate_limit_buckets`
 

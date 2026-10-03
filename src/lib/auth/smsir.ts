@@ -1,17 +1,20 @@
 import { smsIrConfig } from "./config";
 import { toSmsIrMobile } from "./phone";
 
-const SMSIR_VERIFY_URL = "https://api.sms.ir/v1/send/verify";
-
 export class SmsProviderError extends Error {
   constructor(
     public readonly statusCode: number,
     message = "sms_provider_failed",
-    public readonly providerStatus?: number
+    public readonly providerStatus?: number,
   ) {
     super(message);
     this.name = "SmsProviderError";
   }
+}
+
+function verifyUrl() {
+  const base = (process.env.SMSIR_API_BASE || "https://api.sms.ir").replace(/\/+$/, "");
+  return `${base}/v1/send/verify`;
 }
 
 export async function sendSmsIrVerificationCode(input: {
@@ -25,12 +28,12 @@ export async function sendSmsIrVerificationCode(input: {
 
   const mobile = toSmsIrMobile(input.phone);
   try {
-    const response = await fetch(SMSIR_VERIFY_URL, {
+    const response = await fetch(verifyUrl(), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Accept: "application/json",
-        "X-API-KEY": env.apiKey,
+        Accept: "application/json, text/plain",
+        "x-api-key": env.apiKey,
       },
       body: JSON.stringify({
         mobile,
@@ -47,18 +50,30 @@ export async function sendSmsIrVerificationCode(input: {
     };
 
     if (!response.ok || payload.status !== 1) {
-      const providerStatus =
-        response.status === 401 ? 502 : response.status === 429 ? 429 : 502;
-      throw new SmsProviderError(providerStatus, "sms_provider_failed", response.status);
+      console.error("[hadiran-otp] sms.ir rejected", {
+        http: response.status,
+        status: payload.status ?? null,
+      });
+      if (response.status === 401 || response.status === 403) {
+        throw new SmsProviderError(502, "sms_provider_auth", response.status);
+      }
+      if (response.status === 429) {
+        throw new SmsProviderError(429, "rate_limit_exceeded", response.status);
+      }
+      throw new SmsProviderError(502, "sms_provider_rejected", response.status);
     }
 
     return {
-      messageId:
-        payload.data?.messageId === undefined ? undefined : String(payload.data.messageId),
+      messageId: payload.data?.messageId === undefined ? undefined : String(payload.data.messageId),
       cost: payload.data?.cost,
     };
   } catch (error) {
     if (error instanceof SmsProviderError) throw error;
-    throw new SmsProviderError(502, "sms_provider_failed");
+    const name = error instanceof Error ? error.name : "";
+    console.error("[hadiran-otp] sms.ir transport", name || "unknown");
+    if (name === "TimeoutError" || name === "AbortError") {
+      throw new SmsProviderError(504, "sms_provider_timeout");
+    }
+    throw new SmsProviderError(502, "sms_provider_unreachable");
   }
 }

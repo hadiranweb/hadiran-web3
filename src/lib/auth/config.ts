@@ -9,12 +9,13 @@ export function smsIrConfig() {
   const apiKey = process.env.SMSIR_API_KEY?.trim() || "";
   const templateRaw = process.env.SMSIR_TEMPLATE_ID?.trim() || "";
   const templateId = Number(templateRaw);
+  const timeoutMs = Number(process.env.SMSIR_TIMEOUT_MS || 10000);
   return {
     apiKey,
     templateId: Number.isFinite(templateId) ? templateId : 0,
     codeParameter: process.env.SMSIR_CODE_PARAMETER?.trim() || "CODE",
-    timeoutMs: Number(process.env.SMSIR_TIMEOUT_MS || 10000),
-    configured: Boolean(apiKey && templateRaw),
+    timeoutMs: Number.isFinite(timeoutMs) && timeoutMs >= 3000 ? timeoutMs : 10000,
+    configured: Boolean(apiKey && Number.isInteger(templateId) && templateId > 0),
   };
 }
 

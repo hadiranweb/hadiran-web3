@@ -18,8 +18,12 @@ function persianError(code: string) {
     password_mismatch: "دو رمز یکی نیستند.",
     password_already_set: "برای این حساب قبلاً رمز گذاشته شده.",
     rate_limit_exceeded: "تعداد تلاش بیش از حد است. کمی صبر کنید.",
-    sms_provider_not_configured: "پنل پیامک هنوز تنظیم نشده است.",
+    sms_provider_not_configured: "کلید یا شناسهٔ قالب SMS.ir روی سرور ناقص است.",
     sms_provider_failed: "ارسال پیامک الان ممکن نیست. کمی بعد دوباره تلاش کنید.",
+    sms_provider_timeout: "سرور به پنل پیامک نرسید (زمان‌تمام). از شبکهٔ لیارا به api.sms.ir باید راه باشد.",
+    sms_provider_unreachable: "شبکه تا SMS.ir بسته است؛ دیتاسنتر ایران گاهی api.sms.ir را نمی‌بیند.",
+    sms_provider_auth: "کلید API پیامک رد شد. SMSIR_API_KEY را روی لیارا چک کن.",
+    sms_provider_rejected: "قالب Verify یا نام پارامتر (معمولاً CODE بدون #) با پنل SMS.ir یکی نیست.",
     account_disabled: "این حساب غیرفعال است.",
     otp_send_failed: "ارسال کد ناموفق بود.",
     otp_verify_failed: "تأیید کد ناموفق بود.",
@@ -59,7 +63,24 @@ export function SignInForm() {
   const [devCode, setDevCode] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hint, setHint] = useState<string | null>(null);
   const [resendSeconds, setResendSeconds] = useState(0);
+
+  async function loadStatusHint() {
+    try {
+      const res = await fetch("/api/auth/status", { cache: "no-store" });
+      const data = (await res.json()) as {
+        jwt?: boolean;
+        sms?: boolean;
+        owner_password?: boolean;
+      };
+      setHint(
+        `سرور: JWT ${data.jwt ? "آماده" : "نیست"} · پیامک ${data.sms ? "کلید دارد" : "کلید ندارد"} · رمز مالک ${data.owner_password ? "ست شده" : "نیست"}`,
+      );
+    } catch {
+      setHint(null);
+    }
+  }
 
   useEffect(() => {
     if (!resendSeconds) return;
@@ -101,6 +122,7 @@ export function SignInForm() {
       await sendCode();
     } catch (err) {
       setError(persianError(err instanceof Error ? err.message : ""));
+      void loadStatusHint();
     } finally {
       setSubmitting(false);
     }
@@ -125,6 +147,7 @@ export function SignInForm() {
       setCode("");
     } catch (err) {
       setError(persianError(err instanceof Error ? err.message : ""));
+      void loadStatusHint();
     } finally {
       setSubmitting(false);
     }
@@ -298,6 +321,7 @@ export function SignInForm() {
       )}
 
       {error && <p className="text-sm text-rose-600">{error}</p>}
+      {hint && <p className="text-xs leading-6 text-slate-500">{hint}</p>}
 
       {step === "password" ? (
         <div className="grid gap-3 sm:grid-cols-2">
