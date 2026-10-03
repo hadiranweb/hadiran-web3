@@ -32,6 +32,15 @@ export function ownerPhones(): Set<string> {
   return set;
 }
 
+/** Owner password lives on Liara only — never log or return this value. */
+export function ownerPassword(): string {
+  return process.env.HADIRAN_OWNER_PASSWORD?.trim() || "";
+}
+
+export function ownerPasswordConfigured() {
+  return Boolean(ownerPassword());
+}
+
 export function isProduction() {
   return process.env.NODE_ENV === "production";
 }

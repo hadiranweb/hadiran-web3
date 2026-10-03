@@ -4,6 +4,8 @@ import { accounts, sessions } from "@/db/schema";
 import { and, eq, isNull, gt } from "drizzle-orm";
 import { hashSecret, randomSessionToken } from "./crypto";
 import { SESSION_COOKIE, SESSION_DAYS, ownerPhones } from "./config";
+import { needsPasswordSetup } from "./password";
+import { requestIp, requestUserAgent } from "./request";
 
 export type SessionAccount = {
   id: number;
@@ -110,4 +112,66 @@ export async function revokeCurrentSession() {
 
 export function roleForPhone(phone: string): "owner" | "member" {
   return ownerPhones().has(phone) ? "owner" : "member";
+}
+
+export type LoginAccount = SessionAccount & { passwordHash: string | null };
+
+export async function completePhoneLogin(input: {
+  phone: string;
+  request: Request;
+}): Promise<{ account: LoginAccount; needs_password: boolean }> {
+  const role = roleForPhone(input.phone);
+  const [existing] = await db.select().from(accounts).where(eq(accounts.phone, input.phone)).limit(1);
+  let account = existing;
+  if (!account) {
+    const [created] = await db
+      .insert(accounts)
+      .values({
+        phone: input.phone,
+        role,
+        phoneVerifiedAt: new Date(),
+        lastLoginAt: new Date(),
+        isActive: true,
+      })
+      .returning();
+    account = created;
+  } else {
+    if (!account.isActive) {
+      const error = new Error("account_disabled");
+      error.name = "AccountDisabledError";
+      throw error;
+    }
+    const [updated] = await db
+      .update(accounts)
+      .set({
+        phoneVerifiedAt: account.phoneVerifiedAt ?? new Date(),
+        lastLoginAt: new Date(),
+        role: account.role === "owner" ? "owner" : role,
+        updatedAt: new Date(),
+      })
+      .where(eq(accounts.id, account.id))
+      .returning();
+    account = updated;
+  }
+
+  if (!account) {
+    throw new Error("account_missing");
+  }
+
+  const token = await createSession(account.id, {
+    ip: requestIp(input.request),
+    userAgent: requestUserAgent(input.request),
+  });
+  await setSessionCookie(token);
+
+  return {
+    account: {
+      id: account.id,
+      phone: account.phone,
+      displayName: account.displayName,
+      role: account.role,
+      passwordHash: account.passwordHash,
+    },
+    needs_password: needsPasswordSetup({ phone: account.phone, passwordHash: account.passwordHash }),
+  };
 }

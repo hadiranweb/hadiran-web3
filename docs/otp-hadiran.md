@@ -1,6 +1,6 @@
 # OTP هادیران — الهام از کاغذ‌و‌باد، بدون نام و مسیر آن
 
-ورود بی‌رمز با موبایل ایرانی و قالب Verify در [SMS.ir](https://sms.ir). سشن httpOnly است، نه token در localStorage.
+ورود با موبایل ایرانی. اگر حساب رمز داشته باشد (یا مالک با `HADIRAN_OWNER_PASSWORD` روی لیارا) فرم رمز + دکمهٔ سبز ورود و آبی OTP است. کاربر تازه بعد از OTP باید رمز بگذارد؛ هش scrypt در `accounts.password_hash` ذخیره می‌شود. سشن httpOnly جداست. OTP از [SMS.ir](https://sms.ir).
 
 ## چه چیزی از کاغذ‌و‌باد آمده
 
@@ -33,6 +33,8 @@
 
 - قالب Verify پنل SMS.ir باید پارامتر `CODE` (یا `SMSIR_CODE_PARAMETER`) داشته باشد
 - `HADIRAN_OWNER_PHONES` نقش owner را هنگام اولین ورود می‌سازد
+- `HADIRAN_OWNER_PASSWORD` فقط روی لیارا؛ با همان شماره، UI برگشتی (رمز + OTP)
+- مایگریشن `0007_account_password.sql` ستون هش رمز کاربران
 - جدول‌های `accounts`, `otp_challenges`, `sessions`, `auth_events`, `rate_limit_buckets`
 
 ## هنوز عمومی مانده

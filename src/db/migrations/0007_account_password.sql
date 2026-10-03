@@ -1,0 +1,2 @@
+ALTER TABLE accounts ADD COLUMN IF NOT EXISTS password_hash TEXT;
+ALTER TABLE accounts ADD COLUMN IF NOT EXISTS password_set_at TIMESTAMPTZ;

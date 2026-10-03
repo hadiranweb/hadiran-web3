@@ -5,9 +5,11 @@ import { getCurrentAccount } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import { HadiranMark } from "@/components/HadiranMark";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "ورود",
-  description: "ورود به هادیران با کد یک‌بارمصرف پیامکی.",
+  description: "ورود به هادیران با رمز عبور یا کد یک‌بارمصرف پیامکی.",
   robots: { index: false, follow: false },
 };
 
@@ -27,7 +29,7 @@ export default async function SignInPage({
       <p className="hadiran-brand-text mb-2 text-sm font-medium">هادیران</p>
       <h1 className="text-3xl font-bold text-slate-900">ورود با موبایل</h1>
       <p className="mt-2 mb-8 text-sm leading-7 text-slate-500">
-        رمز لازم نیست. یک کد کوتاه به شمارهٔ ایرانی‌ات پیامک می‌شود.
+        شماره را بگذار. اگر قبلاً وارد شده باشی رمز می‌خواهیم؛ وگرنه یک کد پیامکی می‌آید.
       </p>
       <Suspense fallback={<p className="text-sm text-slate-400">در حال بارگذاری…</p>}>
         <SignInForm />

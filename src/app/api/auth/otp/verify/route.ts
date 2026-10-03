@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
-import { accounts, otpChallenges } from "@/db/schema";
+import { otpChallenges } from "@/db/schema";
 import { InvalidPhoneError, normalizePhone } from "@/lib/auth/phone";
 import { hashSecret, hashesMatch } from "@/lib/auth/crypto";
 import { enforceRateLimit, RateLimitExceededError, rateLimitHeaders } from "@/lib/auth/rate-limit";
 import { recordAuthEvent } from "@/lib/auth/audit";
-import { requestIp, requestUserAgent } from "@/lib/auth/request";
+import { requestIp } from "@/lib/auth/request";
 import { OTP_MAX_ATTEMPTS } from "@/lib/auth/config";
-import { createSession, roleForPhone, setSessionCookie } from "@/lib/auth/session";
+import { completePhoneLogin } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
         });
         return NextResponse.json(
           { error: "rate_limit_exceeded", retry_after_seconds: error.retryAfterSeconds },
-          { status: 429, headers: rateLimitHeaders(error) }
+          { status: 429, headers: rateLimitHeaders(error) },
         );
       }
       throw error;
@@ -53,17 +53,13 @@ export async function POST(request: Request) {
         and(
           eq(otpChallenges.phone, phone),
           eq(otpChallenges.purpose, "login"),
-          isNull(otpChallenges.consumedAt)
-        )
+          isNull(otpChallenges.consumedAt),
+        ),
       )
       .orderBy(desc(otpChallenges.createdAt))
       .limit(1);
 
-    if (
-      !pending ||
-      pending.expiresAt.getTime() <= Date.now() ||
-      pending.attempts >= OTP_MAX_ATTEMPTS
-    ) {
+    if (!pending || pending.expiresAt.getTime() <= Date.now() || pending.attempts >= OTP_MAX_ATTEMPTS) {
       await recordAuthEvent({
         request,
         eventType: "otp_verify",
@@ -97,70 +93,40 @@ export async function POST(request: Request) {
       .set({ consumedAt: new Date() })
       .where(eq(otpChallenges.id, pending.id));
 
-    const role = roleForPhone(phone);
-    const [existing] = await db.select().from(accounts).where(eq(accounts.phone, phone)).limit(1);
-    let account = existing;
-    if (!account) {
-      const [created] = await db
-        .insert(accounts)
-        .values({
-          phone,
-          role,
-          phoneVerifiedAt: new Date(),
-          lastLoginAt: new Date(),
-          isActive: true,
-        })
-        .returning();
-      account = created;
-    } else {
-      if (!account.isActive) {
+    try {
+      const { account, needs_password } = await completePhoneLogin({ phone, request });
+      await recordAuthEvent({
+        request,
+        eventType: "otp_verify",
+        outcome: "success",
+        phone,
+        accountId: account.id,
+        startedAt,
+      });
+      return NextResponse.json({
+        ok: true,
+        needs_password,
+        account: {
+          id: account.id,
+          phone: account.phone,
+          displayName: account.displayName,
+          role: account.role,
+        },
+      });
+    } catch (error) {
+      if (error instanceof Error && error.name === "AccountDisabledError") {
         await recordAuthEvent({
           request,
           eventType: "otp_verify",
           outcome: "blocked",
           phone,
-          accountId: account.id,
           errorCode: "account_disabled",
           startedAt,
         });
         return NextResponse.json({ error: "account_disabled" }, { status: 403 });
       }
-      const [updated] = await db
-        .update(accounts)
-        .set({
-          phoneVerifiedAt: account.phoneVerifiedAt ?? new Date(),
-          lastLoginAt: new Date(),
-          role: account.role === "owner" ? "owner" : role,
-          updatedAt: new Date(),
-        })
-        .where(eq(accounts.id, account.id))
-        .returning();
-      account = updated;
+      throw error;
     }
-
-    const token = await createSession(account.id, {
-      ip: requestIp(request),
-      userAgent: requestUserAgent(request),
-    });
-    await setSessionCookie(token);
-    await recordAuthEvent({
-      request,
-      eventType: "otp_verify",
-      outcome: "success",
-      phone,
-      accountId: account.id,
-      startedAt,
-    });
-
-    return NextResponse.json({
-      ok: true,
-      account: {
-        id: account.id,
-        phone: account.phone,
-        displayName: account.displayName,
-        role: account.role,
-      },
-    });
   } catch (error) {
     if (error instanceof InvalidPhoneError) {
       return NextResponse.json({ error: "invalid_phone" }, { status: 400 });
