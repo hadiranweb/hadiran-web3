@@ -1,8 +1,19 @@
-import { createHmac, randomBytes, scrypt, timingSafeEqual } from "node:crypto";
-import { promisify } from "node:util";
+import { createHmac, randomBytes, scrypt, timingSafeEqual, type ScryptOptions } from "node:crypto";
 import { ownerPassword, ownerPasswordConfigured, ownerPhones } from "./config";
 
-const scryptAsync = promisify(scrypt);
+function scryptAsync(
+  password: string,
+  salt: Buffer,
+  keylen: number,
+  options: ScryptOptions,
+): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    scrypt(password, salt, keylen, options, (error, derived) => {
+      if (error) reject(error);
+      else resolve(derived);
+    });
+  });
+}
 
 const MIN_LENGTH = 8;
 const MAX_LENGTH = 128;
