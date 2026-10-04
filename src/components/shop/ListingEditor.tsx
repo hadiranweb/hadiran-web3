@@ -135,7 +135,7 @@ export function ListingEditor({
         </label>
       </div>
       <p className="text-xs text-slate-500">
-        اگر نسبت دلاری و نرخ هفته در فروشگاه ثبت شده باشد، مبلغ از نسبت × نرخ محاسبه می‌شود. پرداخت همچنان خارج از سایت است.
+        اگر نسبت دلاری و نرخ هفته ثبت شده باشد، مبلغ نهایی = گرد روان‌شناختی(نسبت × نرخ) است، نه همان ضرب خام. پرداخت همچنان خارج از سایت است.
       </p>
       <input type="hidden" name="currency" defaultValue={initial?.currency ?? "IRR"} />
       <label className="block text-sm">

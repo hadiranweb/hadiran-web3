@@ -35,7 +35,7 @@ export function UsdRateForm({ initialRate }: { initialRate: number | null }) {
     <form onSubmit={onSubmit} className="rounded-2xl border border-slate-200 bg-white p-4">
       <h2 className="text-sm font-bold text-slate-900">نرخ دلار هفته</h2>
       <p className="mt-1 text-xs text-slate-500">
-        کالاهایی که نسبت دلاری دارند با این نرخ دوباره قیمت‌گذاری می‌شوند. پرداخت در سایت انجام نمی‌شود.
+        کالاهایی که نسبت دلاری دارند: مبلغ خام = نسبت × نرخ، بعد گرد روان‌شناختی (۵۹ / ۵۸۰ و مشابه، حداکثر حدود ۳٫۵٪ فاصله). پرداخت در سایت انجام نمی‌شود.
       </p>
       {error ? <p className="mt-2 text-sm text-rose-700">{error}</p> : null}
       {message ? <p className="mt-2 text-sm text-emerald-700">{message}</p> : null}

@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { shopListings, shopSettings } from "@/db/schema";
 import { eq, isNotNull, isNull, sql } from "drizzle-orm";
+import { charmAmountFromRatio } from "./psycho-price";
 
 export const USD_RATE_KEY = "usd_rate";
 
@@ -29,21 +30,29 @@ export async function updateShopUsdRateAndPrices(rate: number): Promise<number> 
       .values({ key: USD_RATE_KEY, value: String(rate) })
       .onConflictDoUpdate({ target: shopSettings.key, set: { value: String(rate) } });
 
-    const updated = await tx
-      .update(shopListings)
-      .set({
-        amount: sql`round(${shopListings.usdRatio} * ${rate})::integer`,
-        updatedAt: new Date(),
-      })
-      .where(isNotNull(shopListings.usdRatio))
-      .returning({ id: shopListings.id });
+    const rows = await tx
+      .select({ id: shopListings.id, usdRatio: shopListings.usdRatio })
+      .from(shopListings)
+      .where(isNotNull(shopListings.usdRatio));
 
-    return updated.length;
+    const now = new Date();
+    for (const row of rows) {
+      if (row.usdRatio == null) continue;
+      await tx
+        .update(shopListings)
+        .set({
+          amount: charmAmountFromRatio(row.usdRatio, rate),
+          updatedAt: now,
+        })
+        .where(eq(shopListings.id, row.id));
+    }
+
+    return rows.length;
   });
 }
 
 export function amountFromRatio(ratio: number, rate: number) {
-  return Math.max(1, Math.round(ratio * rate));
+  return charmAmountFromRatio(ratio, rate);
 }
 
 export function ratioFromAmount(amount: number, rate: number) {
