@@ -2,10 +2,13 @@ import { db } from "@/db";
 import { person } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
-import { Mail, ExternalLink, User, FlaskConical } from "lucide-react";
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/JsonLd";
 import { absoluteUrl } from "@/lib/site";
+import { PageShell } from "@/components/ui/PageShell";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Surface } from "@/components/ui/Surface";
+
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +35,7 @@ export default async function ContactPage() {
     .filter((url): url is string => Boolean(url && /^https?:\/\//i.test(url)));
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10">
+    <PageShell width="narrow">
       <JsonLd
         data={{
           "@context": "https://schema.org",
@@ -48,24 +51,15 @@ export default async function ContactPage() {
         }}
       />
 
-      <p className="mb-2 text-sm font-medium text-indigo-600">هادیران</p>
-      <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl">راه‌های تماس</h1>
-      <p className="mt-3 mb-8 max-w-2xl text-base leading-relaxed text-slate-600">
-        این صفحه فقط روش‌های ارتباط است، نه بیوگرافی و نه فرم همکاری. برای شناخت مسیر و دیدگاه به{" "}
-        <Link href="/hadiran" className="font-medium text-indigo-600 hover:text-indigo-800">
-          درباره من
-        </Link>{" "}
-        برو؛ برای پیوستن به یک پروژه از صفحهٔ همان پروژه اقدام کن.
-      </p>
+      <PageHeader
+        kicker="هادیران"
+        title="راه‌های تماس"
+        lede="این صفحه فقط روش‌های ارتباط است، نه بیوگرافی و نه فرم همکاری."
+      />
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-10">
-        <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-slate-900">
-          <Mail className="h-5 w-5 text-rose-500" />
-          روش‌های ارتباط
-        </h2>
-
+      <Surface className="p-6 sm:p-10">
         {methods.length === 0 ? (
-          <p className="text-sm text-slate-500">روش تماسی ثبت نشده است.</p>
+          <p className="text-sm leading-7 text-muted">روش تماسی ثبت نشده است.</p>
         ) : (
           <ul className="space-y-3">
             {methods.map((method) => {
@@ -73,11 +67,8 @@ export default async function ContactPage() {
               const external = Boolean(href && /^https?:\/\//i.test(href));
               const inner = (
                 <>
-                  <span className="text-xs font-medium text-slate-500">{method.label}</span>
-                  <span className="mt-1 flex items-center gap-2 text-base font-semibold text-slate-900">
-                    {method.value}
-                    {external && <ExternalLink className="h-4 w-4 text-slate-400" />}
-                  </span>
+                  <span className="text-xs font-medium text-muted">{method.label}</span>
+                  <span className="mt-1 block text-base font-semibold text-ink">{method.value}</span>
                 </>
               );
               return (
@@ -86,36 +77,34 @@ export default async function ContactPage() {
                     <a
                       href={href}
                       {...(external ? { target: "_blank", rel: "noreferrer" } : {})}
-                      className="block rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 transition hover:border-indigo-200 hover:bg-indigo-50/50"
+                      className="block rounded-[var(--radius-md)] border border-line bg-paper px-4 py-3 hover:border-accent"
                     >
                       {inner}
                     </a>
                   ) : (
-                    <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">{inner}</div>
+                    <div className="rounded-[var(--radius-md)] border border-line bg-paper px-4 py-3">{inner}</div>
                   )}
                 </li>
               );
             })}
           </ul>
         )}
-      </section>
+      </Surface>
 
       <div className="mt-8 grid gap-3 sm:grid-cols-2">
         <Link
           href="/hadiran"
-          className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:border-indigo-200"
+          className="rounded-[var(--radius-md)] border border-line bg-elev px-4 py-3 text-sm font-medium text-ink"
         >
-          <User className="h-4 w-4 text-indigo-600" />
           درباره من
         </Link>
         <Link
           href="/lab"
-          className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:border-indigo-200"
+          className="rounded-[var(--radius-md)] border border-line bg-elev px-4 py-3 text-sm font-medium text-ink"
         >
-          <FlaskConical className="h-4 w-4 text-violet-600" />
           همکاری از آزمایشگاه
         </Link>
       </div>
-    </main>
+    </PageShell>
   );
 }

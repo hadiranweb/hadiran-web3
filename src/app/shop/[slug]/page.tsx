@@ -56,31 +56,31 @@ export default async function ShopItemPage({ params }: Props) {
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
-      <Link href="/shop" className="mb-6 inline-block text-sm text-slate-500 hover:text-indigo-600">
+      <Link href="/shop" className="mb-6 inline-block text-sm text-muted hover:text-ink">
         بازگشت به فروشگاه
       </Link>
       <article className="space-y-6">
         <ListingGallery urls={images} title={item.titleFa} />
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-10">
-          <p className="text-xs font-medium text-indigo-600">{shopKindFa(item.kind)}</p>
-          <h1 className="mt-1 text-3xl font-bold text-slate-900">{item.titleFa}</h1>
-          <p className="mt-2 text-lg font-medium text-indigo-700">
+        <div className="surface p-6 sm:p-10">
+          <p className="text-xs font-medium text-mark">{shopKindFa(item.kind)}</p>
+          <h1 className="mt-1 text-3xl font-extrabold leading-[1.35] text-ink">{item.titleFa}</h1>
+          <p className="mt-2 text-lg font-medium text-ink">
             {item.comparePrice && item.comparePrice > item.amount ? (
-              <span className="ml-2 text-base text-slate-400 line-through">
+              <span className="ml-2 text-base text-muted line-through">
                 {formatMoney(item.comparePrice, item.currency)}
               </span>
             ) : null}
             {formatMoney(item.amount, item.currency)}
           </p>
-          {item.summaryFa ? <p className="mt-4 text-slate-600">{item.summaryFa}</p> : null}
+          {item.summaryFa ? <p className="mt-4 leading-[1.85] text-muted">{item.summaryFa}</p> : null}
           <ListingSpecs specs={item.specs} />
           <div className="mt-6">
             <MarkdownReadonly source={item.bodyFa} />
           </div>
-          <div className="mt-8 border-t border-slate-100 pt-6">
+          <div className="mt-8 border-t border-line pt-6">
             {entitled ? (
               <div className="space-y-4">
-                <p className="text-sm font-medium text-emerald-700">
+                <p className="text-sm font-medium text-good">
                   {isPhysicalKind(item.kind) ? "سفارش تأیید شد." : "دسترسی باز است."}
                 </p>
                 <MarkdownReadonly
@@ -97,7 +97,7 @@ export default async function ShopItemPage({ params }: Props) {
             ) : (
               <Link
                 href={`/signin?next=${encodeURIComponent(`/shop/${item.slug}`)}`}
-                className="inline-flex rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white"
+                className="inline-flex rounded-[var(--radius-md)] bg-accent px-4 py-2 text-sm font-medium text-accent-fg"
               >
                 ورود برای خرید
               </Link>

@@ -4,8 +4,11 @@ import { and, eq, like, or } from "drizzle-orm";
 import { publicKnowledgeFilter } from "@/lib/knowledge/public";
 import { getCurrentAccount } from "@/lib/auth/session";
 import Link from "next/link";
-import { BookOpen, Hash, Search, PenLine } from "lucide-react";
+import { Search, PenLine } from "lucide-react";
 import type { Metadata } from "next";
+import { PageShell } from "@/components/ui/PageShell";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export const dynamic = "force-dynamic";
 
@@ -21,14 +24,6 @@ const typeLabels: Record<string, string> = {
   note: "یادداشت",
   research: "تحقیق",
   idea: "ایده",
-};
-
-const typeStyles: Record<string, string> = {
-  wiki: "bg-blue-50 text-blue-700",
-  article: "bg-indigo-50 text-indigo-700",
-  note: "bg-amber-50 text-amber-700",
-  research: "bg-purple-50 text-purple-700",
-  idea: "bg-rose-50 text-rose-700",
 };
 
 interface Props {
@@ -47,8 +42,8 @@ export default async function KnowledgePage({ searchParams }: Props) {
         or(
           like(knowledge.titleFa, `%${q}%`),
           like(knowledge.summaryFa, `%${q}%`),
-          like(knowledge.bodyFa, `%${q}%`)
-        )
+          like(knowledge.bodyFa, `%${q}%`),
+        ),
       );
     }
     const rows = await db
@@ -88,88 +83,73 @@ export default async function KnowledgePage({ searchParams }: Props) {
     topic;
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-10">
-      <header className="mb-10 text-center">
-        <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl">دانشنامه</h1>
-        <p className="mt-3 text-slate-600">مقالات، یادداشت‌ها، تحقیق‌ها و ایده‌های هادیران</p>
+    <PageShell>
+      <PageHeader title="دانشنامه" lede="مقالات، یادداشت‌ها، تحقیق‌ها و ایده‌های هادیران">
         {account?.role === "owner" ? (
           <Link
             href="/workspace/capture"
-            className="mt-5 inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+            className="mt-5 inline-flex items-center gap-1.5 rounded-[var(--radius-md)] bg-ink px-4 py-2 text-sm font-medium text-paper"
           >
-            <PenLine className="h-4 w-4" />
+            <PenLine className="h-4 w-4" strokeWidth={1.5} />
             نوشتن مطلب
           </Link>
         ) : null}
-      </header>
+      </PageHeader>
 
-      <form action="/knowledge" method="get" className="mx-auto mb-8 flex max-w-xl gap-2">
+      <form action="/knowledge" method="get" className="mb-8 flex max-w-xl gap-2">
+        {topic ? <input type="hidden" name="topic" value={topic} /> : null}
         <input
           type="text"
           name="q"
           defaultValue={q || ""}
           placeholder="جستجو در دانشنامه..."
-          className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+          className="flex-1 rounded-[var(--radius-md)] border border-line bg-elev px-4 py-2.5 text-sm text-ink outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
         />
         <button
           type="submit"
-          className="flex items-center gap-1 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700"
+          className="inline-flex items-center gap-1 rounded-[var(--radius-md)] bg-accent px-4 py-2.5 text-sm font-medium text-accent-fg"
         >
-          <Search className="h-4 w-4" />
+          <Search className="h-4 w-4" strokeWidth={1.5} />
           جستجو
         </button>
       </form>
 
-      {topic && (
+      {topic ? (
         <div className="mb-6 flex flex-wrap items-center gap-2">
-          <span className="text-sm text-slate-500">فیلتر دانشنامه:</span>
-          <Link
-            href={`/topics/${topic}`}
-            className="rounded-full bg-indigo-100 px-3 py-1 text-sm font-medium text-indigo-700 hover:bg-indigo-200"
-          >
+          <span className="text-sm text-muted">فیلتر دانشنامه:</span>
+          <Link href={`/topics/${topic}`} className="rounded-full border border-line bg-elev px-3 py-1 text-sm text-ink">
             {filterLabel}
           </Link>
-          <Link href="/knowledge" className="text-sm text-slate-400 hover:text-slate-600">
+          <Link href="/knowledge" className="text-sm text-muted hover:text-ink">
             پاک کردن فیلتر
           </Link>
         </div>
-      )}
+      ) : null}
 
-      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-        {filteredKnowledge.map((item) => (
-          <Link
-            key={item.id}
-            href={`/knowledge/${item.slug}`}
-            className="group flex flex-col rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-indigo-200 hover:shadow-md"
-          >
-            <div className="mb-4 flex items-center justify-between">
-              <span
-                className={`rounded-full px-2.5 py-1 text-xs font-bold ${
-                  typeStyles[item.type] || "bg-slate-100 text-slate-700"
-                }`}
-              >
-                {typeLabels[item.type] || item.type}
-              </span>
-              <BookOpen className="h-5 w-5 text-slate-300 group-hover:text-indigo-600" />
-            </div>
-            <h2 className="text-lg font-bold text-slate-900 group-hover:text-indigo-700">
-              {item.titleFa}
-            </h2>
-            <p className="mt-2 line-clamp-3 flex-1 text-sm text-slate-600">{item.summaryFa}</p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {topicsMap[item.id]?.map((t) => (
-                <span
-                  key={t.slug}
-                  className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-600"
-                >
-                  <Hash className="h-3 w-3" />
-                  {t.labelFa}
-                </span>
-              ))}
-            </div>
-          </Link>
-        ))}
-      </div>
-    </main>
+      {filteredKnowledge.length === 0 ? (
+        <EmptyState title="هنوز مطلب منتشرشده‌ای نیست." />
+      ) : (
+        <ul className="grid gap-5 md:grid-cols-2">
+          {filteredKnowledge.map((item) => (
+            <li key={item.id}>
+              <Link href={`/knowledge/${item.slug}`} className="surface block h-full p-6 transition hover:border-accent">
+                <p className="text-xs font-medium text-mark">{typeLabels[item.type] || item.type}</p>
+                <h2 className="mt-2 text-lg font-bold leading-[1.7] text-ink">{item.titleFa}</h2>
+                {item.summaryFa ? <p className="mt-2 line-clamp-3 text-sm leading-7 text-muted">{item.summaryFa}</p> : null}
+                {topicsMap[item.id]?.length ? (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {topicsMap[item.id].map((t) => (
+                      <span key={t.slug} className="rounded-full bg-paper px-2 py-1 text-xs text-muted">
+                        {t.labelFa}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </PageShell>
   );
 }

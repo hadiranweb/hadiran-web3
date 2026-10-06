@@ -47,7 +47,7 @@ export function StartOrderButton({ slug }: { slug: string }) {
         type="button"
         disabled={busy}
         onClick={() => void start()}
-        className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+        className="inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-accent px-4 py-2 text-sm font-medium text-accent-fg disabled:opacity-60"
       >
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
         خرید با پرداخت بیرون از سایت

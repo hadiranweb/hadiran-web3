@@ -9,18 +9,20 @@ import {
   personOrganizations,
 } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { Mail, ExternalLink, Lightbulb, Building2, Tag, Wrench, ArrowLeft } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/JsonLd";
 import { absoluteUrl } from "@/lib/site";
+import { HadiranMark } from "@/components/HadiranMark";
+import { PageShell } from "@/components/ui/PageShell";
+import { Surface } from "@/components/ui/Surface";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "درباره من",
-  description:
-    "هادی؛ مسیر، دیدگاه و مهارت‌ها در هستی‌شناسی سیستم‌ها، حل مسائل پیچیده، هوش خودمختار و معماری وب۳.",
+  description: "هادی؛ مسیر، دیدگاه و مهارت‌ها در هستی‌شناسی سیستم‌ها، حل مسائل پیچیده، هوش خودمختار و معماری وب۳.",
   alternates: { canonical: "/hadiran" },
 };
 
@@ -29,9 +31,9 @@ export default async function HadiranPage() {
 
   if (!hadiran) {
     return (
-      <main className="mx-auto max-w-7xl px-4 py-20 text-center">
-        <h1 className="text-2xl font-bold text-slate-900">پروفایل یافت نشد</h1>
-      </main>
+      <PageShell width="narrow">
+        <h1 className="text-2xl font-bold text-ink">پروفایل یافت نشد</h1>
+      </PageShell>
     );
   }
 
@@ -64,7 +66,7 @@ export default async function HadiranPage() {
     .filter((url): url is string => Boolean(url && /^https?:\/\//i.test(url)));
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-10">
+    <PageShell width="narrow">
       <JsonLd
         data={{
           "@context": "https://schema.org",
@@ -76,125 +78,130 @@ export default async function HadiranPage() {
           sameAs,
         }}
       />
-      <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-        <div className="h-32 bg-gradient-to-r from-indigo-600 to-violet-600" />
-        <div className="px-6 pb-8 sm:px-10">
-          <div className="-mt-16 mb-6 flex items-end justify-between">
-            <div className="flex items-end gap-4">
-              <div className="flex h-32 w-32 items-center justify-center rounded-3xl border-4 border-white bg-slate-100 text-4xl font-bold text-indigo-600 shadow-sm">
-                ه
-              </div>
-              <div className="pb-2">
-                <h1 className="text-3xl font-bold text-slate-900">{hadiran.nameFa}</h1>
-                <p className="text-slate-500">{hadiran.nameEn}</p>
-              </div>
-            </div>
-          </div>
-
-          <p className="max-w-3xl text-lg leading-relaxed text-slate-700">{hadiran.introFa}</p>
-
-          <div className="mt-8 grid gap-8 md:grid-cols-2">
-            <div>
-              <h2 className="mb-3 flex items-center gap-2 text-lg font-bold text-slate-900">
-                <Lightbulb className="h-5 w-5 text-amber-500" />
-                دیدگاه
-              </h2>
-              <p className="rounded-2xl bg-slate-50 p-4 text-sm leading-relaxed text-slate-700">
-                {hadiran.perspectiveFa}
+      <Surface className="p-6 sm:p-10">
+        <div className="mb-8 flex items-center gap-5">
+          {hadiran.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={hadiran.avatarUrl}
+              alt=""
+              className="h-24 w-24 rounded-[var(--radius-lg)] object-cover"
+            />
+          ) : (
+            <HadiranMark className="h-24 w-24" />
+          )}
+          <div>
+            <p className="text-sm font-medium text-mark">شخص</p>
+            <h1 className="text-3xl font-extrabold leading-[1.35] text-ink">{hadiran.nameFa}</h1>
+            {hadiran.nameEn ? (
+              <p className="mt-1 text-sm text-muted" dir="ltr">
+                {hadiran.nameEn}
               </p>
-            </div>
-            <div>
-              <h2 className="mb-3 flex items-center gap-2 text-lg font-bold text-slate-900">
-                <Tag className="h-5 w-5 text-indigo-500" />
-                موضوعات تخصصی
-              </h2>
-              <div className="flex flex-wrap gap-2">
-                {personTopicsList.map((topic) => (
-                  <Link
-                    key={topic.id}
-                    href={`/topics/${topic.slug}`}
-                    className="rounded-full bg-indigo-50 px-3 py-1 text-sm font-medium text-indigo-700"
-                  >
-                    {topic.labelFa}
-                  </Link>
-                ))}
-              </div>
-            </div>
+            ) : null}
           </div>
+        </div>
 
-          <div className="mt-8">
-            <h2 className="mb-3 flex items-center gap-2 text-lg font-bold text-slate-900">
-              <Wrench className="h-5 w-5 text-emerald-500" />
-              مهارت‌ها
-            </h2>
+        {hadiran.introFa ? <p className="max-w-3xl text-base leading-[1.85] text-ink">{hadiran.introFa}</p> : null}
+
+        {hadiran.perspectiveFa ? (
+          <section className="mt-10">
+            <h2 className="mb-3 text-lg font-bold leading-[1.7] text-ink">دیدگاه</h2>
+            <p className="rounded-[var(--radius-md)] bg-paper p-4 text-sm leading-[1.85] text-ink">
+              {hadiran.perspectiveFa}
+            </p>
+          </section>
+        ) : null}
+
+        {personTopicsList.length > 0 ? (
+          <section className="mt-10">
+            <h2 className="mb-3 text-lg font-bold leading-[1.7] text-ink">موضوعات</h2>
+            <div className="flex flex-wrap gap-2">
+              {personTopicsList.map((topic) => (
+                <Link
+                  key={topic.id}
+                  href={`/topics/${topic.slug}`}
+                  className="rounded-full border border-line bg-paper px-3 py-1 text-sm text-ink hover:border-accent"
+                >
+                  {topic.labelFa}
+                </Link>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {personSkillsList.length > 0 ? (
+          <section className="mt-10">
+            <h2 className="mb-3 text-lg font-bold leading-[1.7] text-ink">مهارت‌ها</h2>
             <div className="flex flex-wrap gap-2">
               {personSkillsList.map((skill) => (
-                <span
-                  key={skill.id}
-                  className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-sm text-slate-700"
-                >
+                <span key={skill.id} className="rounded-[var(--radius-sm)] border border-line px-3 py-1 text-sm text-ink">
                   {skill.labelFa}
                 </span>
               ))}
             </div>
-          </div>
+          </section>
+        ) : null}
 
-          <div className="mt-8">
-            <h2 className="mb-3 flex items-center gap-2 text-lg font-bold text-slate-900">
-              <Building2 className="h-5 w-5 text-blue-500" />
-              سازمان‌ها و نقش‌ها
-            </h2>
-            <div className="grid gap-3 sm:grid-cols-2">
+        {personOrganizationsList.length > 0 ? (
+          <section className="mt-10">
+            <h2 className="mb-3 text-lg font-bold leading-[1.7] text-ink">سازمان‌ها و نقش‌ها</h2>
+            <ul className="grid gap-3 sm:grid-cols-2">
               {personOrganizationsList.map((org) => (
-                <div
-                  key={org.id}
-                  className="flex items-center justify-between rounded-2xl border border-slate-200 p-4"
-                >
+                <li key={org.id} className="flex items-center justify-between rounded-[var(--radius-md)] border border-line p-4">
                   <div>
-                    <p className="font-semibold text-slate-900">{org.nameFa}</p>
-                    <p className="text-sm text-slate-500">{org.roleFa}</p>
+                    <p className="font-semibold text-ink">{org.nameFa}</p>
+                    {org.roleFa ? <p className="text-sm text-muted">{org.roleFa}</p> : null}
                   </div>
-                  {org.url && (
-                    <a
-                      href={org.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-slate-400 hover:text-indigo-600"
-                    >
-                      <ExternalLink className="h-4 w-4" />
+                  {org.url ? (
+                    <a href={org.url} target="_blank" rel="noreferrer" className="text-muted hover:text-ink">
+                      <ExternalLink className="h-4 w-4" strokeWidth={1.5} />
                     </a>
-                  )}
-                </div>
+                  ) : null}
+                </li>
               ))}
-            </div>
-          </div>
+            </ul>
+          </section>
+        ) : null}
 
-          <div className="mt-8">
-            <h2 className="mb-3 flex items-center gap-2 text-lg font-bold text-slate-900">
-              <Mail className="h-5 w-5 text-rose-500" />
-              تماس
-            </h2>
+        {contactMethods.length > 0 ? (
+          <section className="mt-10">
+            <h2 className="mb-3 text-lg font-bold leading-[1.7] text-ink">تماس</h2>
             <div className="flex flex-wrap gap-3">
-              {contactMethods.map((method) => (
-                <a
-                  key={method.label}
-                  href={method.url || "#"}
-                  className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-200"
-                >
-                  {method.label}: {method.value}
-                </a>
-              ))}
+              {contactMethods.map((method) => {
+                const href = method.url && /^https?:\/\//i.test(method.url) ? method.url : null;
+                const body = (
+                  <>
+                    {method.label}: {method.value}
+                  </>
+                );
+                return href ? (
+                  <a
+                    key={method.label}
+                    href={href}
+                    className="inline-flex rounded-[var(--radius-sm)] border border-line bg-paper px-4 py-2 text-sm font-medium text-ink hover:border-accent"
+                  >
+                    {body}
+                  </a>
+                ) : (
+                  <span
+                    key={method.label}
+                    className="inline-flex rounded-[var(--radius-sm)] border border-line bg-paper px-4 py-2 text-sm font-medium text-ink"
+                  >
+                    {body}
+                  </span>
+                );
+              })}
             </div>
-            <Link
-              href="/contact"
-              className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-800"
-            >
+            <Link href="/contact" className="mt-4 inline-block text-sm font-medium text-accent">
               صفحهٔ تماس
-              <ArrowLeft className="h-3.5 w-3.5" />
             </Link>
-          </div>
-        </div>
-      </section>
-    </main>
+          </section>
+        ) : (
+          <Link href="/contact" className="mt-10 inline-block text-sm font-medium text-accent">
+            صفحهٔ تماس
+          </Link>
+        )}
+      </Surface>
+    </PageShell>
   );
 }

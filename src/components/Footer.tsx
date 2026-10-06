@@ -1,45 +1,33 @@
 import Link from "next/link";
 import { HadiranMark } from "@/components/HadiranMark";
 
+const links = [
+  { href: "/", label: "هم‌فکری" },
+  { href: "/ecosystem", label: "اکوسیستم" },
+  { href: "/hadiran", label: "درباره من" },
+  { href: "/knowledge", label: "دانشنامه" },
+  { href: "/lab", label: "آزمایشگاه" },
+  { href: "/courses", label: "دوره‌ها" },
+  { href: "/shop", label: "فروشگاه" },
+  { href: "/topics", label: "موضوعات" },
+  { href: "/contact", label: "تماس" },
+];
+
 export function Footer() {
   return (
-    <footer className="border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
-      <div className="mx-auto max-w-7xl px-4 py-8">
-        <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-          <p className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-            <HadiranMark className="h-6 w-6" />
-            <span>© {new Date().getFullYear()} هادیران — فضای هم‌فکری و طراحی سیستم‌ها</span>
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-slate-500 dark:text-slate-400">
-            <Link href="/" className="hover:text-indigo-600 dark:hover:text-indigo-400">
-              هم‌فکری
+    <footer className="border-t border-line">
+      <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-6 sm:flex-row sm:items-center sm:justify-between">
+        <p className="flex items-center gap-2 text-sm text-muted">
+          <HadiranMark className="h-5 w-5" />
+          <span>© {new Date().getFullYear()} هادیران</span>
+        </p>
+        <nav className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted">
+          {links.map((link) => (
+            <Link key={link.href} href={link.href} className="hover:text-ink">
+              {link.label}
             </Link>
-            <Link href="/ecosystem" className="hover:text-indigo-600 dark:hover:text-indigo-400">
-              اکوسیستم
-            </Link>
-            <Link href="/hadiran" className="hover:text-indigo-600 dark:hover:text-indigo-400">
-              درباره من
-            </Link>
-            <Link href="/knowledge" className="hover:text-indigo-600 dark:hover:text-indigo-400">
-              دانشنامه
-            </Link>
-            <Link href="/lab" className="hover:text-indigo-600 dark:hover:text-indigo-400">
-              آزمایشگاه
-            </Link>
-            <Link href="/courses" className="hover:text-indigo-600 dark:hover:text-indigo-400">
-              دوره‌ها
-            </Link>
-            <Link href="/shop" className="hover:text-indigo-600 dark:hover:text-indigo-400">
-              فروشگاه
-            </Link>
-            <Link href="/topics" className="hover:text-indigo-600 dark:hover:text-indigo-400">
-              موضوعات
-            </Link>
-            <Link href="/contact" className="hover:text-indigo-600 dark:hover:text-indigo-400">
-              تماس
-            </Link>
-          </div>
-        </div>
+          ))}
+        </nav>
       </div>
     </footer>
   );

@@ -3,14 +3,6 @@ import Link from "next/link";
 import { HomeChat } from "@/components/HomeChat";
 import { siteConfig } from "@/lib/site";
 import { HadiranMark } from "@/components/HadiranMark";
-import {
-  BookOpen,
-  FlaskConical,
-  GraduationCap,
-  Layers,
-  User,
-  type LucideIcon,
-} from "lucide-react";
 
 export const metadata: Metadata = {
   title: {
@@ -23,26 +15,19 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "هادیران | گفتگوی بی‌واسطه و ساختاردهی به ایده‌ها",
-    description:
-      "فضایی برای کاوش مشترک در واقعیت مسائل، مدل‌سازی معنادار و تکامل دانش.",
+    description: "فضایی برای کاوش مشترک در واقعیت مسائل، مدل‌سازی معنادار و تکامل دانش.",
     url: siteConfig.url || "/",
     type: "website",
     locale: "fa_IR",
   },
 };
 
-interface WorldLink {
-  href: string;
-  label: string;
-  icon: LucideIcon;
-}
-
-const worlds: WorldLink[] = [
-  { href: "/ecosystem", label: "اکوسیستم", icon: Layers },
-  { href: "/hadiran", label: "درباره من", icon: User },
-  { href: "/knowledge", label: "دانشنامه", icon: BookOpen },
-  { href: "/lab", label: "آزمایشگاه", icon: FlaskConical },
-  { href: "/courses", label: "دوره‌ها", icon: GraduationCap },
+const worlds = [
+  { href: "/ecosystem", label: "اکوسیستم" },
+  { href: "/hadiran", label: "درباره من" },
+  { href: "/knowledge", label: "دانشنامه" },
+  { href: "/lab", label: "آزمایشگاه" },
+  { href: "/courses", label: "دوره‌ها" },
 ];
 
 const jsonLd = {
@@ -62,48 +47,32 @@ const jsonLd = {
 
 export default function HomePage() {
   return (
-    <main className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-4xl flex-col justify-between px-4 py-8 antialiased">
-      {/* سئوی ساختاریافته (Schema.org) */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+    <main className="home-wash mx-auto flex min-h-[calc(100vh-8rem)] max-w-3xl flex-col px-4 py-6 sm:py-8">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
-      <header className="mb-8 text-center">
-        <HadiranMark className="mx-auto mb-4 h-14 w-14" />
-        <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 sm:text-4xl">
+      <header className="mb-6 shrink-0 text-center">
+        <HadiranMark className="mx-auto mb-3 h-10 w-10" />
+        <h1 className="text-2xl font-extrabold leading-[1.35] tracking-tight text-ink sm:text-3xl">
           مسئله‌ات را بگو؛ با هم شفافش می‌کنیم
         </h1>
-
-        {/* زیرتیتر مبتنی بر ارزش هستی‌شناسانه و هم‌فکری انسانی */}
-        <p className="mx-auto mt-3.5 max-w-xl text-sm leading-relaxed text-slate-600 dark:text-slate-400 sm:text-base">
-          فضایی برای بازنمایی دقیق ایده‌ها، ساختاردهی به دغدغه‌ها و هم‌مسیر شدن
-          در مرزهای معماری سیستم‌ها، هوش مصنوعی و وب۳.
+        <p className="mx-auto mt-2.5 max-w-xl text-sm leading-[1.85] text-muted sm:text-base">
+          فضایی برای بازنمایی دقیق ایده‌ها، ساختاردهی به دغدغه‌ها و هم‌مسیر شدن در مرزهای معماری سیستم‌ها، هوش
+          مصنوعی و وب۳.
         </p>
-
-        {/* درگاه‌های ورود به بخش‌های سیستم */}
-        <nav
-          aria-label="بخش‌های اکوسیستم هادیران"
-          className="mt-6 flex flex-wrap items-center justify-center gap-2"
-        >
-          {worlds.map((world) => {
-            const Icon = world.icon;
-            return (
-              <Link
-                key={world.href}
-                href={world.href}
-                className="group inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/70 px-4 py-1.5 text-xs font-medium text-slate-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-indigo-300 hover:bg-white hover:text-indigo-600 dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:border-indigo-700 dark:hover:bg-slate-900 dark:hover:text-indigo-400"
-              >
-                <Icon className="h-3.5 w-3.5 text-slate-400 transition-colors group-hover:text-indigo-600 dark:text-slate-500 dark:group-hover:text-indigo-400" />
-                <span>{world.label}</span>
-              </Link>
-            );
-          })}
+        <nav aria-label="بخش‌های اکوسیستم هادیران" className="mt-5 flex flex-wrap items-center justify-center gap-2">
+          {worlds.map((world) => (
+            <Link
+              key={world.href}
+              href={world.href}
+              className="inline-flex items-center rounded-full border border-line bg-elev px-3.5 py-1.5 text-xs font-medium text-muted transition hover:border-accent hover:text-ink"
+            >
+              {world.label}
+            </Link>
+          ))}
         </nav>
       </header>
 
-      {/* بستر تعاملی چت و دریافت ورودی */}
-      <div className="flex-1">
+      <div className="flex min-h-0 flex-1 flex-col">
         <HomeChat />
       </div>
     </main>

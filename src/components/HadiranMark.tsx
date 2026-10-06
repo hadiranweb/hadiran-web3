@@ -39,7 +39,7 @@ export function HadiranWordmark({
   return (
     <span className={`inline-flex items-center gap-2 ${className}`}>
       <HadiranMark className={markClassName} />
-      <span className="font-bold text-slate-900 dark:text-slate-100">هادیران</span>
+      <span className="font-bold text-ink">هادیران</span>
     </span>
   );
 }

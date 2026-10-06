@@ -5,19 +5,63 @@
 :root {
   --font-sans: var(--font-vazirmatn), "Vazirmatn", system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", sans-serif;
+  --bg: #f7f6f2;
+  --bg-elev: #fffcf7;
+  --ink: #0f172a;
+  --muted: #5c6472;
+  --line: rgba(15, 23, 42, 0.08);
+  --accent: #4338ca;
+  --accent-fg: #ffffff;
+  --accent-soft: #eef0ff;
+  --mark: #1b1464;
   --hadiran-mark: #1b1464;
+  --good: #0f766e;
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04), 0 10px 28px rgba(15, 23, 42, 0.05);
+  --ring: #4338ca;
+  --ease-studio: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --dur: 200ms;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
+    --bg: #07080f;
+    --bg-elev: #0e1018;
+    --ink: #e8eaf2;
+    --muted: #9aa3b5;
+    --line: rgba(224, 231, 255, 0.12);
+    --accent: #818cf8;
+    --accent-fg: #07080f;
+    --accent-soft: rgba(224, 231, 255, 0.12);
+    --mark: #e0e7ff;
     --hadiran-mark: #e0e7ff;
+    --good: #2dd4bf;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+    --ring: #a5b4fc;
   }
+}
+
+@theme inline {
+  --color-paper: var(--bg);
+  --color-elev: var(--bg-elev);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-mark: var(--mark);
+  --color-good: var(--good);
 }
 
 html {
   font-family: var(--font-sans);
   scroll-behavior: smooth;
   color-scheme: light dark;
+  background: var(--bg);
+  color: var(--ink);
 }
 
 .hadiran-mark {
@@ -30,9 +74,10 @@ html {
 
 body {
   font-feature-settings: "ss01";
+  background: var(--bg);
+  color: var(--ink);
 }
 
-/* Persian numerals preference */
 :lang(fa) {
   font-variant-numeric: proportional-nums;
 }
@@ -51,17 +96,112 @@ body {
   overflow: hidden;
 }
 
+.surface {
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.home-wash {
+  position: relative;
+  background:
+    radial-gradient(900px 420px at 82% -8%, color-mix(in srgb, var(--mark) 7%, transparent), transparent 68%),
+    var(--bg);
+}
+
+.composer-shell {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg-elev);
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color var(--dur) var(--ease-studio),
+    box-shadow var(--dur) var(--ease-studio);
+}
+
+.composer-shell:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--line));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ring) 28%, transparent);
+}
+
+.composer-shell.is-loading {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .chat-in {
+    animation: hadiran-chat-in var(--dur) var(--ease-studio) both;
+  }
+}
+
+@keyframes hadiran-chat-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.thinking-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 1rem;
+}
+
+.thinking-dots i {
+  display: block;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--muted);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .thinking-dots i {
+    animation: thinking 1.05s var(--ease-studio) infinite;
+  }
+  .thinking-dots i:nth-child(2) {
+    animation-delay: 0.12s;
+  }
+  .thinking-dots i:nth-child(3) {
+    animation-delay: 0.24s;
+  }
+}
+
+@keyframes thinking {
+  0%,
+  80%,
+  100% {
+    opacity: 0.28;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+
 .prose p {
   margin-bottom: 1rem;
+}
+
+.prose-reading {
+  max-width: 65ch;
+  color: var(--ink);
 }
 
 .prose-reading h1,
 .prose-reading h2,
 .prose-reading h3 {
   font-weight: 700;
-  color: inherit;
+  color: var(--ink);
   margin: 1.25em 0 0.5em;
-  line-height: 1.4;
+  line-height: 1.7;
 }
 
 .prose-reading p {
@@ -81,14 +221,14 @@ body {
 
 .prose-reading code {
   border-radius: 0.3rem;
-  background: rgb(241 245 249);
+  background: color-mix(in srgb, var(--ink) 6%, var(--bg-elev));
   padding: 0.1em 0.35em;
   font-size: 0.9em;
 }
 
 .prose-reading pre {
   overflow-x: auto;
-  border-radius: 0.75rem;
+  border-radius: var(--radius-md);
   background: #0f172a;
   color: #e2e8f0;
   padding: 1rem;
@@ -102,6 +242,13 @@ body {
 }
 
 .prose-reading a {
-  color: #4f46e5;
+  color: var(--accent);
   text-decoration: underline;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-in,
+  .thinking-dots i {
+    animation: none;
+  }
 }
