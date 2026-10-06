@@ -1,0 +1,12 @@
+# Keep the Next builder context on app source only.
+# Changing GitHub workflow/docs must not invalidate npm ci layers.
+.github/
+docs/
+*.md
+hadiran-web3-v2/
+uploads/
+.npm/
+.arena/
+.git/
+node_modules/
+.next/
