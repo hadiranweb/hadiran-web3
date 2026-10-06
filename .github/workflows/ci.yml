@@ -126,17 +126,15 @@ jobs:
           if [ -n "${LIARA_TEAM_ID:-}" ]; then
             extra+=(--team-id "$LIARA_TEAM_ID")
           fi
-          # Default: Liara layer cache (v8 path, ~3.5 min when healthy).
-          # --no-cache is the exception when that cache burns the 15-minute
-          # budget before npm ci starts — never the everyday default.
+          # Default: Liara layer cache (v8 path).
+          # --no-cache is only for a corrupt image: workflow_dispatch flag or
+          # a [no-cache] commit. Do not flip it on GitHub "re-run" — that
+          # burns the 15-minute Liara budget. A timed-out cache build should
+          # retry WITH cache (npm ci already finished in ~1 min this time).
           no_cache=0
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.no_cache }}" = "true" ]; then
             no_cache=1
             echo 'Liara cache: --no-cache (workflow_dispatch)'
-          fi
-          if [ "${{ github.run_attempt }}" -gt 1 ]; then
-            no_cache=1
-            echo "Liara cache: --no-cache (run attempt ${{ github.run_attempt }})"
           fi
           if git log -1 --pretty=%B | grep -qF '[no-cache]'; then
             no_cache=1
