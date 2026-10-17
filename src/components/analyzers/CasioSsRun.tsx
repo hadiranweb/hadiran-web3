@@ -264,8 +264,8 @@ export function CasioSsRun() {
         <h2 className="text-lg font-bold leading-[1.7] text-ink sm:text-xl">{item.text}</h2>
 
         {item.kind === "range" ? (
-          <div className="mt-6">
-            <div dir="ltr" className="grid grid-cols-6 gap-1.5 sm:grid-cols-11">
+          <div className="mt-6" dir="rtl">
+            <div className="grid grid-cols-11 gap-1 sm:gap-1.5">
               {scaleButtons.map((value) => {
                 const selected = currentValue === value;
                 return (
@@ -285,10 +285,10 @@ export function CasioSsRun() {
                 );
               })}
             </div>
-            <div className="mt-3 grid grid-cols-1 gap-2 text-xs leading-6 text-muted sm:grid-cols-3">
-              <p>۰ — {item.anchors[0]}</p>
-              <p className="sm:text-center">۵ — {item.anchors[5]}</p>
-              <p className="sm:text-end">۱۰ — {item.anchors[10]}</p>
+            <div className="mt-3 flex items-start justify-between gap-3 text-xs leading-6 text-muted">
+              <p className="max-w-[38%] text-start">۰ — {item.anchors[0]}</p>
+              <p className="max-w-[24%] text-center">۵ — {item.anchors[5]}</p>
+              <p className="max-w-[38%] text-end">۱۰ — {item.anchors[10]}</p>
             </div>
           </div>
         ) : null}
