@@ -7,13 +7,14 @@ export type Analyzer = {
   status: AnalyzerStatus;
 };
 
-/** فهرست ایستا. جدول دیتابیس مال قدم اجرای آزمون است، نه این هب. */
+/** فهرست ایستا. اجرای casio-ss روی /analyzers/casio-ss است. */
 export const analyzers: Analyzer[] = [
   {
     slug: "casio-ss",
     nameFa: "عارضه‌یابی سازمانی",
-    summaryFa: "ارزیابی الگوی ذهنی و عارضه‌یابی چندلایه. صفحهٔ اجرا هنوز باز نشده.",
-    status: "preparing",
+    summaryFa:
+      "ارزیابی الگوی ذهنی، زمینهٔ کسب‌وکار، و بیست سؤال پنج‌لایه روی مقیاس ۰ تا ۱۰. گزارش تفسیری در برش بعد.",
+    status: "open",
   },
 ];
 

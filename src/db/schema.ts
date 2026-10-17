@@ -274,6 +274,20 @@ export const accounts = pgTable("accounts", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
 
+export const casioAttempts = pgTable("casio_attempts", {
+  id: serial("id").primaryKey(),
+  accountId: integer("account_id")
+    .notNull()
+    .references(() => accounts.id, { onDelete: "cascade" }),
+  instrumentVersion: varchar("instrument_version", { length: 64 }).notNull(),
+  consentAt: timestamp("consent_at", { withTimezone: true }),
+  answers: jsonb("answers").$type<Record<string, number | string>>().notNull().default({}),
+  status: varchar("status", { length: 16 }).notNull().default("in_progress"),
+  submittedAt: timestamp("submitted_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
 export const accountPublicCodes = pgTable("account_public_codes", {
   accountId: integer("account_id")
     .primaryKey()

@@ -44,6 +44,7 @@ export function SessionMenu() {
     await fetch("/api/auth/logout", { method: "POST" });
     clearDraftsByPrefix("account");
     clearDraftsByPrefix("onboarding");
+    clearDraftsByPrefix("casio");
     setAccount(null);
     router.refresh();
   }
