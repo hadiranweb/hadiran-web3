@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { LogIn, LogOut, PenLine, User } from "lucide-react";
+import { clearDraftsByPrefix, subscribeAccount } from "@/lib/ui/draft";
 
 type Account = { id: number; displayName: string | null; phone: string; role: string };
 
@@ -17,25 +18,32 @@ export function SessionMenu() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/auth/me")
-      .then(async (res) => {
-        if (!res.ok) return null;
-        const data = (await res.json()) as { account: Account | null };
-        return data.account;
-      })
-      .then((next) => {
-        if (!cancelled) setAccount(next);
-      })
-      .catch(() => {
-        if (!cancelled) setAccount(null);
-      });
+    function load() {
+      fetch("/api/auth/me", { cache: "no-store" })
+        .then(async (res) => {
+          if (!res.ok) return null;
+          const data = (await res.json()) as { account: Account | null };
+          return data.account;
+        })
+        .then((next) => {
+          if (!cancelled) setAccount(next);
+        })
+        .catch(() => {
+          if (!cancelled) setAccount(null);
+        });
+    }
+    load();
+    const stop = subscribeAccount(() => load());
     return () => {
       cancelled = true;
+      stop();
     };
   }, [pathname]);
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
+    clearDraftsByPrefix("account");
+    clearDraftsByPrefix("onboarding");
     setAccount(null);
     router.refresh();
   }

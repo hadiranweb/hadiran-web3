@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { privacySummary } from "@/lib/privacy/content";
+import { clearDraft, publishAccount, readDraft, writeDraft } from "@/lib/ui/draft";
 
 const fieldClass =
   "w-full rounded-[var(--radius-md)] border border-line bg-elev px-4 py-2.5 text-sm text-ink outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]";
@@ -62,8 +63,9 @@ export function OnboardingDialog() {
           setReady(true);
           return;
         }
-        setGivenName(account.givenName || "");
-        setFamilyName(account.familyName || "");
+        const draft = readDraft<{ givenName?: string; familyName?: string }>("onboarding-profile");
+        setGivenName(draft?.givenName || account.givenName || "");
+        setFamilyName(draft?.familyName || account.familyName || "");
         setStep(needsPolicies ? "policies" : "profile");
         setOpen(true);
         setReady(true);
@@ -87,6 +89,15 @@ export function OnboardingDialog() {
       document.body.style.overflow = previous;
     };
   }, [open]);
+
+  useEffect(() => {
+    if (!ready || !open || step !== "profile") return;
+    if (!givenName.trim() && !familyName.trim()) {
+      clearDraft("onboarding-profile");
+      return;
+    }
+    writeDraft("onboarding-profile", { givenName, familyName });
+  }, [ready, open, step, givenName, familyName]);
 
   async function acceptPolicies() {
     setError(null);
@@ -126,6 +137,12 @@ export function OnboardingDialog() {
       });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(data.error || "save_failed");
+      clearDraft("onboarding-profile");
+      publishAccount({
+        givenName,
+        familyName,
+        displayName: `${givenName.trim()} ${familyName.trim()}`.trim(),
+      });
       setOpen(false);
       router.refresh();
     } catch (err) {

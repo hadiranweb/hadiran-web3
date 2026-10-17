@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Send, BookOpen, FlaskConical, GraduationCap, Hash } from "lucide-react";
 import type { ChatReferences } from "@/lib/ai";
+import { clearDraft, readDraft, writeDraft } from "@/lib/ui/draft";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -12,6 +13,7 @@ interface ChatMessage {
 }
 
 const STORAGE_KEY = "hw3-conversation-id";
+const COMPOSER_KEY = "home-composer";
 
 const GREETING: ChatMessage = {
   role: "assistant",
@@ -30,6 +32,14 @@ export function HomeChat() {
   const [conversationId, setConversationId] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const areaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const draft = readDraft<string>(COMPOSER_KEY);
+    if (typeof draft === "string" && draft) {
+      setInput(draft);
+      requestAnimationFrame(() => fitArea());
+    }
+  }, []);
 
   useEffect(() => {
     const raw = sessionStorage.getItem(STORAGE_KEY);
@@ -59,6 +69,10 @@ export function HomeChat() {
   }, []);
 
   useEffect(() => {
+    fitArea();
+  }, [input]);
+
+  useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
@@ -77,6 +91,7 @@ export function HomeChat() {
     if (!userMessage || isLoading) return;
 
     setInput("");
+    clearDraft(COMPOSER_KEY);
     requestAnimationFrame(() => {
       if (areaRef.current) {
         areaRef.current.style.height = "auto";
@@ -191,7 +206,10 @@ export function HomeChat() {
           rows={1}
           value={input}
           onChange={(e) => {
-            setInput(e.target.value);
+            const next = e.target.value;
+            setInput(next);
+            if (next.trim()) writeDraft(COMPOSER_KEY, next);
+            else clearDraft(COMPOSER_KEY);
             fitArea();
           }}
           onKeyDown={(e) => {

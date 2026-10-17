@@ -1,10 +1,14 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { clearDraft, publishAccount, subscribeAccount } from "@/lib/ui/draft";
+import { useSyncedDraft } from "@/lib/ui/useSyncedDraft";
 
 const fieldClass =
   "w-full rounded-[var(--radius-md)] border border-line bg-elev px-4 py-2.5 text-sm text-ink outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]";
+
+const DRAFT_KEY = "account-profile";
 
 function persianError(code: string) {
   const map: Record<string, string> = {
@@ -24,11 +28,25 @@ export function AccountProfileForm({
   familyName: string;
 }) {
   const router = useRouter();
-  const [givenName, setGivenName] = useState(initialGiven);
-  const [familyName, setFamilyName] = useState(initialFamily);
+  const { value, set, markSaved } = useSyncedDraft(DRAFT_KEY, {
+    givenName: initialGiven,
+    familyName: initialFamily,
+  });
+  const { givenName, familyName } = value;
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    return subscribeAccount((detail) => {
+      if (detail.givenName == null && detail.familyName == null) return;
+      markSaved({
+        givenName: detail.givenName ?? "",
+        familyName: detail.familyName ?? "",
+      });
+      clearDraft("onboarding-profile");
+    });
+  }, [markSaved]);
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -44,6 +62,8 @@ export function AccountProfileForm({
       });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(data.error || "save_failed");
+      markSaved({ givenName, familyName });
+      publishAccount({ givenName, familyName, displayName: `${givenName} ${familyName}`.trim() });
       setSaved(true);
       router.refresh();
     } catch (err) {
@@ -59,7 +79,7 @@ export function AccountProfileForm({
         <span className="text-sm font-medium text-ink">نام</span>
         <input
           value={givenName}
-          onChange={(e) => setGivenName(e.target.value)}
+          onChange={(e) => set({ givenName: e.target.value, familyName })}
           maxLength={64}
           autoComplete="given-name"
           className={fieldClass}
@@ -69,7 +89,7 @@ export function AccountProfileForm({
         <span className="text-sm font-medium text-ink">نام خانوادگی</span>
         <input
           value={familyName}
-          onChange={(e) => setFamilyName(e.target.value)}
+          onChange={(e) => set({ givenName, familyName: e.target.value })}
           maxLength={64}
           autoComplete="family-name"
           className={fieldClass}

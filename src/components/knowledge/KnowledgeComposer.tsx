@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { clearDraft, readDraft, writeDraft } from "@/lib/ui/draft";
 import { Plus, Trash2, Save, Loader2, Layers } from "lucide-react";
 import { MarkdownReadonly } from "@/components/MarkdownReadonly";
 import { slugify } from "@/lib/markdown";
@@ -62,6 +63,49 @@ export function KnowledgeComposer({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState(false);
+  const draftKey = `knowledge:${mode}:${initial?.slug || "new"}`;
+  const skipDraftWrite = useRef(true);
+
+  useEffect(() => {
+    const draft = readDraft<{
+      titleFa: string;
+      titleEn: string;
+      slug: string;
+      slugTouched: boolean;
+      type: (typeof TYPES)[number]["value"];
+      summaryFa: string;
+      bodyFa: string;
+      slides: SlideDraft[];
+    }>(draftKey);
+    if (draft) {
+      setTitleFa(draft.titleFa ?? "");
+      setTitleEn(draft.titleEn ?? "");
+      setSlug(draft.slug ?? "");
+      setSlugTouched(Boolean(draft.slugTouched));
+      if (draft.type) setType(draft.type);
+      setSummaryFa(draft.summaryFa ?? "");
+      setBodyFa(draft.bodyFa ?? "");
+      if (Array.isArray(draft.slides)) setSlides(draft.slides);
+    }
+    skipDraftWrite.current = true;
+  }, [draftKey]);
+
+  useEffect(() => {
+    if (skipDraftWrite.current) {
+      skipDraftWrite.current = false;
+      return;
+    }
+    writeDraft(draftKey, {
+      titleFa,
+      titleEn,
+      slug,
+      slugTouched,
+      type,
+      summaryFa,
+      bodyFa,
+      slides,
+    });
+  }, [draftKey, titleFa, titleEn, slug, slugTouched, type, summaryFa, bodyFa, slides]);
 
   const computedSlug = useMemo(() => {
     if (slugTouched) return slug;
@@ -135,6 +179,7 @@ export function KnowledgeComposer({
       });
       const data = (await res.json()) as { slug?: string; error?: string };
       if (!res.ok) throw new Error(data.error || "ذخیره ناموفق بود");
+      clearDraft(draftKey);
       router.push(`/knowledge/${data.slug || finalSlug}`);
       router.refresh();
     } catch (err) {
