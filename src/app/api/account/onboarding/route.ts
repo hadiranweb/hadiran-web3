@@ -3,8 +3,10 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { accounts } from "@/db/schema";
 import { requireAccount } from "@/lib/auth/guard";
+import { hasPersonName, onboardingFlags } from "@/lib/auth/onboarding";
 import { displayNameFromParts, normalizePersonName } from "@/lib/auth/profile";
 import { ensureAccountProfileSchema } from "@/lib/auth/schema-guard";
+import { privacyPolicyVersion } from "@/lib/privacy/version";
 
 export const dynamic = "force-dynamic";
 
@@ -27,19 +29,28 @@ export async function POST(request: Request) {
     if (body.accept !== true) {
       return NextResponse.json({ error: "policies_not_accepted" }, { status: 400 });
     }
-    const acceptedAt = row.policiesAcceptedAt ?? new Date();
+    const named = hasPersonName(row.givenName, row.familyName);
+    const now = new Date();
     await db
       .update(accounts)
       .set({
-        policiesAcceptedAt: acceptedAt,
-        updatedAt: new Date(),
+        policiesAcceptedAt: now,
+        policiesVersion: privacyPolicyVersion(),
+        onboardingCompletedAt: named ? (row.onboardingCompletedAt ?? now) : null,
+        updatedAt: now,
       })
       .where(eq(accounts.id, auth.account.id));
-    return NextResponse.json({ ok: true, policiesAccepted: true, onboardingComplete: Boolean(row.onboardingCompletedAt) });
+    return NextResponse.json({
+      ok: true,
+      policiesAccepted: true,
+      needsProfile: !named,
+      onboardingComplete: named,
+    });
   }
 
   if (body.step === "profile") {
-    if (!row.policiesAcceptedAt) {
+    const flags = onboardingFlags(row);
+    if (!flags.policiesAccepted) {
       return NextResponse.json({ error: "policies_required" }, { status: 400 });
     }
     const givenName = normalizePersonName(body.givenName);
@@ -57,7 +68,7 @@ export async function POST(request: Request) {
         updatedAt: new Date(),
       })
       .where(eq(accounts.id, auth.account.id));
-    return NextResponse.json({ ok: true, policiesAccepted: true, onboardingComplete: true });
+    return NextResponse.json({ ok: true, policiesAccepted: true, needsProfile: false, onboardingComplete: true });
   }
 
   return NextResponse.json({ error: "invalid_step" }, { status: 400 });

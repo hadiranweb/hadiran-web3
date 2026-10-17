@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { privacySummary } from "@/lib/privacy/content";
 
 const fieldClass =
   "w-full rounded-[var(--radius-md)] border border-line bg-elev px-4 py-2.5 text-sm text-ink outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]";
@@ -30,7 +32,7 @@ export function OnboardingDialog() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (pathname === "/signin") {
+    if (pathname === "/signin" || pathname === "/privacy") {
       setOpen(false);
       setReady(true);
       return;
@@ -43,6 +45,7 @@ export function OnboardingDialog() {
           account: {
             onboardingComplete?: boolean;
             policiesAccepted?: boolean;
+            needsProfile?: boolean;
             givenName?: string | null;
             familyName?: string | null;
           } | null;
@@ -51,14 +54,17 @@ export function OnboardingDialog() {
       .then((data) => {
         if (cancelled) return;
         const account = data?.account;
-        if (!account || account.onboardingComplete) {
+        const needsProfile =
+          account?.needsProfile ?? (!account?.givenName?.trim() || !account?.familyName?.trim());
+        const needsPolicies = account ? account.policiesAccepted !== true : false;
+        if (!account || (!needsPolicies && !needsProfile)) {
           setOpen(false);
           setReady(true);
           return;
         }
         setGivenName(account.givenName || "");
         setFamilyName(account.familyName || "");
-        setStep(account.policiesAccepted ? "profile" : "policies");
+        setStep(needsPolicies ? "policies" : "profile");
         setOpen(true);
         setReady(true);
       })
@@ -92,9 +98,14 @@ export function OnboardingDialog() {
         cache: "no-store",
         body: JSON.stringify({ step: "policies", accept: true }),
       });
-      const data = (await res.json()) as { error?: string };
+      const data = (await res.json()) as { error?: string; needsProfile?: boolean };
       if (!res.ok) throw new Error(data.error || "save_failed");
-      setStep("profile");
+      if (data.needsProfile || !givenName.trim() || !familyName.trim()) {
+        setStep("profile");
+        return;
+      }
+      setOpen(false);
+      router.refresh();
     } catch (err) {
       setError(persianError(err instanceof Error ? err.message : "save_failed"));
     } finally {
@@ -145,32 +156,12 @@ export function OnboardingDialog() {
               <h2 id="onboarding-title" className="text-xl font-bold leading-[1.7] text-ink">
                 شرایط استفاده و حریم خصوصی
               </h2>
-              <div className="mt-4 space-y-4 text-sm leading-7 text-muted">
-                <p>
-                  با ساخت حساب در هادیران، شرایط زیر را می‌پذیرید. این متن نسخهٔ متعارف پذیرش حساب است، نه مشاورهٔ
-                  حقوقی.
-                </p>
-                <div>
-                  <h3 className="font-semibold text-ink">شرایط استفاده</h3>
-                  <ul className="mt-2 list-disc space-y-1 ps-5">
-                    <li>حساب برای استفادهٔ شخصی از خدمات هادیران است.</li>
-                    <li>ورود با شمارهٔ موبایل ایرانی و کد یک‌بارمصرف انجام می‌شود؛ نگهداری رمز حساب با شماست.</li>
-                    <li>اختلال در سرویس، جعل هویت، یا وارد کردن آگاهانهٔ دادهٔ نادرست مجاز نیست.</li>
-                    <li>هادیران می‌تواند خدمت را تغییر دهد یا حساب ناقض را محدود کند.</li>
-                  </ul>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-ink">حریم خصوصی</h3>
-                  <ul className="mt-2 list-disc space-y-1 ps-5">
-                    <li>شمارهٔ موبایل برای احراز هویت و ارسال کد ورود ذخیره می‌شود.</li>
-                    <li>نام و نام‌خانوادگی روی حساب می‌ماند و در خدمات هادیران (از جمله تحلیلگر‌ها) استفاده می‌شود.</li>
-                    <li>نشست با کوکی امن و غیرقابل‌خواندن برای جاوااسکریپت نگه داشته می‌شود.</li>
-                    <li>داده را برای تبلیغات به دیگران نمی‌فروشیم.</li>
-                    <li>برای ارسال پیامک، ارائه‌دهنده فقط شماره و کد را می‌بیند.</li>
-                    <li>برای پرسش یا درخواست حذف حساب از صفحهٔ تماس استفاده کنید.</li>
-                  </ul>
-                </div>
-              </div>
+              <p className="mt-4 text-sm leading-7 text-muted">{privacySummary}</p>
+              <p className="mt-4 text-sm leading-7">
+                <Link href="/privacy" className="font-medium text-accent hover:text-ink">
+                  برای مطالعه بیشتر
+                </Link>
+              </p>
             </div>
             <div className="border-t border-line px-6 py-4">
               {error ? <p className="mb-3 text-sm text-mark">{error}</p> : null}

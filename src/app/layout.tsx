@@ -35,9 +35,14 @@ export const metadata: Metadata = {
   },
 };
 
+const themeBoot = `(()=>{try{var t=localStorage.getItem("hadiran-theme");var d=t==="dark"||(t!=="light"&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.toggle("dark",d);document.documentElement.style.colorScheme=d?"dark":"light"}catch(e){}})();`;
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="fa" dir="rtl" className={vazirmatn.variable}>
+    <html lang="fa" dir="rtl" className={vazirmatn.variable} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBoot }} />
+      </head>
       <body className="flex min-h-screen flex-col bg-paper text-ink antialiased">
         <Nav />
         <div className="flex-1">{children}</div>

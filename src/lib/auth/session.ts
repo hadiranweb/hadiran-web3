@@ -7,8 +7,9 @@ import { SESSION_COOKIE, SESSION_DAYS, isProduction, ownerPhones } from "./confi
 import { needsPasswordSetup } from "./password";
 import { requestIp, requestUserAgent } from "./request";
 import { assertJwtReadyForIssue, jwtConfigured, sessionJtiFromCookie, signSessionJwt } from "./jwt";
-import { ensureAccountPasswordColumns } from "./schema-guard";
+import { ensureAccountPasswordColumns, ensureAccountProfileSchema } from "./schema-guard";
 import { ensureAccountPublicCode } from "./public-code";
+import { onboardingFlags } from "./onboarding";
 
 export type SessionAccount = {
   id: number;
@@ -18,8 +19,30 @@ export type SessionAccount = {
   familyName: string | null;
   role: "owner" | "member";
   policiesAccepted: boolean;
+  needsProfile: boolean;
   onboardingComplete: boolean;
 };
+
+function toSessionAccount(row: {
+  id: number;
+  phone: string;
+  displayName: string | null;
+  givenName: string | null;
+  familyName: string | null;
+  role: "owner" | "member";
+  policiesAcceptedAt: Date | null;
+  policiesVersion: string | null;
+}): SessionAccount {
+  return {
+    id: row.id,
+    phone: row.phone,
+    displayName: row.displayName,
+    givenName: row.givenName,
+    familyName: row.familyName,
+    role: row.role,
+    ...onboardingFlags(row),
+  };
+}
 
 export function sessionCookieOptions() {
   return {
@@ -84,6 +107,7 @@ export async function getCurrentAccount(): Promise<SessionAccount | null> {
         familyName: accounts.familyName,
         role: accounts.role,
         policiesAcceptedAt: accounts.policiesAcceptedAt,
+        policiesVersion: accounts.policiesVersion,
         onboardingCompletedAt: accounts.onboardingCompletedAt,
         sessionId: sessions.id,
       })
@@ -107,16 +131,7 @@ export async function getCurrentAccount(): Promise<SessionAccount | null> {
       .set({ lastSeenAt: new Date() })
       .where(eq(sessions.id, row.sessionId));
 
-    return {
-      id: row.id,
-      phone: row.phone,
-      displayName: row.displayName,
-      givenName: row.givenName,
-      familyName: row.familyName,
-      role: row.role,
-      policiesAccepted: Boolean(row.policiesAcceptedAt),
-      onboardingComplete: Boolean(row.onboardingCompletedAt),
-    };
+    return toSessionAccount(row);
   } catch {
     return null;
   }
@@ -150,6 +165,7 @@ export async function completePhoneLogin(input: {
 }): Promise<{ account: LoginAccount; needs_password: boolean }> {
   const role = roleForPhone(input.phone);
   await ensureAccountPasswordColumns();
+  await ensureAccountProfileSchema();
   const [existing] = await db.select().from(accounts).where(eq(accounts.phone, input.phone)).limit(1);
   let account = existing;
   if (!account) {
@@ -197,14 +213,7 @@ export async function completePhoneLogin(input: {
 
   return {
     account: {
-      id: account.id,
-      phone: account.phone,
-      displayName: account.displayName,
-      givenName: account.givenName,
-      familyName: account.familyName,
-      role: account.role,
-      policiesAccepted: Boolean(account.policiesAcceptedAt),
-      onboardingComplete: Boolean(account.onboardingCompletedAt),
+      ...toSessionAccount(account),
       passwordHash: account.passwordHash,
     },
     needs_password: needsPasswordSetup({ phone: account.phone, passwordHash: account.passwordHash }),

@@ -192,14 +192,24 @@ export default async function HadiranPage() {
                 );
               })}
             </div>
-            <Link href="/contact" className="mt-4 inline-block text-sm font-medium text-accent">
-              صفحهٔ تماس
-            </Link>
+            <p className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm font-medium">
+              <Link href="/contact" className="text-accent">
+                صفحهٔ تماس
+              </Link>
+              <Link href="/privacy" className="text-accent">
+                حریم خصوصی
+              </Link>
+            </p>
           </section>
         ) : (
-          <Link href="/contact" className="mt-10 inline-block text-sm font-medium text-accent">
-            صفحهٔ تماس
-          </Link>
+          <p className="mt-10 flex flex-wrap gap-x-4 gap-y-2 text-sm font-medium">
+            <Link href="/contact" className="text-accent">
+              صفحهٔ تماس
+            </Link>
+            <Link href="/privacy" className="text-accent">
+              حریم خصوصی
+            </Link>
+          </p>
         )}
       </Surface>
     </PageShell>

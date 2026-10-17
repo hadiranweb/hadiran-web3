@@ -42,5 +42,9 @@ export const MIGRATION_FILES: { id: string; sql: string }[] = [
   {
     "id": "0010_account_onboarding.sql",
     "sql": "-- First-login onboarding: policy acceptance + name gate.\n-- Existing accounts are already registered and must not see the popup.\n\nALTER TABLE accounts ADD COLUMN IF NOT EXISTS policies_accepted_at TIMESTAMPTZ;\nALTER TABLE accounts ADD COLUMN IF NOT EXISTS onboarding_completed_at TIMESTAMPTZ;\n\nUPDATE accounts\nSET\n  policies_accepted_at = COALESCE(policies_accepted_at, created_at, NOW()),\n  onboarding_completed_at = COALESCE(onboarding_completed_at, created_at, NOW())\nWHERE onboarding_completed_at IS NULL;\n"
+  },
+  {
+    "id": "0011_onboarding_policy_version.sql",
+    "sql": "-- Re-gate onboarding: policy text version + empty names.\n-- 0010 backfilled timestamps so existing accounts skipped the popup.\n\nALTER TABLE accounts ADD COLUMN IF NOT EXISTS policies_version VARCHAR(64);\n\nUPDATE accounts\nSET onboarding_completed_at = NULL\nWHERE given_name IS NULL\n   OR btrim(given_name) = ''\n   OR family_name IS NULL\n   OR btrim(family_name) = '';\n"
   }
 ];

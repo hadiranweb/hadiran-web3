@@ -12,6 +12,7 @@ const links = [
   { href: "/shop", label: "فروشگاه" },
   { href: "/topics", label: "موضوعات" },
   { href: "/contact", label: "تماس" },
+  { href: "/privacy", label: "حریم خصوصی" },
 ];
 
 export function Footer() {

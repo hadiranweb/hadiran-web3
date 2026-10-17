@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { User, BookOpen, FlaskConical, GraduationCap, Layers, Menu, X, ShoppingBag, ScanSearch } from "lucide-react";
 import { useState } from "react";
 import { SessionMenu } from "@/components/auth/SessionMenu";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { HadiranWordmark } from "@/components/HadiranMark";
 
 const primaryLinks = [
@@ -47,6 +48,7 @@ export function Nav() {
         </nav>
 
         <div className="flex items-center gap-1">
+          <ThemeToggle />
           <div className="hidden lg:block">
             <SessionMenu />
           </div>

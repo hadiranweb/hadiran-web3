@@ -268,6 +268,7 @@ export const accounts = pgTable("accounts", {
   passwordHash: text("password_hash"),
   passwordSetAt: timestamp("password_set_at", { withTimezone: true }),
   policiesAcceptedAt: timestamp("policies_accepted_at", { withTimezone: true }),
+  policiesVersion: varchar("policies_version", { length: 64 }),
   onboardingCompletedAt: timestamp("onboarding_completed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
