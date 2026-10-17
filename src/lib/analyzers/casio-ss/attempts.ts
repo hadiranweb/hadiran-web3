@@ -2,6 +2,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { casioAttempts } from "@/db/schema";
 import { ensureCasioAttemptsSchema } from "@/lib/auth/schema-guard";
+import { scorePack } from "@/lib/analyzers/score";
 import {
   findItem,
   isComplete,
@@ -9,7 +10,7 @@ import {
   type AnswerMap,
   type AttemptView,
 } from "./answers";
-import { INSTRUMENT_VERSION } from "./instrument";
+import { INSTRUMENT_VERSION, casioSsPack } from "./instrument";
 
 export type { AttemptView };
 
@@ -31,6 +32,7 @@ function view(row: {
   consentAt: Date | null;
   answers: AnswerMap | null;
   submittedAt: Date | null;
+  results?: AttemptView["results"];
 }): AttemptView {
   return {
     instrumentVersion: row.instrumentVersion,
@@ -38,6 +40,7 @@ function view(row: {
     consentAt: row.consentAt ? row.consentAt.toISOString() : null,
     answers: asAnswers(row.answers),
     submittedAt: row.submittedAt ? row.submittedAt.toISOString() : null,
+    results: row.results ?? null,
   };
 }
 
@@ -145,6 +148,7 @@ export async function submitAttempt(
   if (!row.consentAt) return { ok: false, error: "consent_required" };
   const answers = asAnswers(row.answers);
   if (!isComplete(answers)) return { ok: false, error: "incomplete" };
+  const results = scorePack(casioSsPack, answers);
   const [updated] = await db
     .update(casioAttempts)
     .set({
@@ -152,6 +156,7 @@ export async function submitAttempt(
       submittedAt: new Date(),
       updatedAt: new Date(),
       answers,
+      results,
     })
     .where(eq(casioAttempts.id, row.id))
     .returning();

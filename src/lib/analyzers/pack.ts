@@ -45,7 +45,6 @@ export type Edge = {
   transform: EdgeTransform;
 };
 
-/** اعلان فقط. اجرا در فاز ۲. */
 export type FormulaOp =
   | "reverse"
   | "mean"
@@ -57,12 +56,24 @@ export type FormulaOp =
   | "cap_if"
   | "matmul";
 
+export type Band = {
+  id: string;
+  labelFa: string;
+  gte?: number;
+  lt?: number;
+  lte?: number;
+};
+
 export type Formula = {
   id: string;
   op: FormulaOp;
   of?: string[];
   divisor?: number;
-  weights?: { item: string; dimension: string; weight: number }[];
+  weights?: { item: string; dimension?: string; weight: number }[];
+  bands?: Band[];
+  watch?: string[];
+  capAt?: { lte: number; set: string }[];
+  demote?: { lte: number; from: string; to: string }[];
 };
 
 export type Consent = {

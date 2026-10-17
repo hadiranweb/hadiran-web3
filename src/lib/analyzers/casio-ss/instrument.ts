@@ -390,6 +390,50 @@ const findings: AnalyzerPack["findings"] = [
   { id: "layer-scale", titleFa: "توسعه و مقیاس‌پذیری", kind: "layer", parentId: "diagnosis" },
 ];
 
+const formulas: AnalyzerPack["formulas"] = [
+  { id: "gate-control", op: "mean", of: ["MG.A1", "MG.A2", "MG.A3", "MG.A4"] },
+  { id: "gate-agency", op: "mean", of: ["MG.B1", "MG.B2", "MG.B3", "MG.B4"] },
+  { id: "gate-problem", op: "mean", of: ["MG.C1", "MG.C2", "MG.C3", "MG.C4"] },
+  { id: "gate-mean", op: "mean", of: ["gate-control", "gate-agency", "gate-problem"] },
+  { id: "gate-total", op: "weighted_sum", weights: [{ item: "gate-mean", weight: 10 }] },
+  {
+    id: "gate-band",
+    op: "band",
+    of: ["gate-total"],
+    bands: [
+      { id: "green", labelFa: "سبز", gte: 70, lte: 100 },
+      { id: "yellow", labelFa: "زرد", gte: 40, lt: 70 },
+      { id: "red", labelFa: "قرمز", lt: 40 },
+    ],
+  },
+  { id: "layer-foundation", op: "sum_div", of: ["FL.L1.Q1", "FL.L1.Q2", "FL.L1.Q3", "FL.L1.Q4"], divisor: 2 },
+  { id: "layer-architecture", op: "sum_div", of: ["FL.L2.Q1", "FL.L2.Q2", "FL.L2.Q3", "FL.L2.Q4"], divisor: 2 },
+  { id: "layer-flow", op: "sum_div", of: ["FL.L3.Q1", "FL.L3.Q2", "FL.L3.Q3", "FL.L3.Q4"], divisor: 2 },
+  { id: "layer-monitor", op: "sum_div", of: ["FL.L4.Q1", "FL.L4.Q2", "FL.L4.Q3", "FL.L4.Q4"], divisor: 2 },
+  { id: "layer-scale", op: "sum_div", of: ["FL.L5.Q1", "FL.L5.Q2", "FL.L5.Q3", "FL.L5.Q4"], divisor: 2 },
+  {
+    id: "diagnosis-total",
+    op: "sum",
+    of: ["layer-foundation", "layer-architecture", "layer-flow", "layer-monitor", "layer-scale"],
+  },
+  {
+    id: "bottleneck",
+    op: "argmin",
+    of: ["layer-foundation", "layer-architecture", "layer-flow", "layer-monitor", "layer-scale"],
+  },
+  {
+    id: "maturity",
+    op: "band",
+    of: ["diagnosis-total"],
+    bands: [
+      { id: "mature", labelFa: "بالغ", gte: 80, lte: 100 },
+      { id: "maturing", labelFa: "در حال بلوغ", gte: 60, lt: 80 },
+      { id: "forming", labelFa: "در حال شکل‌گیری", gte: 40, lt: 60 },
+      { id: "nascent", labelFa: "نوپا", lt: 40 },
+    ],
+  },
+];
+
 export const casioSsPack: AnalyzerPack = {
   slug: "casio-ss",
   version: INSTRUMENT_VERSION,
@@ -406,6 +450,6 @@ export const casioSsPack: AnalyzerPack = {
   findings,
   keywords: [],
   edges: edgesFromScoredSections(sections),
-  formulas: [],
+  formulas,
 };
 

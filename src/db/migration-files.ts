@@ -50,5 +50,9 @@ export const MIGRATION_FILES: { id: string; sql: string }[] = [
   {
     "id": "0012_casio_attempts.sql",
     "sql": "-- Casio-ss attempt store: answers JSON, one in-progress per account.\n-- Scoring/PDF tables are not this cut.\n\nCREATE TABLE IF NOT EXISTS casio_attempts (\n  id SERIAL PRIMARY KEY,\n  account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,\n  instrument_version VARCHAR(64) NOT NULL,\n  consent_at TIMESTAMPTZ,\n  answers JSONB NOT NULL DEFAULT '{}'::jsonb,\n  status VARCHAR(16) NOT NULL DEFAULT 'in_progress',\n  submitted_at TIMESTAMPTZ,\n  created_at TIMESTAMPTZ DEFAULT NOW(),\n  updated_at TIMESTAMPTZ DEFAULT NOW()\n);\n\nCREATE UNIQUE INDEX IF NOT EXISTS casio_attempts_open_account\n  ON casio_attempts (account_id)\n  WHERE status = 'in_progress';\n\nCREATE INDEX IF NOT EXISTS casio_attempts_account_idx\n  ON casio_attempts (account_id, created_at DESC);\n"
+  },
+  {
+    "id": "0013_casio_results.sql",
+    "sql": "-- Snapshot of declarative scores on submit. Report UI is not this cut.\n\nALTER TABLE casio_attempts ADD COLUMN IF NOT EXISTS results JSONB;\n"
   }
 ];

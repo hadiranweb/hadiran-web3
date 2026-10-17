@@ -65,5 +65,6 @@ export async function ensureCasioAttemptsSchema() {
     ON casio_attempts (account_id)
     WHERE status = 'in_progress'
   `);
+  await db.execute(sql`ALTER TABLE casio_attempts ADD COLUMN IF NOT EXISTS results JSONB`);
   casioAttemptsReady = true;
 }

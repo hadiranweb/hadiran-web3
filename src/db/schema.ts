@@ -282,6 +282,11 @@ export const casioAttempts = pgTable("casio_attempts", {
   instrumentVersion: varchar("instrument_version", { length: 64 }).notNull(),
   consentAt: timestamp("consent_at", { withTimezone: true }),
   answers: jsonb("answers").$type<Record<string, number | string>>().notNull().default({}),
+  results: jsonb("results").$type<{
+    version: string;
+    effective: Record<string, number>;
+    scores: Record<string, number | string>;
+  }>(),
   status: varchar("status", { length: 16 }).notNull().default("in_progress"),
   submittedAt: timestamp("submitted_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),

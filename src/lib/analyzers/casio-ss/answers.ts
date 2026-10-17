@@ -8,6 +8,11 @@ export type AttemptView = {
   consentAt: string | null;
   answers: AnswerMap;
   submittedAt: string | null;
+  results: {
+    version: string;
+    effective: Record<string, number>;
+    scores: Record<string, number | string>;
+  } | null;
 };
 
 export function findItem(id: string): Item | undefined {
