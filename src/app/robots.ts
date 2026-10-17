@@ -13,6 +13,8 @@ export default function robots(): MetadataRoute.Robots {
           "/knowledge/new",
           "/*/edit",
           "/signin",
+          "/account",
+          "/account/",
           "/workspace",
           "/workspace/",
           "/shop/orders",

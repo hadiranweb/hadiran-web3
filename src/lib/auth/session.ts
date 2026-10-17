@@ -8,6 +8,7 @@ import { needsPasswordSetup } from "./password";
 import { requestIp, requestUserAgent } from "./request";
 import { assertJwtReadyForIssue, jwtConfigured, sessionJtiFromCookie, signSessionJwt } from "./jwt";
 import { ensureAccountPasswordColumns } from "./schema-guard";
+import { ensureAccountPublicCode } from "./public-code";
 
 export type SessionAccount = {
   id: number;
@@ -173,6 +174,8 @@ export async function completePhoneLogin(input: {
   if (!account) {
     throw new Error("account_missing");
   }
+
+  await ensureAccountPublicCode(account.id);
 
   const token = await createSession(account.id, {
     ip: requestIp(input.request),

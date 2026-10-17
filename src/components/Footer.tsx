@@ -7,6 +7,7 @@ const links = [
   { href: "/hadiran", label: "درباره من" },
   { href: "/knowledge", label: "دانشنامه" },
   { href: "/lab", label: "آزمایشگاه" },
+  { href: "/analyzers", label: "تحلیلگر‌ها" },
   { href: "/courses", label: "دوره‌ها" },
   { href: "/shop", label: "فروشگاه" },
   { href: "/topics", label: "موضوعات" },

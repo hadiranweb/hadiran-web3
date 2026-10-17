@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogIn, LogOut, PenLine } from "lucide-react";
+import { LogIn, LogOut, PenLine, User } from "lucide-react";
 
 type Account = { id: number; displayName: string | null; phone: string; role: string };
 
@@ -55,6 +55,10 @@ export function SessionMenu() {
 
   return (
     <div className="flex items-center gap-1">
+      <Link href="/account" className={itemClass}>
+        <User className="h-4 w-4" strokeWidth={1.5} />
+        حساب
+      </Link>
       {account.role === "owner" ? (
         <Link href="/workspace" className={itemClass}>
           <PenLine className="h-4 w-4" strokeWidth={1.5} />

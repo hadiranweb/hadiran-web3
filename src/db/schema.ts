@@ -255,6 +255,12 @@ export const accounts = pgTable("accounts", {
   id: serial("id").primaryKey(),
   phone: varchar("phone", { length: 16 }).notNull().unique(),
   displayName: varchar("display_name", { length: 128 }),
+  givenName: varchar("given_name", { length: 64 }),
+  familyName: varchar("family_name", { length: 64 }),
+  email: varchar("email", { length: 254 }).unique(),
+  emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
+  telegramUserId: varchar("telegram_user_id", { length: 32 }).unique(),
+  telegramLinkedAt: timestamp("telegram_linked_at", { withTimezone: true }),
   role: accountRoleEnum("role").notNull().default("member"),
   isActive: boolean("is_active").notNull().default(true),
   phoneVerifiedAt: timestamp("phone_verified_at", { withTimezone: true }),
@@ -263,6 +269,14 @@ export const accounts = pgTable("accounts", {
   passwordSetAt: timestamp("password_set_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+export const accountPublicCodes = pgTable("account_public_codes", {
+  accountId: integer("account_id")
+    .primaryKey()
+    .references(() => accounts.id, { onDelete: "cascade" }),
+  code: varchar("code", { length: 8 }).notNull().unique(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 export const otpChallenges = pgTable("otp_challenges", {
@@ -800,9 +814,20 @@ export const collaborationsRelations = relations(collaborations, ({ one }) => ({
   }),
 }));
 
-export const accountsRelations = relations(accounts, ({ many }) => ({
+export const accountsRelations = relations(accounts, ({ many, one }) => ({
   sessions: many(sessions),
   authEvents: many(authEvents),
+  publicCode: one(accountPublicCodes, {
+    fields: [accounts.id],
+    references: [accountPublicCodes.accountId],
+  }),
+}));
+
+export const accountPublicCodesRelations = relations(accountPublicCodes, ({ one }) => ({
+  account: one(accounts, {
+    fields: [accountPublicCodes.accountId],
+    references: [accounts.id],
+  }),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({

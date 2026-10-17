@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { User, BookOpen, FlaskConical, GraduationCap, Layers, Menu, X, ShoppingBag } from "lucide-react";
+import { User, BookOpen, FlaskConical, GraduationCap, Layers, Menu, X, ShoppingBag, ScanSearch } from "lucide-react";
 import { useState } from "react";
 import { SessionMenu } from "@/components/auth/SessionMenu";
 import { HadiranWordmark } from "@/components/HadiranMark";
@@ -12,6 +12,7 @@ const primaryLinks = [
   { href: "/hadiran", label: "درباره من", icon: User },
   { href: "/knowledge", label: "دانشنامه", icon: BookOpen },
   { href: "/lab", label: "آزمایشگاه", icon: FlaskConical },
+  { href: "/analyzers", label: "تحلیلگر‌ها", icon: ScanSearch },
   { href: "/courses", label: "دوره‌ها", icon: GraduationCap },
   { href: "/shop", label: "فروشگاه", icon: ShoppingBag },
 ];
@@ -27,7 +28,7 @@ export function Nav() {
           <HadiranWordmark className="text-lg" markClassName="h-8 w-8" />
         </Link>
 
-        <nav className="hidden items-center gap-0.5 md:flex">
+        <nav className="hidden items-center gap-0.5 lg:flex">
           {primaryLinks.map((link) => {
             const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
             return (
@@ -46,11 +47,11 @@ export function Nav() {
         </nav>
 
         <div className="flex items-center gap-1">
-          <div className="hidden md:block">
+          <div className="hidden lg:block">
             <SessionMenu />
           </div>
           <button
-            className="rounded-[var(--radius-sm)] p-2 text-muted hover:bg-elev hover:text-ink md:hidden"
+            className="rounded-[var(--radius-sm)] p-2 text-muted hover:bg-elev hover:text-ink lg:hidden"
             onClick={() => setOpen(!open)}
             aria-label="منو"
             aria-expanded={open}
@@ -61,7 +62,7 @@ export function Nav() {
       </div>
 
       {open && (
-        <div className="border-t border-line bg-paper px-4 py-3 md:hidden">
+        <div className="border-t border-line bg-paper px-4 py-3 lg:hidden">
           <nav className="flex flex-col gap-1">
             {primaryLinks.map((link) => {
               const active = pathname === link.href || pathname.startsWith(`${link.href}/`);

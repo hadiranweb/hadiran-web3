@@ -27,6 +27,7 @@ const worlds = [
   { href: "/hadiran", label: "درباره من" },
   { href: "/knowledge", label: "دانشنامه" },
   { href: "/lab", label: "آزمایشگاه" },
+  { href: "/analyzers", label: "تحلیلگر‌ها" },
   { href: "/courses", label: "دوره‌ها" },
 ];
 
