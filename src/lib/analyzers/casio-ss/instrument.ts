@@ -1,26 +1,21 @@
 /** منبع: questions.source-of-truth.yaml v1.3.0 + سند ۰۴. نمره/PDF در این برش نیست. */
 
-export const INSTRUMENT_VERSION = "casio-ss-1.3.0";
+import {
+  edgesFromScoredSections,
+  type AnalyzerPack,
+  type ScaleAnchors,
+  type Section,
+} from "@/lib/analyzers/pack";
 
-export type ScaleAnchors = { 0: string; 5: string; 10: string };
+export type { ChoiceItem, Item, RangeItem, ScaleAnchors, Section, TextItem } from "@/lib/analyzers/pack";
+
+export const INSTRUMENT_VERSION = "casio-ss-1.3.0";
 
 export const GATE_ANCHORS: ScaleAnchors = {
   0: "اصلاً / هرگز",
   5: "گاهی / تا حدی",
   10: "کاملاً / همیشه",
 };
-
-export type RangeItem = {
-  kind: "range";
-  id: string;
-  text: string;
-  reverse: boolean;
-  anchors: ScaleAnchors;
-};
-export type TextItem = { kind: "text"; id: string; text: string; maxLength: number };
-export type ChoiceItem = { kind: "choice"; id: string; text: string; options: { value: string; label: string }[] };
-export type Item = RangeItem | TextItem | ChoiceItem;
-export type Section = { id: string; titleFa: string; introFa?: string; items: Item[] };
 
 export const CONSENT_TITLE = "قبل از شروع";
 export const CONSENT_BODY = [
@@ -376,9 +371,41 @@ const layerSections: Section[] = [
 
 export const sections: Section[] = [...gateSections, businessSection, ...layerSections];
 
-export const allItems: Item[] = sections.flatMap((s) => s.items);
+export const allItems = sections.flatMap((s) => s.items);
 
 export function sectionOf(itemId: string): Section | undefined {
   return sections.find((s) => s.items.some((i) => i.id === itemId));
 }
+
+const findings: AnalyzerPack["findings"] = [
+  { id: "mindset", titleFa: "الگوی ذهنی", kind: "group" },
+  { id: "gate-control", titleFa: "منبع کنترل", kind: "dimension", parentId: "mindset" },
+  { id: "gate-agency", titleFa: "فاعلیت و خودتنظیمی", kind: "dimension", parentId: "mindset" },
+  { id: "gate-problem", titleFa: "تفکر مسئله‌محور", kind: "dimension", parentId: "mindset" },
+  { id: "diagnosis", titleFa: "عارضه‌یابی پنج‌لایه", kind: "group" },
+  { id: "layer-foundation", titleFa: "بنیان و رهبری", kind: "layer", parentId: "diagnosis" },
+  { id: "layer-architecture", titleFa: "معماری و طراحی", kind: "layer", parentId: "diagnosis" },
+  { id: "layer-flow", titleFa: "جاری‌سازی", kind: "layer", parentId: "diagnosis" },
+  { id: "layer-monitor", titleFa: "نگهداشت و پایش", kind: "layer", parentId: "diagnosis" },
+  { id: "layer-scale", titleFa: "توسعه و مقیاس‌پذیری", kind: "layer", parentId: "diagnosis" },
+];
+
+export const casioSsPack: AnalyzerPack = {
+  slug: "casio-ss",
+  version: INSTRUMENT_VERSION,
+  status: "open",
+  nameFa: "عارضه‌یابی سازمانی",
+  summaryFa: INTRO_SUMMARY,
+  scale: { kind: "range-0-10", min: 0, max: 10 },
+  consent: {
+    titleFa: CONSENT_TITLE,
+    bodyFa: CONSENT_BODY,
+    acceptLabelFa: "خواندم و موافقم",
+  },
+  sections,
+  findings,
+  keywords: [],
+  edges: edgesFromScoredSections(sections),
+  formulas: [],
+};
 

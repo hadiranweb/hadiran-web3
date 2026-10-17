@@ -1,0 +1,134 @@
+/** تعریف نسخه‌دار آزمون. نمره در فاز ۲؛ تألیف در فاز ۴. */
+
+export type AnalyzerPackStatus = "draft" | "open" | "archived";
+
+export type ScaleAnchors = { 0: string; 5: string; 10: string };
+
+export type RangeItem = {
+  kind: "range";
+  id: string;
+  text: string;
+  reverse: boolean;
+  anchors: ScaleAnchors;
+};
+
+export type TextItem = { kind: "text"; id: string; text: string; maxLength: number };
+
+export type ChoiceItem = {
+  kind: "choice";
+  id: string;
+  text: string;
+  options: { value: string; label: string }[];
+};
+
+export type Item = RangeItem | TextItem | ChoiceItem;
+
+export type Section = { id: string; titleFa: string; introFa?: string; items: Item[] };
+
+export type FindingKind = "group" | "dimension" | "layer" | "symptom";
+
+export type Finding = {
+  id: string;
+  titleFa: string;
+  kind: FindingKind;
+  parentId?: string;
+};
+
+export type Keyword = { id: string; labelFa: string };
+
+export type EdgeTransform = "identity" | "reverse";
+
+export type Edge = {
+  from: string;
+  to: string;
+  weight: number;
+  transform: EdgeTransform;
+};
+
+/** اعلان فقط. اجرا در فاز ۲. */
+export type FormulaOp =
+  | "reverse"
+  | "mean"
+  | "sum"
+  | "sum_div"
+  | "weighted_sum"
+  | "argmin"
+  | "band"
+  | "cap_if"
+  | "matmul";
+
+export type Formula = {
+  id: string;
+  op: FormulaOp;
+  of?: string[];
+  divisor?: number;
+  weights?: { item: string; dimension: string; weight: number }[];
+};
+
+export type Consent = {
+  titleFa: string;
+  bodyFa: string[];
+  acceptLabelFa: string;
+};
+
+export type AnalyzerScale = {
+  kind: "range-0-10";
+  min: 0;
+  max: 10;
+};
+
+export type AnalyzerPack = {
+  slug: string;
+  version: string;
+  status: AnalyzerPackStatus;
+  nameFa: string;
+  summaryFa: string;
+  scale: AnalyzerScale;
+  consent: Consent;
+  sections: Section[];
+  findings: Finding[];
+  keywords: Keyword[];
+  edges: Edge[];
+  formulas: Formula[];
+};
+
+export function itemsOf(pack: AnalyzerPack): Item[] {
+  return pack.sections.flatMap((section) => section.items);
+}
+
+export function sectionOf(pack: AnalyzerPack, itemId: string): Section | undefined {
+  return pack.sections.find((section) => section.items.some((item) => item.id === itemId));
+}
+
+export function findItem(pack: AnalyzerPack, id: string): Item | undefined {
+  return itemsOf(pack).find((item) => item.id === id);
+}
+
+export function edgesFromScoredSections(sections: Section[]): Edge[] {
+  const edges: Edge[] = [];
+  for (const section of sections) {
+    if (section.id === "business") continue;
+    for (const item of section.items) {
+      edges.push({
+        from: item.id,
+        to: section.id,
+        weight: 1,
+        transform: item.kind === "range" && item.reverse ? "reverse" : "identity",
+      });
+    }
+  }
+  return edges;
+}
+
+export function assertPack(pack: AnalyzerPack) {
+  const ids = itemsOf(pack).map((item) => item.id);
+  if (new Set(ids).size !== ids.length) {
+    throw new Error(`duplicate item ids in pack ${pack.slug}`);
+  }
+  const findingIds = new Set(pack.findings.map((finding) => finding.id));
+  for (const finding of pack.findings) {
+    if (finding.parentId && !findingIds.has(finding.parentId)) {
+      throw new Error(`missing parent ${finding.parentId} in pack ${pack.slug}`);
+    }
+  }
+}
