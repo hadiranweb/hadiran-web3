@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
+import { OnboardingDialog } from "@/components/auth/OnboardingDialog";
 import { Vazirmatn } from "next/font/google";
 import { siteConfig } from "@/lib/site";
 
@@ -41,6 +42,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <Nav />
         <div className="flex-1">{children}</div>
         <Footer />
+        <OnboardingDialog />
       </body>
     </html>
   );

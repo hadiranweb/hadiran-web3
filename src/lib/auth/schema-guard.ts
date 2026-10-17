@@ -29,6 +29,8 @@ export async function ensureAccountProfileSchema() {
     CREATE UNIQUE INDEX IF NOT EXISTS accounts_telegram_user_id_unique
     ON accounts (telegram_user_id) WHERE telegram_user_id IS NOT NULL
   `);
+  await db.execute(sql`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS policies_accepted_at TIMESTAMPTZ`);
+  await db.execute(sql`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS onboarding_completed_at TIMESTAMPTZ`);
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS account_public_codes (
       account_id INTEGER PRIMARY KEY REFERENCES accounts(id) ON DELETE CASCADE,

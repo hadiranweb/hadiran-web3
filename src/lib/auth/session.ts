@@ -14,7 +14,11 @@ export type SessionAccount = {
   id: number;
   phone: string;
   displayName: string | null;
+  givenName: string | null;
+  familyName: string | null;
   role: "owner" | "member";
+  policiesAccepted: boolean;
+  onboardingComplete: boolean;
 };
 
 export function sessionCookieOptions() {
@@ -76,7 +80,11 @@ export async function getCurrentAccount(): Promise<SessionAccount | null> {
         id: accounts.id,
         phone: accounts.phone,
         displayName: accounts.displayName,
+        givenName: accounts.givenName,
+        familyName: accounts.familyName,
         role: accounts.role,
+        policiesAcceptedAt: accounts.policiesAcceptedAt,
+        onboardingCompletedAt: accounts.onboardingCompletedAt,
         sessionId: sessions.id,
       })
       .from(sessions)
@@ -103,7 +111,11 @@ export async function getCurrentAccount(): Promise<SessionAccount | null> {
       id: row.id,
       phone: row.phone,
       displayName: row.displayName,
+      givenName: row.givenName,
+      familyName: row.familyName,
       role: row.role,
+      policiesAccepted: Boolean(row.policiesAcceptedAt),
+      onboardingComplete: Boolean(row.onboardingCompletedAt),
     };
   } catch {
     return null;
@@ -188,7 +200,11 @@ export async function completePhoneLogin(input: {
       id: account.id,
       phone: account.phone,
       displayName: account.displayName,
+      givenName: account.givenName,
+      familyName: account.familyName,
       role: account.role,
+      policiesAccepted: Boolean(account.policiesAcceptedAt),
+      onboardingComplete: Boolean(account.onboardingCompletedAt),
       passwordHash: account.passwordHash,
     },
     needs_password: needsPasswordSetup({ phone: account.phone, passwordHash: account.passwordHash }),
