@@ -62,5 +62,9 @@ export const MIGRATION_FILES: { id: string; sql: string }[] = [
   {
     "id": "0015_bots.sql",
     "sql": "-- Owner-connected bots (Telegram first). Not a login channel. Tokens are cipher text.\n\nCREATE TABLE IF NOT EXISTS bots (\n  id VARCHAR(32) PRIMARY KEY,\n  owner_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,\n  channel VARCHAR(16) NOT NULL DEFAULT 'telegram',\n  title_fa VARCHAR(128) NOT NULL,\n  status VARCHAR(16) NOT NULL DEFAULT 'disconnected',\n  analyzer_slug VARCHAR(64),\n  telegram_bot_id VARCHAR(32),\n  telegram_username VARCHAR(64),\n  telegram_first_name VARCHAR(128),\n  token_cipher TEXT,\n  token_hint VARCHAR(8),\n  webhook_secret_cipher TEXT,\n  last_error TEXT,\n  last_webhook_at TIMESTAMPTZ,\n  last_update_kind VARCHAR(32),\n  connected_at TIMESTAMPTZ,\n  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),\n  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()\n);\n\nCREATE INDEX IF NOT EXISTS bots_owner_idx ON bots (owner_id, created_at DESC);\n"
+  },
+  {
+    "id": "0016_bot_chat_sessions.sql",
+    "sql": "-- Telegram quiz chat: consent before phone. Not a login session.\n\nCREATE TABLE IF NOT EXISTS bot_chat_sessions (\n  bot_id VARCHAR(32) NOT NULL REFERENCES bots(id) ON DELETE CASCADE,\n  telegram_user_id VARCHAR(32) NOT NULL,\n  chat_id VARCHAR(32) NOT NULL,\n  consented_at TIMESTAMPTZ,\n  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),\n  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),\n  PRIMARY KEY (bot_id, telegram_user_id)\n);\n\nCREATE INDEX IF NOT EXISTS bot_chat_sessions_chat_idx ON bot_chat_sessions (bot_id, chat_id);\n"
   }
 ];

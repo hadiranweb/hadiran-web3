@@ -131,7 +131,7 @@ export function BotEditor({
         {bot.lastWebhookAt ? (
           <p className="text-xs text-slate-500">آخرین پیام وب‌هوک: {new Date(bot.lastWebhookAt).toLocaleString("fa-IR")}</p>
         ) : (
-          <p className="text-xs text-slate-500">هنوز به‌روزرسانی از تلگرام نیامده. فرایند آزمون در برش بعد است.</p>
+          <p className="text-xs text-slate-500">هنوز به‌روزرسانی از تلگرام نیامده. در ربات /start بزنید.</p>
         )}
 
         <label className="block text-sm">

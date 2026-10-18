@@ -88,6 +88,26 @@ export async function telegramGetWebhookInfo(token: string): Promise<TelegramWeb
   return call<TelegramWebhookInfo>(token, "getWebhookInfo");
 }
 
+export async function telegramSendMessage(
+  token: string,
+  args: { chatId: number | string; text: string; replyMarkup?: Record<string, unknown> },
+): Promise<void> {
+  const payload: Record<string, unknown> = {
+    chat_id: args.chatId,
+    text: args.text.slice(0, 4096),
+  };
+  if (args.replyMarkup) payload.reply_markup = args.replyMarkup;
+  await call<unknown>(token, "sendMessage", payload);
+}
+
+export async function telegramAnswerCallback(token: string, callbackQueryId: string): Promise<void> {
+  try {
+    await call<unknown>(token, "answerCallbackQuery", { callback_query_id: callbackQueryId });
+  } catch {
+    // expired query
+  }
+}
+
 export function isTelegramBotToken(value: string): boolean {
   return /^\d{6,}:[A-Za-z0-9_-]{20,}$/.test(value.trim());
 }

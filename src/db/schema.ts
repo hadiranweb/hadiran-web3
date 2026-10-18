@@ -346,6 +346,22 @@ export const bots = pgTable("bots", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+/** Consent-before-phone for a Telegram quiz. Not a website login. */
+export const botChatSessions = pgTable(
+  "bot_chat_sessions",
+  {
+    botId: varchar("bot_id", { length: 32 })
+      .notNull()
+      .references(() => bots.id, { onDelete: "cascade" }),
+    telegramUserId: varchar("telegram_user_id", { length: 32 }).notNull(),
+    chatId: varchar("chat_id", { length: 32 }).notNull(),
+    consentedAt: timestamp("consented_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.botId, t.telegramUserId] })],
+);
+
 export const accountPublicCodes = pgTable("account_public_codes", {
   accountId: integer("account_id")
     .primaryKey()

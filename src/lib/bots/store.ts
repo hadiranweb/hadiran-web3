@@ -24,7 +24,7 @@ import type { BotStatus, BotView } from "@/lib/bots/types";
 
 export type { BotStatus, BotView };
 
-type BotRow = typeof bots.$inferSelect;
+export type BotRow = typeof bots.$inferSelect;
 
 function asStatus(value: string): BotStatus {
   if (value === "connected" || value === "paused" || value === "error") return value;
@@ -251,6 +251,11 @@ export async function refreshBot(ownerId: number, id: string): Promise<BotView> 
       .returning();
     return viewOf(row);
   }
+}
+
+export async function markBotLastError(id: string, lastError: string | null): Promise<void> {
+  await ensureBotsSchema();
+  await db.update(bots).set({ lastError, updatedAt: new Date() }).where(eq(bots.id, id));
 }
 
 export async function markWebhookHit(id: string, kind: string | null): Promise<void> {

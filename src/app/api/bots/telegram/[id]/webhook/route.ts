@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
+import { handleTelegramUpdate } from "@/lib/bots/chat";
+import { openSecret, secretsMatch } from "@/lib/bots/secret";
 import { markWebhookHit, openWebhookSecret, readBotRowById } from "@/lib/bots/store";
-import { secretsMatch } from "@/lib/bots/secret";
 
 export const dynamic = "force-dynamic";
 
@@ -24,14 +25,29 @@ export async function POST(request: Request, { params }: Ctx) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  let kind: string | null = null;
+  let body: unknown = null;
   try {
-    kind = updateKind(await request.json());
+    body = await request.json();
   } catch {
-    kind = null;
+    body = null;
   }
 
-  await markWebhookHit(id, kind);
-  // Analyzer conversation is not this cut — ACK only so Telegram does not retry.
+  await markWebhookHit(id, updateKind(body));
+  if (row.status === "paused" || !row.tokenCipher) {
+    return NextResponse.json({ ok: true });
+  }
+
+  try {
+    const token = openSecret(row.tokenCipher);
+    await handleTelegramUpdate({
+      botId: row.id,
+      analyzerSlug: row.analyzerSlug,
+      token,
+      update: body,
+    });
+  } catch {
+    // ACK anyway so Telegram does not retry. Token is never logged.
+  }
+
   return NextResponse.json({ ok: true });
 }
