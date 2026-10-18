@@ -48,8 +48,10 @@ function viewOf(row: BotRow, extra?: { pendingUpdateCount?: number | null }): Bo
     lastError: row.lastError,
     lastWebhookAt: row.lastWebhookAt ? row.lastWebhookAt.toISOString() : null,
     lastUpdateKind: row.lastUpdateKind,
+    lastInboundStatus: row.lastInboundStatus ?? null,
+    telegramLastError: row.telegramLastError,
     connectedAt: row.connectedAt ? row.connectedAt.toISOString() : null,
-    pendingUpdateCount: extra?.pendingUpdateCount ?? null,
+    pendingUpdateCount: extra?.pendingUpdateCount ?? row.telegramPendingCount ?? null,
   };
 }
 
@@ -244,6 +246,8 @@ export async function refreshBot(ownerId: number, id: string): Promise<BotView> 
       .set({
         status: connected ? "connected" : existing.status === "paused" ? "paused" : "disconnected",
         lastError: info.last_error_message || existing.lastError,
+        telegramLastError: info.last_error_message || null,
+        telegramPendingCount: info.pending_update_count ?? 0,
         updatedAt: new Date(),
       })
       .where(eq(bots.id, id))
@@ -265,14 +269,15 @@ export async function markBotLastError(id: string, lastError: string | null): Pr
   await db.update(bots).set({ lastError, updatedAt: new Date() }).where(eq(bots.id, id));
 }
 
-export async function markWebhookHit(id: string, kind: string | null): Promise<void> {
+export async function markWebhookHit(id: string, kind: string | null, status = 200): Promise<void> {
   await ensureBotsSchema();
   await db
     .update(bots)
     .set({
       lastWebhookAt: new Date(),
       lastUpdateKind: kind,
-      lastError: null,
+      lastInboundStatus: status,
+      ...(status === 200 ? { lastError: null } : {}),
       updatedAt: new Date(),
     })
     .where(eq(bots.id, id));

@@ -14,6 +14,10 @@ const statusFa: Record<BotView["status"], string> = {
   error: "خطا",
 };
 
+function faStatus(status: number) {
+  return String(status).replace(/\d/g, (digit) => "۰۱۲۳۴۵۶۷۸۹"[Number(digit)] ?? digit);
+}
+
 export function BotEditor({
   initial,
   analyzers,
@@ -24,7 +28,7 @@ export function BotEditor({
   const router = useRouter();
   const [bot, setBot] = useState(initial);
   const [titleFa, setTitleFa] = useState(initial.titleFa);
-  const [analyzerSlug, setAnalyzerSlug] = useState(initial.analyzerSlug ?? "casio-ss");
+  const [analyzerSlug, setAnalyzerSlug] = useState(initial.analyzerSlug ?? "");
   const [token, setToken] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -128,18 +132,20 @@ export function BotEditor({
           {bot.tokenHint ? ` · توکن ‎••••${bot.tokenHint}` : ""}
         </p>
         {bot.lastError ? <p className="text-sm text-red-700">{bot.lastError}</p> : null}
-        <p className="text-xs leading-6 text-slate-500">
-          {bot.lastWebhookAt
-            ? `آخرین پیام وب‌هوک: ${new Date(bot.lastWebhookAt).toLocaleString("fa-IR")}${bot.lastUpdateKind ? ` · ${bot.lastUpdateKind}` : ""}`
-            : "از این سرور هنوز POST تلگرام دیده نشده."}
-          {bot.pendingUpdateCount != null
-            ? ` · صف تلگرام: ${bot.pendingUpdateCount.toLocaleString("fa-IR")}`
-            : " · برای دیدن صف، «وضعیت وب‌هوک» را بزنید."}
-        </p>
+        <dl className="grid gap-1 text-xs leading-6 text-slate-500 sm:grid-cols-2">
+          <div>
+            آخرین POST:{" "}
+            {bot.lastWebhookAt ? new Date(bot.lastWebhookAt).toLocaleString("fa-IR") : "نرسیده"}
+            {bot.lastUpdateKind ? ` · ${bot.lastUpdateKind}` : ""}
+          </div>
+          <div>پاسخ origin: {bot.lastInboundStatus != null ? faStatus(bot.lastInboundStatus) : "—"}</div>
+          <div>صف تلگرام: {bot.pendingUpdateCount != null ? bot.pendingUpdateCount.toLocaleString("fa-IR") : "وضعیت وب‌هوک را بزنید"}</div>
+          <div>خطای تلگرام: {bot.telegramLastError ?? "—"}</div>
+        </dl>
         {bot.pendingUpdateCount ? (
           <p className="text-sm text-amber-800">
-            تلگرام پیام در صف دارد ولی به هادیران نرسانده. بعد از دیپلوی دوباره «اتصال» و بعد در @
-            {bot.telegramUsername ?? "bot"} دستور /start بزنید.
+            تلگرام پیام در صف دارد. اگر آخرین POST خالی است، ورودی به origin نرسیده (timeout یا Worker). اگر پاسخ
+            ۴۰۱ است، دوباره اتصال بزنید.
           </p>
         ) : null}
         {bot.lastWebhookAt && bot.lastError?.includes("ارسال پیام") ? (
@@ -161,6 +167,7 @@ export function BotEditor({
         <label className="block text-sm">
           <span className="mb-1 block text-slate-600">آزمون</span>
           <select className={fieldClass} value={analyzerSlug} onChange={(event) => setAnalyzerSlug(event.target.value)}>
+            <option value="">همهٔ آزمون‌های باز — تحلیل‌گر هوشمند</option>
             {analyzers.map((item) => (
               <option key={item.slug} value={item.slug}>
                 {item.nameFa} ({item.slug})
@@ -182,11 +189,11 @@ export function BotEditor({
       <section className="rounded-2xl border border-slate-200 bg-white p-6 space-y-3">
         <h2 className="text-base font-bold text-slate-900">گفتگوی ربات</h2>
         <ol className="list-decimal space-y-1 pr-5 text-sm leading-7 text-slate-600">
-          <li>/start → معرفی کوتاه + متن رضایت و دکمهٔ قبول</li>
-          <li>ارسال شمارهٔ خودتان با دکمه</li>
-          <li>کد معرف اختیاری یا «رد»</li>
-          <li>سؤال‌ها یکی‌یکی؛ ۰ راست، ۱۰ چپ</li>
-          <li>جمع‌بندی در همان چت؛ گزارش کامل بعد از ورود با همین شماره</li>
+          <li>/start → تحلیل‌گر هوشمند</li>
+          <li>شماره با دکمه، یا تایپ + کد پیامک</li>
+          <li>لینک تعیین رمز سایت (رمز در چت نیست)</li>
+          <li>قبول سیاست، نام، معرف</li>
+          <li>انتخاب آزمون، رضایت pack، تخفیف اختیاری، سؤال‌ها</li>
         </ol>
         <p className="text-xs leading-6 text-slate-500">
           اگر /start زد و هیچ متنی نیامد: اول «وضعیت وب‌هوک»، بعد اتصال دوباره. منوی ربات (/start و /help) هنگام اتصال ثبت می‌شود.

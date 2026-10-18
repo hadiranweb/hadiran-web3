@@ -167,6 +167,25 @@ export async function ensureBotsSchema() {
     ALTER TABLE bot_chat_sessions
     ADD COLUMN IF NOT EXISTS awaiting_referral BOOLEAN NOT NULL DEFAULT FALSE
   `);
+  await db.execute(sql`ALTER TABLE bots ADD COLUMN IF NOT EXISTS last_inbound_status INTEGER`);
+  await db.execute(sql`ALTER TABLE bots ADD COLUMN IF NOT EXISTS telegram_pending_count INTEGER`);
+  await db.execute(sql`ALTER TABLE bots ADD COLUMN IF NOT EXISTS telegram_last_error TEXT`);
+  await db.execute(sql`ALTER TABLE bot_chat_sessions ADD COLUMN IF NOT EXISTS step VARCHAR(32) NOT NULL DEFAULT 'start'`);
+  await db.execute(sql`ALTER TABLE bot_chat_sessions ADD COLUMN IF NOT EXISTS analyzer_slug VARCHAR(64)`);
+  await db.execute(sql`ALTER TABLE bot_chat_sessions ADD COLUMN IF NOT EXISTS pending_phone VARCHAR(16)`);
+  await db.execute(sql`ALTER TABLE bot_chat_sessions ADD COLUMN IF NOT EXISTS via_contact BOOLEAN NOT NULL DEFAULT FALSE`);
+  await db.execute(sql`ALTER TABLE bot_chat_sessions ADD COLUMN IF NOT EXISTS awaiting_discount BOOLEAN NOT NULL DEFAULT FALSE`);
+  await db.execute(sql`ALTER TABLE bot_chat_sessions ADD COLUMN IF NOT EXISTS password_link_sent_at TIMESTAMPTZ`);
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS password_setup_tokens (
+      id SERIAL PRIMARY KEY,
+      account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+      token_hash VARCHAR(64) NOT NULL UNIQUE,
+      expires_at TIMESTAMPTZ NOT NULL,
+      consumed_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
   botsReady = true;
 }
 

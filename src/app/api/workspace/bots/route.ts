@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   }
   const titleFa = typeof body.titleFa === "string" ? body.titleFa : "";
   const analyzerSlug =
-    typeof body.analyzerSlug === "string" && body.analyzerSlug.trim() ? body.analyzerSlug.trim() : "casio-ss";
+    typeof body.analyzerSlug === "string" && body.analyzerSlug.trim() ? body.analyzerSlug.trim() : null;
   try {
     const bot = await createBot(auth.account.id, { titleFa, analyzerSlug });
     return NextResponse.json({ ok: true, bot });

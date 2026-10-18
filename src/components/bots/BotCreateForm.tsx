@@ -25,7 +25,7 @@ export function BotCreateForm({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         titleFa: String(form.get("titleFa") ?? ""),
-        analyzerSlug: String(form.get("analyzerSlug") ?? "casio-ss"),
+        analyzerSlug: String(form.get("analyzerSlug") ?? ""),
       }),
     });
     const data = (await res.json()) as { error?: string; bot?: { id: string } };
@@ -42,7 +42,7 @@ export function BotCreateForm({
     <form onSubmit={(event) => void onSubmit(event)} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6">
       <label className="block text-sm">
         <span className="mb-1 block text-slate-600">نام ربات در میز</span>
-        <input name="titleFa" required minLength={3} className={fieldClass} placeholder="مثلاً ربات عارضه‌یابی" />
+        <input name="titleFa" required minLength={3} className={fieldClass} defaultValue="تحلیل‌گر هوشمند" />
       </label>
       <label className="block text-sm">
         <span className="mb-1 block text-slate-600">کانال</span>
@@ -52,7 +52,8 @@ export function BotCreateForm({
       </label>
       <label className="block text-sm">
         <span className="mb-1 block text-slate-600">آزمون متصل</span>
-        <select name="analyzerSlug" className={fieldClass} defaultValue="casio-ss">
+        <select name="analyzerSlug" className={fieldClass} defaultValue="">
+          <option value="">همهٔ آزمون‌های باز — تحلیل‌گر هوشمند</option>
           {analyzers.map((item) => (
             <option key={item.slug} value={item.slug}>
               {item.nameFa} ({item.slug})

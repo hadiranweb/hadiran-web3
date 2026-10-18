@@ -14,6 +14,8 @@ export type BotView = {
   lastError: string | null;
   lastWebhookAt: string | null;
   lastUpdateKind: string | null;
+  lastInboundStatus: number | null;
+  telegramLastError: string | null;
   connectedAt: string | null;
   pendingUpdateCount: number | null;
 };

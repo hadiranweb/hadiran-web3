@@ -1,32 +1,47 @@
 import type { AnalyzerPack } from "@/lib/analyzers/pack";
+import { privacySummary, privacyUseTerms } from "@/lib/privacy/content";
 
-export function botWelcome(pack: AnalyzerPack): string {
+export function botHubWelcome(): string {
   return [
-    `هادیران — ${pack.nameFa}`,
+    "هادیران — تحلیل‌گر هوشمند",
     "",
-    "من ربات همین آزمون هستم؛ ورود سایت با تلگرام نیست.",
+    "من ربات آزمون‌ها هستم؛ ورود مرورگر با تلگرام نیست.",
     "",
     "مسیر:",
-    "۱. پذیرش متن رضایت (اجباری)",
-    "۲. ارسال شمارهٔ همراه خودتان",
-    "۳. پاسخ سؤال‌ها یکی‌یکی",
+    "۱. شمارهٔ خودتان",
+    "۲. پذیرش سیاست",
+    "۳. نام و نام‌خانوادگی",
+    "۴. انتخاب آزمون",
     "",
-    "مقیاس ۰ تا ۱۰: صفر راست، ده چپ.",
+    "رمز سایت را در چت ننویسید؛ لینک یک‌بارمصرف می‌آید.",
   ].join("\n");
 }
 
-export function botHelp(pack: AnalyzerPack): string {
+export function botHubHelp(): string {
   return [
-    `راهنما — ${pack.nameFa}`,
+    "راهنما — تحلیل‌گر هوشمند",
     "",
-    "/start شروع یا ادامه از همان سؤال ناتمام",
+    "/start شروع یا ادامه",
     "/help همین راهنما",
     "",
-    "قبول رضایت اجباری است؛ راه فرار ندارد.",
-    "شماره فقط با دکمهٔ تلگرام و فقط مال خودتان.",
-    "کد معرف هشت‌رقمی اختیاری است؛ اگر ندارید «رد».",
-    "ورود هادیران همچنان با موبایل است، نه با این ربات.",
+    "شماره با دکمه، یا تایپ (آن‌وقت کد پیامک).",
+    "قبول سیاست اجباری است.",
+    "کد معرف هشت‌رقمی اختیاری است.",
+    "کد تخفیف بعد از انتخاب آزمون پرسیده می‌شود.",
+    "ورود سایت با همان شماره و رمز لینک است، نه با این چت.",
   ].join("\n");
+}
+
+export function botHubPolicy(): string {
+  return [privacySummary, "", ...privacyUseTerms, "", "جزئیات: /privacy روی سایت."].join("\n").slice(0, 3500);
+}
+
+export function botWelcome(pack: AnalyzerPack): string {
+  return [`هادیران — ${pack.nameFa}`, "", pack.summaryFa].join("\n");
+}
+
+export function botHelp(pack: AnalyzerPack): string {
+  return botHubHelp() + `\n\nآزمون جاری: ${pack.nameFa}`;
 }
 
 export function botConsent(pack: AnalyzerPack): string {
@@ -35,6 +50,6 @@ export function botConsent(pack: AnalyzerPack): string {
 }
 
 export const BOT_COMMANDS = [
-  { command: "start", description: "شروع یا ادامهٔ آزمون" },
+  { command: "start", description: "شروع یا ادامه" },
   { command: "help", description: "راهنمای ربات" },
 ];

@@ -363,6 +363,9 @@ export const bots = pgTable("bots", {
   lastError: text("last_error"),
   lastWebhookAt: timestamp("last_webhook_at", { withTimezone: true }),
   lastUpdateKind: varchar("last_update_kind", { length: 32 }),
+  lastInboundStatus: integer("last_inbound_status"),
+  telegramPendingCount: integer("telegram_pending_count"),
+  telegramLastError: text("telegram_last_error"),
   connectedAt: timestamp("connected_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
@@ -379,6 +382,12 @@ export const botChatSessions = pgTable(
     chatId: varchar("chat_id", { length: 32 }).notNull(),
     consentedAt: timestamp("consented_at", { withTimezone: true }),
     awaitingReferral: boolean("awaiting_referral").notNull().default(false),
+    step: varchar("step", { length: 32 }).notNull().default("start"),
+    analyzerSlug: varchar("analyzer_slug", { length: 64 }),
+    pendingPhone: varchar("pending_phone", { length: 16 }),
+    viaContact: boolean("via_contact").notNull().default(false),
+    awaitingDiscount: boolean("awaiting_discount").notNull().default(false),
+    passwordLinkSentAt: timestamp("password_link_sent_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
@@ -390,6 +399,17 @@ export const accountPublicCodes = pgTable("account_public_codes", {
     .primaryKey()
     .references(() => accounts.id, { onDelete: "cascade" }),
   code: varchar("code", { length: 8 }).notNull().unique(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const passwordSetupTokens = pgTable("password_setup_tokens", {
+  id: serial("id").primaryKey(),
+  accountId: integer("account_id")
+    .notNull()
+    .references(() => accounts.id, { onDelete: "cascade" }),
+  tokenHash: varchar("token_hash", { length: 64 }).notNull().unique(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  consumedAt: timestamp("consumed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 

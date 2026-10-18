@@ -31,6 +31,7 @@ export async function POST(request: Request, { params }: Ctx) {
         ? "وب‌هوک رسید؛ رمز هدر با مقدار ذخیره‌شده یکی نیست. دوباره «اتصال» بزنید."
         : "وب‌هوک رسید؛ هدر Secret-Token خالی است — لیارا یا لایهٔ جلو هدر را رد نکرده.",
     );
+    await markWebhookHit(id, null, 401);
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
@@ -41,7 +42,7 @@ export async function POST(request: Request, { params }: Ctx) {
     body = null;
   }
 
-  await markWebhookHit(id, updateKind(body));
+  await markWebhookHit(id, updateKind(body), 200);
   if (row.status === "paused" || !row.tokenCipher) {
     return NextResponse.json({ ok: true });
   }
