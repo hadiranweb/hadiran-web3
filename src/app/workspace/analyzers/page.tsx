@@ -2,8 +2,8 @@ import { buildCasioAuthoredPack } from "@/lib/analyzers/casio-ss/authored-pack";
 import { ModuleHeading } from "@/components/workspace/ModuleHeading";
 import Link from "@/components/workspace/WorkspaceLink";
 import type { Metadata } from "next";
-import { requirePageOwner } from "@/lib/auth/guard";
-import { listAuthoredPacks } from "@/lib/analyzers/authored";
+import { requirePageStaff } from "@/lib/auth/guard";
+import { listAccessiblePacks } from "@/lib/analyzers/access";
 
 export const dynamic = "force-dynamic";
 
@@ -19,8 +19,8 @@ const statusFa: Record<string, string> = {
 };
 
 export default async function WorkspaceAnalyzersPage() {
-  const account = await requirePageOwner("/workspace/analyzers");
-  const authored = account.id === 0 ? [buildCasioAuthoredPack()] : await listAuthoredPacks();
+  const account = await requirePageStaff("/workspace/analyzers");
+  const authored = account.id === 0 ? [{ pack: buildCasioAuthoredPack(), access: { view: true, edit: true, responses: false, grant: false } }] : await listAccessiblePacks(account);
 
   return (
     <main className="ws-page repo-module space-y-8">
@@ -33,7 +33,7 @@ export default async function WorkspaceAnalyzersPage() {
           <p className="text-sm text-muted">آزمونی نیست.</p>
         ) : (
           <ul className="space-y-2">
-            {authored.map((pack) => (
+            {authored.map(({ pack, access }) => (
               <li key={pack.slug}>
                 <Link
                   href={`/workspace/analyzers/${pack.slug}`}
@@ -42,6 +42,7 @@ export default async function WorkspaceAnalyzersPage() {
                   <p className="font-medium text-ink">{pack.nameFa}</p>
                   <p className="mt-1 text-xs text-muted">
                     {pack.slug} · {statusFa[pack.status] ?? pack.status} · {pack.version}
+                    {access.edit ? "" : " · خواندنی"}
                   </p>
                 </Link>
               </li>

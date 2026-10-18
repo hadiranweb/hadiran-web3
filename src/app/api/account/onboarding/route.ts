@@ -15,7 +15,7 @@ export async function POST(request: Request) {
   if (auth.error) return auth.error;
   if (auth.account.id === 0) return NextResponse.json({ ok: true, policiesAccepted: true, needsProfile: false, onboardingComplete: true, preview: true });
 
-  let body: { step?: unknown; givenName?: unknown; familyName?: unknown; accept?: unknown };
+  let body: { step?: unknown; givenName?: unknown; familyName?: unknown; accept?: unknown; referralCode?: unknown };
   try {
     body = (await request.json()) as typeof body;
   } catch {
@@ -69,6 +69,13 @@ export async function POST(request: Request) {
         updatedAt: new Date(),
       })
       .where(eq(accounts.id, auth.account.id));
+    if (body.referralCode != null && body.referralCode !== "") {
+      const { setAccountReferrer } = await import("@/lib/auth/referral");
+      const referral = await setAccountReferrer(auth.account.id, body.referralCode);
+      if (!referral.ok) {
+        return NextResponse.json({ error: referral.error }, { status: 400 });
+      }
+    }
     return NextResponse.json({ ok: true, policiesAccepted: true, needsProfile: false, onboardingComplete: true });
   }
 

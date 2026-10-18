@@ -121,7 +121,7 @@ generic=member.call('/api/analyzers/'+authoredSlug,'POST',{'action':'submit'})['
 assert generic['results']['scores']['qa-mean']==7
 assert 'گزارش شخصی' in member.call('/analyzers/'+authoredSlug+'/report')
 casio=owner.call('/api/workspace/analyzers/casio-ss')
-assert not casio['readonly']
+assert casio['canEdit'] and casio['canReadResponses'] and casio['canGrant']
 casioPack=casio['pack']
 closing=casioPack['report']['closingFa']
 casioPack['report']['closingFa']='متن گزارش ویرایش‌شدهٔ آزمون'

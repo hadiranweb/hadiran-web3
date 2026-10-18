@@ -12,6 +12,7 @@ import {
   type AnswerMap,
   type AttemptView,
 } from "@/lib/analyzers/runtime";
+import { referrerCodeOf } from "@/lib/analyzers/attempt-codes";
 import { buildCasioAuthoredPack } from "./authored-pack";
 
 export type { AttemptView };
@@ -28,6 +29,8 @@ function view(
     answers: AnswerMap | null;
     submittedAt: Date | null;
     results?: AttemptView["results"];
+    referrerPublicCode?: string | null;
+    discountCode?: string | null;
   },
   pack: AnalyzerPack,
 ): AttemptView {
@@ -37,6 +40,8 @@ function view(
     consentAt: row.consentAt ? row.consentAt.toISOString() : null,
     answers: filterAnswers(pack, row.answers),
     submittedAt: row.submittedAt ? row.submittedAt.toISOString() : null,
+    referrerPublicCode: row.referrerPublicCode ?? null,
+    discountCode: row.discountCode ?? null,
     results: row.results ?? null,
   };
 }
@@ -79,31 +84,54 @@ async function createOpen(accountId: number, pack: AnalyzerPack) {
   }
 }
 
+async function withCodes<T extends { referrerAccountId?: number | null; discountCode?: string | null }>(row: T) {
+  return {
+    ...row,
+    referrerPublicCode: await referrerCodeOf(row.referrerAccountId),
+    discountCode: row.discountCode ?? null,
+  };
+}
+
 export async function readAttempt(accountId: number): Promise<AttemptView | null> {
   await ensureCasioAttemptsSchema();
   const pack = await livePack();
   const open = await openAttempt(accountId);
-  if (open) return view(open, pack);
+  if (open) return view(await withCodes(open), pack);
   const submitted = await latestSubmitted(accountId);
-  return submitted ? view(submitted, pack) : null;
+  return submitted ? view(await withCodes(submitted), pack) : null;
 }
 
-export async function consentAttempt(accountId: number): Promise<AttemptView> {
+export async function consentAttempt(
+  accountId: number,
+  codes?: { referralCode?: unknown; discountCode?: unknown },
+): Promise<AttemptView | { error: string }> {
   await ensureCasioAttemptsSchema();
   const pack = await livePack();
   const submitted = await latestSubmitted(accountId);
   if (submitted && !(await openAttempt(accountId))) {
-    return view(submitted, pack);
+    return view(await withCodes(submitted), pack);
   }
   let row = await openAttempt(accountId);
   if (!row) row = await createOpen(accountId, pack);
-  if (row.consentAt) return view(row, pack);
-  const [updated] = await db
-    .update(casioAttempts)
-    .set({ consentAt: new Date(), updatedAt: new Date(), instrumentVersion: pack.version })
-    .where(eq(casioAttempts.id, row.id))
-    .returning();
-  return view(updated, pack);
+  if (!row.consentAt) {
+    const [updated] = await db
+      .update(casioAttempts)
+      .set({ consentAt: new Date(), updatedAt: new Date(), instrumentVersion: pack.version })
+      .where(eq(casioAttempts.id, row.id))
+      .returning();
+    row = updated;
+  }
+  if (codes) {
+    const applied = await (await import("@/lib/analyzers/attempt-codes")).applyAttemptCodes({
+      slug: "casio-ss",
+      accountId,
+      referralCode: codes.referralCode,
+      discountCode: codes.discountCode,
+    });
+    if (!applied.ok) return { error: applied.error };
+    row = (await openAttempt(accountId)) ?? row;
+  }
+  return view(await withCodes(row), pack);
 }
 
 export async function saveAnswer(

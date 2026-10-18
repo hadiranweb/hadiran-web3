@@ -5,7 +5,7 @@ import { previewFetch as fetch } from "@/lib/auth/preview-fetch";
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import Link from "./WorkspaceLink";
 import { usePathname, useRouter } from "next/navigation";
-import { UserRound, ChartNoAxesCombined, BookOpen, LayoutDashboard, FlaskConical, Users, ShoppingBag, Settings, PanelLeftClose, PanelLeftOpen, Menu, X, Search, ExternalLink, LogOut, Languages, Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { UserRound, ChartNoAxesCombined, BookOpen, LayoutDashboard, FlaskConical, Users, ShoppingBag, Bot, Network, TicketPercent, Settings, PanelLeftClose, PanelLeftOpen, Menu, X, Search, ExternalLink, LogOut, Languages, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { UserAvatar } from "@/components/auth/UserAvatar";
 import { defaultAvatarVariant } from "@/lib/account/avatar";
 import { HadiranMark } from "@/components/HadiranMark";
@@ -15,13 +15,17 @@ import { PREVIEW_SESSION_KEY } from "@/lib/auth/preview-client";
 import { WorkspaceContext, type Locale } from "./WorkspaceContext";
 import type { SessionAccount } from "@/lib/auth/session";
 
-const modules = [
+const workspaceModules = [
   { href: "/workspace", fa: "نمای کلی", en: "Overview", icon: LayoutDashboard },
   { href: "/workspace/knowledge", fa: "دانشنامه", en: "Knowledge", icon: BookOpen },
   { href: "/workspace/projects", fa: "پروژه‌ها", en: "Projects", icon: FlaskConical },
   { href: "/workspace/collaborations", fa: "همکاری‌ها", en: "Collaborations", icon: Users },
   { href: "/workspace/shop", fa: "فروشگاه", en: "Shop", icon: ShoppingBag },
   { href: "/workspace/analyzers", fa: "تحلیلگرها", en: "Analyzers", icon: ChartNoAxesCombined },
+  { href: "/workspace/bots", fa: "ربات‌ها", en: "Bots", icon: Bot },
+  { href: "/workspace/referrals", fa: "معرف‌های من", en: "My referrals", icon: Users },
+  { href: "/workspace/network", fa: "درخت معرف", en: "Referral tree", icon: Network },
+  { href: "/workspace/discounts", fa: "کد تخفیف", en: "Discount codes", icon: TicketPercent },
   { href: "/account", fa: "حساب من", en: "My account", icon: UserRound },
   { href: "/workspace/settings", fa: "تنظیمات", en: "Settings", icon: Settings },
 ];
@@ -33,6 +37,9 @@ function subscribeSidebar(callback: () => void) {
 function sidebarSnapshot() { try { return localStorage.getItem("hadiran-sidebar") === "collapsed"; } catch { return false; } }
 
 export function WorkspaceShell({ children, account, initialLocale, demo }: { children: ReactNode; account: SessionAccount; initialLocale: Locale; demo: boolean }) {
+  const author = account.role === "author";
+  const home = author ? "/workspace/analyzers" : "/workspace";
+  const modules = author ? workspaceModules.filter(item => ["/workspace/analyzers", "/workspace/referrals", "/account", "/workspace/settings"].includes(item.href)) : workspaceModules;
   const [locale, setLocaleState] = useState(initialLocale);
   const collapsed = useSyncExternalStore(subscribeSidebar, sidebarSnapshot, () => false);
   const [mobile, setMobile] = useState(false);
@@ -45,7 +52,7 @@ export function WorkspaceShell({ children, account, initialLocale, demo }: { chi
   const menuButton = useRef<HTMLButtonElement>(null);
   const [search, setSearch] = useState("");
   const t = (fa: string, en: string) => locale === "fa" ? fa : en;
-  const active = modules.find((item) => item.href === "/workspace" ? path === item.href : path.startsWith(item.href)) || modules[1];
+  const active = modules.find((item) => item.href === "/workspace" ? path === item.href : path.startsWith(item.href)) || modules[0];
   const capture = path === "/workspace/capture";
   useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" }); }, [path]);
 
@@ -113,7 +120,7 @@ export function WorkspaceShell({ children, account, initialLocale, demo }: { chi
         {mobile ? <button className="ws-backdrop" aria-label={t("بستن منو", "Close navigation")} onClick={closeMobile} /> : null}
         <aside className="ws-sidebar" id="workspace-navigation" ref={sidebar} aria-label={t("ناوبری فضای کار", "Workspace navigation")} role={mobile ? "dialog" : undefined} aria-modal={mobile || undefined}>
           <div className="ws-brand-row">
-            <Link className="ws-brand" href="/workspace" onClick={() => setMobile(false)}><HadiranMark size={29} /><span className="ws-sidebar-text">{t("هادیران", "Hadiran")}<small>{t("فضای مدیریت", "Management workspace")}</small></span></Link>
+            <Link className="ws-brand" href={home} onClick={() => setMobile(false)}><HadiranMark size={29} /><span className="ws-sidebar-text">{t("هادیران", "Hadiran")}<small>{t(author ? "میز کار نویسنده" : "فضای مدیریت", author ? "Author workspace" : "Management workspace")}</small></span></Link>
             <button className="ws-icon-button ws-mobile-close" onClick={closeMobile} aria-label={t("بستن منو", "Close navigation")}><X size={18} /></button>
           </div>
           <button className="ws-sidebar-search" onClick={() => searchDialog.current?.showModal()} title={t("جست‌وجوی بخش‌ها", "Find a module")}><Search size={17} /><span className="ws-sidebar-text">{t("جست‌وجوی بخش‌ها", "Find a module")}</span><kbd className="ws-sidebar-text">⌘ K</kbd></button>
@@ -128,8 +135,8 @@ export function WorkspaceShell({ children, account, initialLocale, demo }: { chi
         </aside>
         <div className="ws-main" inert={mobile || undefined}>
           <header className="ws-topbar">
-            <div className="ws-topbar-start"><button className="ws-icon-button ws-mobile-toggle" ref={menuButton} onClick={() => setMobile(true)} aria-label={t("بازکردن منو", "Open navigation")} aria-expanded={mobile} aria-controls="workspace-navigation"><Menu size={20} /></button><nav className="ws-breadcrumb" aria-label={t("مسیر صفحه", "Breadcrumb")}><Link href="/workspace">{t("فضای کار", "Workspace")}</Link><Arrow size={13} /><span aria-current="page">{capture ? t("یادداشت جدید", "New note") : t(active.fa, active.en)}</span></nav></div>
-            <div className="ws-topbar-actions"><button className="ws-icon-button" onClick={() => searchDialog.current?.showModal()} aria-label={t("جست‌وجوی بخش‌ها", "Find a module")}><Search size={18} /></button><button className="ws-language" onClick={() => setLocale(locale === "fa" ? "en" : "fa")} aria-label={t("تغییر زبان به انگلیسی", "Switch language to Persian")}><Languages size={16} /><span>{locale === "fa" ? "EN" : "فا"}</span></button><ThemeSwitcher locale={locale} /><Link className="ws-quick-new" href="/workspace/capture"><Plus size={17} /><span>{t("یادداشت جدید", "New note")}</span></Link></div>
+            <div className="ws-topbar-start"><button className="ws-icon-button ws-mobile-toggle" ref={menuButton} onClick={() => setMobile(true)} aria-label={t("بازکردن منو", "Open navigation")} aria-expanded={mobile} aria-controls="workspace-navigation"><Menu size={20} /></button><nav className="ws-breadcrumb" aria-label={t("مسیر صفحه", "Breadcrumb")}><Link href={home}>{t("فضای کار", "Workspace")}</Link><Arrow size={13} /><span aria-current="page">{capture ? t("یادداشت جدید", "New note") : t(active.fa, active.en)}</span></nav></div>
+            <div className="ws-topbar-actions"><button className="ws-icon-button" onClick={() => searchDialog.current?.showModal()} aria-label={t("جست‌وجوی بخش‌ها", "Find a module")}><Search size={18} /></button><button className="ws-language" onClick={() => setLocale(locale === "fa" ? "en" : "fa")} aria-label={t("تغییر زبان به انگلیسی", "Switch language to Persian")}><Languages size={16} /><span>{locale === "fa" ? "EN" : "فا"}</span></button><ThemeSwitcher locale={locale} /><Link className="ws-quick-new" href={author ? "/workspace/analyzers/new" : "/workspace/capture"}><Plus size={17} /><span>{t(author ? "آزمون تازه" : "یادداشت جدید", author ? "New analyzer" : "New note")}</span></Link></div>
           </header>
           {demo ? <div className="ws-environment"><span />{t("محیط نمایشی", "Demo workspace")}<span className="ws-environment-detail">{t("داده‌های نمونه؛ ثبت و تحلیل موقتِ همین نشست است و هیچ انتشار یا پرداخت واقعی انجام نمی‌شود.", "Sample data. Captures and analyses are temporary. No real publication or payment.")}</span></div> : null}
           <div id="workspace-content" className="ws-content" tabIndex={-1}>{children}</div>

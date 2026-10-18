@@ -1,11 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import "./globals.css";
 import { OnboardingDialog } from "@/components/auth/OnboardingDialog";
 import { SiteChrome } from "@/components/SiteChrome";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import localFont from "next/font/local";
+import { ReferralCapture } from "@/components/auth/ReferralCapture";
 import { siteConfig } from "@/lib/site";
 
 const iranSharp = localFont({
@@ -56,6 +57,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       </head>
       <body className="site-body flex min-h-screen flex-col antialiased">
         <SiteChrome navigation={<Nav />} footer={<Footer />}>{children}</SiteChrome>
+        <Suspense fallback={null}><ReferralCapture /></Suspense>
         <OnboardingDialog />
       </body>
     </html>

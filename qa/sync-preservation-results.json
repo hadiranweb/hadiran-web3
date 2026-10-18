@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "checks": [
+    "src/components/portrait/",
+    "assets/portrait/",
+    "src/app/fonts/",
+    "public/avatars/",
+    "public/brand/",
+    "package.json",
+    "package-lock.json",
+    "src/components/navigation/useDisclosure.ts",
+    "public/hadiran-portrait.svg",
+    "all 16 previous migrations, including 0015_account_avatars.sql",
+    "all 4 upstream migrations retained under original filenames"
+  ],
+  "new_npm_dependencies": false
+}

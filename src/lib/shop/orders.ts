@@ -29,7 +29,12 @@ async function setState(orderId: string, from: OrderState[], to: OrderState, pat
   return updated;
 }
 
-export async function createOrResumeOrder(opts: { buyerId: number; buyerRole: string; listingId: string }) {
+export async function createOrResumeOrder(opts: {
+  buyerId: number;
+  buyerRole: string;
+  listingId: string;
+  discountCode?: unknown;
+}) {
   if (opts.buyerRole === "owner") throw new ShopError("owner_cannot_buy", 403);
 
   const [listing] = await db.select().from(shopListings).where(eq(shopListings.id, opts.listingId)).limit(1);
@@ -59,19 +64,53 @@ export async function createOrResumeOrder(opts: { buyerId: number; buyerRole: st
     .limit(1);
   if (open[0]) return open[0];
 
+  let amount = listing.amount;
+  let discountAmount = 0;
+  let discountCode: string | null = null;
+  let quote: import("@/lib/commerce/discount").DiscountQuote | null = null;
+  if (opts.discountCode != null && opts.discountCode !== "") {
+    const { quoteDiscount } = await import("@/lib/commerce/discount");
+    const quoted = await quoteDiscount({
+      code: opts.discountCode,
+      amount: listing.amount,
+      scope: "shop",
+      listingId: listing.id,
+    });
+    if (!quoted.ok) throw new ShopError(quoted.error, 400);
+    if (!("skipped" in quoted)) {
+      quote = quoted.quote;
+      amount = quoted.quote.payable;
+      discountAmount = quoted.quote.amountOff;
+      discountCode = quoted.quote.code;
+    }
+  }
+
   const [created] = await db
     .insert(shopOrders)
     .values({
       id: newCanonicalId("ORD"),
       buyerId: opts.buyerId,
       listingId: listing.id,
-      amount: listing.amount,
+      amount,
       currency: listing.currency,
       state: "awaiting_payment_reference",
       payoutHandleSnapshot: payout.accountHandle,
       payoutAliasSnapshot: payout.accountAlias,
+      discountCode,
+      discountAmount,
+      originalAmount: listing.amount,
     })
     .returning();
+  if (quote && created) {
+    const { redeemDiscount } = await import("@/lib/commerce/discount");
+    const ok = await redeemDiscount({
+      quote,
+      accountId: opts.buyerId,
+      source: "shop",
+      orderId: created.id,
+    });
+    if (!ok) throw new ShopError("discount_exhausted", 400);
+  }
   return created;
 }
 

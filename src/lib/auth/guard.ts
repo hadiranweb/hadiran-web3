@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { redirect } from "next/navigation";
+import { isOwner, isStaff } from "./roles";
 import { getCurrentAccount, type SessionAccount } from "./session";
 
 export async function requireAccount(): Promise<
@@ -29,7 +30,7 @@ export async function requireOwner(): Promise<
 > {
   const auth = await requireAccount();
   if (auth.error) return auth;
-  if (auth.account.role !== "owner") {
+  if (!isOwner(auth.account.role)) {
     return { account: null, error: NextResponse.json({ error: "forbidden" }, { status: 403 }) };
   }
   return auth;
@@ -37,8 +38,26 @@ export async function requireOwner(): Promise<
 
 export async function requirePageOwner(nextPath: string) {
   const account = await requirePageAccount(nextPath);
-  if (account.role !== "owner") {
+  if (account.role === "author") redirect("/workspace/analyzers");
+  if (!isOwner(account.role)) {
     redirect("/");
   }
+  return account;
+}
+
+export async function requireStaff(): Promise<
+  { account: SessionAccount; error: null } | { account: null; error: NextResponse }
+> {
+  const auth = await requireAccount();
+  if (auth.error) return auth;
+  if (!isStaff(auth.account.role)) {
+    return { account: null, error: NextResponse.json({ error: "forbidden" }, { status: 403 }) };
+  }
+  return auth;
+}
+
+export async function requirePageStaff(nextPath: string) {
+  const account = await requirePageAccount(nextPath);
+  if (!isStaff(account.role)) redirect("/");
   return account;
 }

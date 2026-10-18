@@ -1,0 +1,16 @@
+{
+  "passed": true,
+  "checks": [
+    "AES-GCM roundtrip/tamper rejection and webhook secret comparison",
+    "HTTPS-only optional Telegram proxy normalization and safe fallback",
+    "Malformed updates and group chats ignored",
+    "Conversation consent before verified phone request",
+    "Missing/mismatched contact user_id rejected before linking an account",
+    "Own Telegram contact links local account and optional referral skip starts quiz",
+    "Mocked Telegram range callback persists answer, computes score and submits real local attempt",
+    "Replayed callback/start resumes submitted report without creating another attempt"
+  ],
+  "telegram_http": "fully mocked",
+  "database": "local disposable PostgreSQL",
+  "real_telegram_tested": false
+}

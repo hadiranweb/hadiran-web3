@@ -22,6 +22,8 @@ function view(row: {
   answers: AnswerMap | null;
   submittedAt: Date | null;
   results?: AttemptView["results"];
+  referrerPublicCode?: string | null;
+  discountCode?: string | null;
 }, pack: AnalyzerPack): AttemptView {
   return {
     instrumentVersion: row.instrumentVersion,
@@ -29,6 +31,8 @@ function view(row: {
     consentAt: row.consentAt ? row.consentAt.toISOString() : null,
     answers: filterAnswers(pack, row.answers),
     submittedAt: row.submittedAt ? row.submittedAt.toISOString() : null,
+    referrerPublicCode: row.referrerPublicCode ?? null,
+    discountCode: row.discountCode ?? null,
     results: row.results ?? null,
   };
 }
@@ -92,7 +96,11 @@ export async function readAttempt(accountId: number, pack: AnalyzerPack): Promis
   return submitted ? view(submitted, pack) : null;
 }
 
-export async function consentAttempt(accountId: number, pack: AnalyzerPack): Promise<AttemptView> {
+export async function consentAttempt(
+  accountId: number,
+  pack: AnalyzerPack,
+  codes?: { referralCode?: unknown; discountCode?: unknown },
+): Promise<AttemptView | { error: string }> {
   await ensureAnalyzerAuthoringSchema();
   const submitted = await latestSubmitted(accountId, pack.slug);
   if (submitted && !(await openAttempt(accountId, pack.slug))) {
@@ -100,13 +108,24 @@ export async function consentAttempt(accountId: number, pack: AnalyzerPack): Pro
   }
   let row = await openAttempt(accountId, pack.slug);
   if (!row) row = await createOpen(accountId, pack);
-  if (row.consentAt) return view(row, pack);
-  const [updated] = await db
-    .update(analyzerAttempts)
-    .set({ consentAt: new Date(), updatedAt: new Date(), instrumentVersion: pack.version })
-    .where(eq(analyzerAttempts.id, row.id))
-    .returning();
-  return view(updated, pack);
+  if (!row.consentAt) {
+    const [updated] = await db
+      .update(analyzerAttempts)
+      .set({ consentAt: new Date(), updatedAt: new Date(), instrumentVersion: pack.version })
+      .where(eq(analyzerAttempts.id, row.id))
+      .returning();
+    row = updated;
+  }
+  if (codes) {
+    const applied = await (await import("@/lib/analyzers/attempt-codes")).applyAttemptCodes({
+      slug: pack.slug,
+      accountId,
+      referralCode: codes.referralCode,
+      discountCode: codes.discountCode,
+    });
+    if (!applied.ok) return { error: applied.error };
+  }
+  return view(row, pack);
 }
 
 export async function saveAnswer(

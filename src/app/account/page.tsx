@@ -7,7 +7,9 @@ import { db } from "@/db";
 import { accounts } from "@/db/schema";
 import { requirePageAccount } from "@/lib/auth/guard";
 import { ensureAccountPublicCode } from "@/lib/auth/public-code";
+import { referredByPublicCode } from "@/lib/auth/referral";
 import { maskPhone } from "@/lib/auth/phone";
+import { AccountReferralForm } from "@/components/auth/AccountReferralForm";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PageShell } from "@/components/ui/PageShell";
 import { AccountProfileForm } from "@/components/auth/AccountProfileForm";
@@ -25,6 +27,7 @@ export default async function AccountPage() {
   const preview = await previewStore(session);
   const { avatar } = await readAccountAvatar(session);
   const publicCode = preview ? "پیش‌نمایش" : await ensureAccountPublicCode(session.id);
+  const referredBy = preview ? null : await referredByPublicCode(session.id);
   const [row] = preview ? [{ ...preview.profile, phone: session.phone }] : await db
     .select({
       givenName: accounts.givenName,
@@ -40,11 +43,11 @@ export default async function AccountPage() {
       {preview ? <p className="integration-notice mb-6">حساب نمایشی؛ نام‌ها فقط تا پایان همین نشست نگه داشته می‌شوند و شناسهٔ واقعی ساخته نمی‌شود.</p> : null}
       <PageHeader
         title="حساب من"
-        lede="نام برای گزارش‌ها و تحلیلگر‌هاست. شناسهٔ هشت‌رقمی نمایشی است؛ با آن وارد نمی‌شوید."
+        lede="نام برای گزارش‌ها و تحلیلگر‌هاست. شناسهٔ هشت‌رقمی همان کد معرف شماست؛ با آن وارد نمی‌شوید."
       />
       <dl className="mb-8 grid gap-4 sm:grid-cols-2">
         <div className="surface p-5">
-          <dt className="text-xs font-medium text-mark">شناسهٔ هادیران</dt>
+          <dt className="text-xs font-medium text-mark">کد معرف / شناسه</dt>
           <dd className="mt-2 font-mono text-2xl tracking-wide text-ink" dir="ltr">
             {publicCode}
           </dd>
@@ -58,6 +61,7 @@ export default async function AccountPage() {
         </div>
       </dl>
       <AccountAvatarPanel initial={avatar} name={row?.givenName || "دوست هادیران"} />
+      {preview ? null : <AccountReferralForm referredBy={referredBy} />}
       <AccountProfileForm givenName={row?.givenName ?? ""} familyName={row?.familyName ?? ""} />
     </PageShell>
   );

@@ -16,6 +16,8 @@ import type {
   Section,
 } from "@/lib/analyzers/pack";
 import { DEFAULT_ANCHORS } from "@/lib/analyzers/sanitize";
+import { AnalyzerResponses } from "@/components/analyzers/AnalyzerResponses";
+import { AnalyzerGrants } from "@/components/analyzers/AnalyzerGrants";
 
 const fieldClass =
   "w-full rounded-xl border border-line bg-elev px-3 py-2 text-sm text-ink outline-none focus:border-indigo-400";
@@ -31,7 +33,7 @@ const ops: FormulaOp[] = [
   "matmul",
 ];
 
-type Tab = "meta" | "items" | "score" | "report";
+type Tab = "meta" | "items" | "score" | "report" | "responses" | "access";
 
 function emptyReport(): PackReport {
   return {
@@ -52,7 +54,7 @@ function clonePack(pack: AnalyzerPack): AnalyzerPack {
   return JSON.parse(JSON.stringify(pack)) as AnalyzerPack;
 }
 
-export function AnalyzerEditor({ initial, readOnly = false }: { initial: AnalyzerPack; readOnly?: boolean }) {
+export function AnalyzerEditor({ initial, readOnly = false, canEdit = true, canReadResponses = true, canGrant = false }: { initial: AnalyzerPack; readOnly?: boolean; canEdit?: boolean; canReadResponses?: boolean; canGrant?: boolean }) {
   const [pack, setPack] = useState<AnalyzerPack>(() => clonePack(initial));
   const [tab, setTab] = useState<Tab>("meta");
   const [busy, setBusy] = useState(false);
@@ -65,12 +67,13 @@ export function AnalyzerEditor({ initial, readOnly = false }: { initial: Analyze
   );
 
   function patch(next: AnalyzerPack) {
+    if (!canEdit) return;
     setPack(next);
     setSaved(false);
   }
 
   async function save() {
-    if (readOnly) return;
+    if (readOnly || !canEdit) return;
     setBusy(true);
     setError(null);
     const res = await fetch(`/api/workspace/analyzers/${pack.slug}`, {
@@ -142,6 +145,8 @@ export function AnalyzerEditor({ initial, readOnly = false }: { initial: Analyze
             ["items", `سؤال‌ها (${itemCount})`],
             ["score", "نمره"],
             ["report", "گزارش"],
+            ...(canReadResponses ? ([["responses", "پاسخ‌ها"]] as [Tab, string][]) : []),
+            ...(canGrant ? ([["access", "دسترسی"]] as [Tab, string][]) : []),
           ] as [Tab, string][]
         ).map(([id, label]) => (
           <button
@@ -157,6 +162,7 @@ export function AnalyzerEditor({ initial, readOnly = false }: { initial: Analyze
         ))}
       </div>
 
+      <fieldset disabled={!canEdit} className="min-w-0 space-y-6">
       {tab === "meta" ? (
         <section className="space-y-4 rounded-2xl border border-line bg-elev p-6">
           <p className="text-xs text-muted">شناسه: {pack.slug} — بعد از ساخت عوض نمی‌شود.</p>
@@ -301,16 +307,13 @@ export function AnalyzerEditor({ initial, readOnly = false }: { initial: Analyze
         />
       ) : null}
 
+      </fieldset>
+      {tab === "responses" ? <AnalyzerResponses slug={pack.slug} /> : null}
+      {tab === "access" ? <AnalyzerGrants slug={pack.slug} /> : null}
+
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
       {saved ? <p className="text-sm text-teal-800">ذخیره شد.</p> : null}
-      <button
-        type="button"
-        onClick={() => void save()}
-        disabled={busy || readOnly}
-        className="rounded-xl bg-accent px-5 py-2.5 text-sm font-medium text-accent-fg disabled:opacity-60"
-      >
-        {busy ? "در حال ذخیره…" : "ذخیره"}
-      </button>
+      {canEdit ? <button type="button" onClick={() => void save()} disabled={busy || readOnly} className="rounded-xl bg-accent px-5 py-2.5 text-sm font-medium text-accent-fg disabled:opacity-60">{busy ? "در حال ذخیره…" : "ذخیره"}</button> : <p className="text-sm text-muted">این آزمون برای شما فقط خواندنی است.</p>}
     </div>
   );
 }

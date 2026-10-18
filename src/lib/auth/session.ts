@@ -11,6 +11,7 @@ import { assertJwtReadyForIssue, jwtConfigured, sessionJtiFromCookie, signSessio
 import { ensureAccountPasswordColumns, ensureAccountProfileSchema } from "./schema-guard";
 import { ensureAccountPublicCode } from "./public-code";
 import { onboardingFlags } from "./onboarding";
+import type { AccountRole } from "./roles";
 
 import { validPreviewTicket, revokePreviewTicket, PREVIEW_TICKET_HEADER } from "./preview-ticket";
 export const PREVIEW_OWNER_COOKIE = "hadiran_preview_owner";
@@ -21,7 +22,7 @@ export type SessionAccount = {
   displayName: string | null;
   givenName: string | null;
   familyName: string | null;
-  role: "owner" | "member";
+  role: AccountRole;
   policiesAccepted: boolean;
   needsProfile: boolean;
   onboardingComplete: boolean;
@@ -29,13 +30,18 @@ export type SessionAccount = {
   previewTicket?: string;
 };
 
+function asRole(value: string): AccountRole {
+  if (value === "owner" || value === "author") return value;
+  return "member";
+}
+
 function toSessionAccount(row: {
   id: number;
   phone: string;
   displayName: string | null;
   givenName: string | null;
   familyName: string | null;
-  role: "owner" | "member";
+  role: string;
   policiesAcceptedAt: Date | null;
   policiesVersion: string | null;
 }): SessionAccount {
@@ -45,7 +51,7 @@ function toSessionAccount(row: {
     displayName: row.displayName,
     givenName: row.givenName,
     familyName: row.familyName,
-    role: row.role,
+    role: asRole(row.role),
     ...onboardingFlags(row),
   };
 }
@@ -175,7 +181,7 @@ export async function revokeCurrentSession() {
   await clearSessionCookie();
 }
 
-export function roleForPhone(phone: string): "owner" | "member" {
+export function roleForPhone(phone: string): AccountRole {
   return ownerPhones().has(phone) ? "owner" : "member";
 }
 
@@ -213,7 +219,7 @@ export async function completePhoneLogin(input: {
       .set({
         phoneVerifiedAt: account.phoneVerifiedAt ?? new Date(),
         lastLoginAt: new Date(),
-        role: account.role === "owner" ? "owner" : role,
+        role: account.role === "owner" || role === "owner" ? "owner" : asRole(account.role),
         updatedAt: new Date(),
       })
       .where(eq(accounts.id, account.id))

@@ -37,14 +37,14 @@ export function SessionMenu() {
   const name = account.displayName?.trim() || "حساب من";
   const links = [
     { href: "/account", title: "حساب و تصویر پروفایل", icon: UserRound },
-    ...(account.role === "owner" ? [{ href: "/workspace", title: "میز مدیریت", icon: LayoutDashboard }] : []),
+    ...(["owner", "author"].includes(account.role) ? [{ href: account.role === "author" ? "/workspace/analyzers" : "/workspace", title: "میز کار من", icon: LayoutDashboard }] : []),
     { href: "/analyzers", title: "تحلیلگرهای من", icon: ChartNoAxesCombined },
     { href: "/shop", title: "فروشگاه", icon: ShoppingBag },
   ];
   return <div className="session-control">
     <button ref={trigger} type="button" className="session-avatar-button" onClick={toggle} aria-label={`باز کردن دسترسی‌های حساب ${name}`} aria-expanded={open} aria-controls={`profile-${id}`} title={name}><UserAvatar variant={account.avatar?.variant ?? defaultAvatarVariant(account.id)} photoUrl={account.avatar?.photoUrl} /></button>
     <div id={`profile-${id}`} ref={panel} className="profile-dropdown" hidden={!visible} inert={!open || undefined} aria-hidden={!open}>
-      <div className="profile-dropdown-identity"><UserAvatar variant={account.avatar?.variant ?? defaultAvatarVariant(account.id)} photoUrl={account.avatar?.photoUrl} size={48} /><div><strong>{name}</strong><small>{account.role === "owner" ? "حساب مالک" : "حساب کاربری"}</small></div></div>
+      <div className="profile-dropdown-identity"><UserAvatar variant={account.avatar?.variant ?? defaultAvatarVariant(account.id)} photoUrl={account.avatar?.photoUrl} size={48} /><div><strong>{name}</strong><small>{account.role === "owner" ? "حساب مالک" : account.role === "author" ? "حساب نویسنده" : "حساب کاربری"}</small></div></div>
       <nav aria-label="دسترسی‌های سریع حساب"><ul>{links.map(link => <li key={link.href}><Link href={link.href} onClick={() => close()}><link.icon size={18} aria-hidden="true" /><span>{link.title}</span><ArrowUpLeft size={15} className="profile-link-arrow" aria-hidden="true" /></Link></li>)}</ul></nav>
       <div className="profile-dropdown-footer"><button type="button" onClick={() => void logout()} disabled={busy} className="profile-logout"><LogOut size={18} aria-hidden="true" />{busy ? "در حال خروج…" : "خروج از حساب"}</button>{error ? <p role="alert">خروج انجام نشد؛ دوباره تلاش کنید.</p> : null}</div>
     </div>

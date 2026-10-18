@@ -1,6 +1,6 @@
 import Link from "@/components/workspace/WorkspaceLink";
 import type { Metadata } from "next";
-import { requirePageOwner } from "@/lib/auth/guard";
+import { requirePageStaff } from "@/lib/auth/guard";
 import { AnalyzerCreateForm } from "@/components/analyzers/AnalyzerCreateForm";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 export default async function NewAnalyzerPage() {
-  const account = await requirePageOwner("/workspace/analyzers/new");
+  const account = await requirePageStaff("/workspace/analyzers/new");
   return (
     <main className="ws-page repo-module space-y-6">
       <p className="text-sm">

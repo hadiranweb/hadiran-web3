@@ -17,6 +17,10 @@ function persianError(code: string) {
     policies_required: "ابتدا شرایط را بپذیرید.",
     invalid_given_name: "نام را وارد کنید (حداکثر ۶۴ نویسه).",
     invalid_family_name: "نام خانوادگی را وارد کنید (حداکثر ۶۴ نویسه).",
+    invalid_referral: "کد معرف هشت رقم است.",
+    unknown_referral: "این کد معرف پیدا نشد.",
+    self_referral: "نمی‌توانید کد خودتان را بزنید.",
+    referral_cycle: "این کد یک حلقه می‌سازد.",
     unauthorized: "نشست منقضی شد. دوباره وارد شوید.",
     save_failed: "ذخیره نشد. دوباره تلاش کنید.",
   };
@@ -31,6 +35,7 @@ export function OnboardingDialog() {
   const [step, setStep] = useState<"policies" | "profile">("policies");
   const [givenName, setGivenName] = useState("");
   const [familyName, setFamilyName] = useState("");
+  const [referralCode, setReferralCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -65,9 +70,11 @@ export function OnboardingDialog() {
           setReady(true);
           return;
         }
-        const draft = readDraft<{ givenName?: string; familyName?: string }>("onboarding-profile");
+        const draft = readDraft<{ givenName?: string; familyName?: string; referralCode?: string }>("onboarding-profile");
         setGivenName(draft?.givenName || account.givenName || "");
         setFamilyName(draft?.familyName || account.familyName || "");
+        const storedRef = typeof window !== "undefined" ? sessionStorage.getItem("hadiran-ref") : null;
+        setReferralCode(draft?.referralCode || storedRef || "");
         setStep(needsPolicies ? "policies" : "profile");
         setOpen(true);
         setReady(true);
@@ -98,8 +105,8 @@ export function OnboardingDialog() {
       clearDraft("onboarding-profile");
       return;
     }
-    writeDraft("onboarding-profile", { givenName, familyName });
-  }, [ready, open, step, givenName, familyName]);
+    writeDraft("onboarding-profile", { givenName, familyName, referralCode });
+  }, [ready, open, step, givenName, familyName, referralCode]);
 
   async function acceptPolicies() {
     setError(null);
@@ -135,7 +142,7 @@ export function OnboardingDialog() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         cache: "no-store",
-        body: JSON.stringify({ step: "profile", givenName, familyName }),
+        body: JSON.stringify({ step: "profile", givenName, familyName, referralCode: referralCode.trim() || undefined }),
       });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(data.error || "save_failed");
@@ -224,6 +231,18 @@ export function OnboardingDialog() {
                     autoComplete="family-name"
                     required
                     className={fieldClass}
+                  />
+                </label>
+                <label className="block space-y-1.5">
+                  <span className="text-sm font-medium text-ink">کد معرف (اختیاری)</span>
+                  <input
+                    value={referralCode}
+                    onChange={(e) => setReferralCode(e.target.value)}
+                    maxLength={8}
+                    inputMode="numeric"
+                    dir="ltr"
+                    className={fieldClass}
+                    placeholder="۸ رقم"
                   />
                 </label>
               </div>
