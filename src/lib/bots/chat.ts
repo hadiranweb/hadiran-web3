@@ -20,8 +20,6 @@ import {
 import { renderUserSummary } from "@/lib/analyzers/summary-template";
 import { onboardingFlags } from "@/lib/auth/onboarding";
 import { issueLoginOtp, consumeLoginOtp } from "@/lib/auth/otp-login";
-import { needsPasswordSetup } from "@/lib/auth/password";
-import { issuePasswordSetupUrl } from "@/lib/auth/password-setup";
 import { InvalidPhoneError, normalizePhone } from "@/lib/auth/phone";
 import { displayNameFromParts, normalizePersonName } from "@/lib/auth/profile";
 import { referredByPublicCode, setAccountReferrer } from "@/lib/auth/referral";
@@ -31,10 +29,11 @@ import { accountIdByTelegramUserId, linkTelegramContact } from "@/lib/bots/ident
 import { markBotLastError } from "@/lib/bots/store";
 import { botConsent } from "@/lib/bots/copy";
 import { botVars, interpolateBotText, line, matchBotKey, parseBotScript, type BotKey, type BotScript } from "@/lib/bots/script";
-import { telegramAnswerCallback, telegramEditMessage, telegramSendMessage } from "@/lib/bots/telegram";
+import { telegramAnswerCallback, telegramDeleteMessages, telegramEditMessage, telegramSendMessage } from "@/lib/bots/telegram";
 import { absoluteUrl } from "@/lib/site";
 
 const FA = "۰۱۲۳۴۵۶۷۸۹";
+const START_IDLE_MS = 10 * 60 * 1000;
 
 function faNum(value: number | string) {
   return String(value).replace(/\d/g, (digit) => FA[Number(digit)] ?? digit);
@@ -150,22 +149,60 @@ function isSkipText(text: string, label: string) {
   return n === "رد" || n === "/skip" || n === label.trim();
 }
 
-function phoneKeyboard(script: BotScript) {
-  return {
-    keyboard: [[{ text: script.texts.phoneButton.slice(0, 64), request_contact: true }]],
-    resize_keyboard: true,
-    one_time_keyboard: true,
-  };
+function buttonStyle(action: BotKey["action"] | "contact"): string | undefined {
+  if (action === "start" || action === "exams" || action === "contact") return "primary";
+  if (action === "restart") return "success";
+  if (action === "clear") return "danger";
+  return undefined;
+}
+
+function replyButton(text: string, action: BotKey["action"] | "contact", extra?: Record<string, unknown>) {
+  const style = buttonStyle(action);
+  return { text: text.slice(0, 64), ...(style ? { style } : {}), ...extra };
 }
 
 function keysMarkup(script: BotScript) {
   const buttons = script.keys.filter((key) => key.inKeyboard && key.labelFa);
-  if (!buttons.length) return undefined;
-  const rows: { text: string }[][] = [];
-  for (let i = 0; i < buttons.length; i += 2) {
-    rows.push(buttons.slice(i, i + 2).map((key) => ({ text: key.labelFa.slice(0, 64) })));
+  const rest = buttons.filter((key) => key.action !== "clear");
+  const clear = buttons.find((key) => key.action === "clear");
+  const rows: Record<string, unknown>[][] = [];
+  for (let i = 0; i < rest.length; i += 2) {
+    rows.push(rest.slice(i, i + 2).map((key) => replyButton(key.labelFa, key.action)));
   }
-  return { keyboard: rows, resize_keyboard: true, is_persistent: true };
+  rows.push([replyButton(clear?.labelFa || "پاک کردن تاریخچه", "clear")]);
+  return {
+    keyboard: rows,
+    resize_keyboard: true,
+    is_persistent: true,
+    input_field_placeholder: "یک کلید را بزنید…",
+  };
+}
+
+function phoneKeyboard(script: BotScript) {
+  const keys = keysMarkup(script);
+  return {
+    keyboard: [
+      [replyButton(script.texts.phoneButton, "contact", { request_contact: true })],
+      ...((keys.keyboard as Record<string, unknown>[][]) ?? []),
+    ],
+    resize_keyboard: true,
+    is_persistent: true,
+    input_field_placeholder: "شماره را بفرستید…",
+  };
+}
+
+async function clearTelegramChat(token: string, chatId: number, lastMessageId: number) {
+  const last = Math.max(1, Math.floor(lastMessageId));
+  const from = Math.max(1, last - 299);
+  const ids: number[] = [];
+  for (let id = from; id <= last; id += 1) ids.push(id);
+  for (let i = 0; i < ids.length; i += 100) {
+    try {
+      await telegramDeleteMessages(token, { chatId, messageIds: ids.slice(i, i + 100) });
+    } catch {
+      // پیام‌های قدیمی‌تر از ۴۸ ساعت یا ناموجود رد می‌شوند
+    }
+  }
 }
 
 function rangeRows(itemIndex: number) {
@@ -247,7 +284,9 @@ async function promptExamList(
     return;
   }
   await say(token, botId, chatId, line(script, "examPick", varsOf(titleFa)), {
-    inline_keyboard: open.map((item) => [{ text: item.nameFa.slice(0, 64), callback_data: `exam:${item.slug}` }]),
+    inline_keyboard: open.map((item) => [
+      { text: item.nameFa.slice(0, 64), callback_data: `exam:${item.slug}`, style: "primary" },
+    ]),
   });
 }
 
@@ -324,17 +363,10 @@ async function afterAccount(
   const flags = onboardingFlags(account);
   const session = await readSession(botId, telegramUserId);
   const v = varsOf(titleFa);
-  if (script.flow.sendPasswordLink && needsPasswordSetup({ phone: account.phone, passwordHash: account.passwordHash })) {
-    if (!session?.passwordLinkSentAt) {
-      const url = await issuePasswordSetupUrl(accountId);
-      await say(token, botId, chatId, line(script, "passwordLink", { ...v, link: url }), { remove_keyboard: true });
-      await patchSession(botId, telegramUserId, String(chatId), { passwordLinkSentAt: new Date() });
-    }
-  }
   if (script.flow.askPolicy && !flags.policiesAccepted) {
     await patchSession(botId, telegramUserId, String(chatId), { step: "policy" });
     await say(token, botId, chatId, line(script, "policy", v), {
-      inline_keyboard: [[{ text: script.texts.policyButton.slice(0, 64), callback_data: "policyok" }]],
+      inline_keyboard: [[{ text: script.texts.policyButton.slice(0, 64), callback_data: "policyok", style: "success" }]],
     });
     return;
   }
@@ -413,7 +445,7 @@ async function startPack(
     awaitingDiscount: false,
   });
   await say(token, botId, chatId, botConsent(pack), {
-    inline_keyboard: [[{ text: pack.consent.acceptLabelFa, callback_data: "packok" }]],
+    inline_keyboard: [[{ text: pack.consent.acceptLabelFa, callback_data: "packok", style: "success" }]],
   });
 }
 
@@ -426,9 +458,14 @@ async function runBotKey(input: {
   titleFa: string;
   boundSlug: string | null;
   key: BotKey;
+  lastMessageId?: number;
 }): Promise<void> {
   const { token, botId, chatId, telegramUserId, script, titleFa, boundSlug, key } = input;
   const v = varsOf(titleFa);
+  if (key.action === "clear") {
+    if (input.lastMessageId) await clearTelegramChat(token, chatId, input.lastMessageId);
+    return;
+  }
   if (key.action === "help") {
     await say(token, botId, chatId, line(script, "help", v), keysMarkup(script));
     return;
@@ -512,6 +549,10 @@ export async function handleTelegramUpdate(input: {
   const titleFa = input.titleFa?.trim() || "تحلیل‌گر هوشمند";
   const boundSlug = input.analyzerSlug?.trim() || null;
   const v = varsOf(titleFa);
+  const lastMessageId = update.message?.message_id;
+  const prior = await readSession(botId, telegramUserId);
+  const idle = Boolean(prior?.updatedAt && Date.now() - prior.updatedAt.getTime() >= START_IDLE_MS);
+  await patchSession(botId, telegramUserId, String(chatId), {});
 
   if (callback?.data === "retake" || callback?.data === "exams") {
     const action = callback.data === "retake" ? "restart" : "exams";
@@ -534,13 +575,31 @@ export async function handleTelegramUpdate(input: {
       titleFa,
       boundSlug,
       key: matchBotKey(script, "", action) ?? fallback,
+      lastMessageId,
     });
     return;
   }
 
   const hit = matchBotKey(script, text, command);
-  if (hit && (command || text === hit.labelFa)) {
-    await runBotKey({ token, botId, chatId, telegramUserId, script, titleFa, boundSlug, key: hit });
+  if (hit && (command || text === hit.labelFa || hit.action === "clear")) {
+    await runBotKey({ token, botId, chatId, telegramUserId, script, titleFa, boundSlug, key: hit, lastMessageId });
+    return;
+  }
+
+  if (idle && !callback) {
+    const startKey =
+      matchBotKey(script, "", "start") ??
+      ({
+        id: "start",
+        labelFa: "شروع",
+        action: "start",
+        command: "start",
+        descriptionFa: "",
+        replyFa: "",
+        inMenu: true,
+        inKeyboard: true,
+      } satisfies BotKey);
+    await runBotKey({ token, botId, chatId, telegramUserId, script, titleFa, boundSlug, key: startKey, lastMessageId });
     return;
   }
 

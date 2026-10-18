@@ -16,12 +16,24 @@ import {
   telegramDeleteWebhook,
   telegramGetMe,
   telegramGetWebhookInfo,
+  telegramSetChatMenuButton,
   telegramSetMyCommands,
+  telegramSetMyDescription,
+  telegramSetMyShortDescription,
   telegramSetWebhook,
   webhookUrlFor,
   webhookUrlIsPublicHttps,
 } from "@/lib/bots/telegram";
-import { defaultScript, parseBotScript, parseBotService, telegramCommandsOf, type BotService } from "@/lib/bots/script";
+import {
+  botVars,
+  defaultScript,
+  interpolateBotText,
+  parseBotScript,
+  parseBotService,
+  telegramCommandsOf,
+  type BotScript,
+  type BotService,
+} from "@/lib/bots/script";
 import type { BotStatus, BotView } from "@/lib/bots/types";
 
 export type { BotStatus, BotView };
@@ -160,7 +172,11 @@ export async function updateBot(
     .returning();
   if (row.tokenCipher) {
     try {
-      await telegramSetMyCommands(openSecret(row.tokenCipher), telegramCommandsOf(parseBotScript({ ...script, service })));
+      await publishTelegramSurface(
+        openSecret(row.tokenCipher),
+        parseBotScript({ ...script, service }),
+        row.titleFa,
+      );
     } catch {
       // menu is optional
     }
@@ -181,6 +197,27 @@ export async function deleteBot(ownerId: number, id: string): Promise<void> {
     }
   }
   await db.delete(bots).where(eq(bots.id, id));
+}
+
+async function publishTelegramSurface(token: string, script: BotScript, titleFa: string) {
+  await telegramSetMyCommands(token, telegramCommandsOf(script));
+  const description = interpolateBotText(script.texts.welcome, botVars({ service: titleFa })).slice(0, 512);
+  const shortDescription = (script.texts.startDescription || "شروع یا ادامه").slice(0, 120);
+  try {
+    await telegramSetMyDescription(token, description);
+  } catch {
+    // اختیاری
+  }
+  try {
+    await telegramSetMyShortDescription(token, shortDescription);
+  } catch {
+    // اختیاری
+  }
+  try {
+    await telegramSetChatMenuButton(token);
+  } catch {
+    // اختیاری
+  }
 }
 
 export async function connectBot(
@@ -217,7 +254,7 @@ export async function connectBot(
           : {}),
         service: existing.service,
       });
-      await telegramSetMyCommands(token, telegramCommandsOf(script));
+      await publishTelegramSurface(token, script, existing.titleFa);
     } catch {
       // menu is optional; webhook still counts as connected
     }

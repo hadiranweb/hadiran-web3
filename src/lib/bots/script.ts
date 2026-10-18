@@ -68,7 +68,7 @@ export type BotTexts = {
   helpDescription: string;
 };
 
-export const BOT_KEY_ACTIONS = ["start", "help", "exams", "restart", "reply"] as const;
+export const BOT_KEY_ACTIONS = ["start", "help", "exams", "restart", "clear", "reply"] as const;
 export type BotKeyAction = (typeof BOT_KEY_ACTIONS)[number];
 
 export type BotKey = {
@@ -87,6 +87,7 @@ export const BOT_KEY_ACTION_OPTIONS: { id: BotKeyAction; labelFa: string }[] = [
   { id: "help", labelFa: "راهنما" },
   { id: "exams", labelFa: "فهرست آزمون‌ها" },
   { id: "restart", labelFa: "شروع مجدد آزمون جاری" },
+  { id: "clear", labelFa: "پاک کردن تاریخچهٔ همین چت" },
   { id: "reply", labelFa: "ارسال متن ثابت" },
 ];
 
@@ -131,10 +132,20 @@ export const DEFAULT_ANALYZER_KEYS: BotKey[] = [
     inMenu: true,
     inKeyboard: true,
   },
+  {
+    id: "clear",
+    labelFa: "پاک کردن تاریخچه",
+    action: "clear",
+    command: "clear",
+    descriptionFa: "فقط همین صفحهٔ چت را تمیز می‌کند",
+    replyFa: "",
+    inMenu: true,
+    inKeyboard: true,
+  },
 ];
 
 export const DEFAULT_CUSTOM_KEYS: BotKey[] = DEFAULT_ANALYZER_KEYS.filter(
-  (key) => key.action === "start" || key.action === "help",
+  (key) => key.action === "start" || key.action === "help" || key.action === "clear",
 );
 
 export type BotScript = {
@@ -152,13 +163,13 @@ export const DEFAULT_BOT_FLOW: BotFlow = {
   askNames: true,
   askReferral: true,
   askDiscount: true,
-  sendPasswordLink: true,
+  sendPasswordLink: false,
 };
 
 export const DEFAULT_BOT_TEXTS: BotTexts = {
   welcome:
-    "هادیران — {service}\n\nمن ربات آزمون‌ها هستم؛ ورود مرورگر با تلگرام نیست.\n\nمسیر:\n۱. شمارهٔ خودتان\n۲. پذیرش سیاست\n۳. نام و نام‌خانوادگی\n۴. انتخاب آزمون\n\nرمز سایت را در چت ننویسید؛ لینک یک‌بارمصرف می‌آید.",
-  help: "راهنما — {service}\n\n/start شروع یا ادامه\n/help همین راهنما\n\nشماره با دکمه، یا تایپ (آن‌وقت کد پیامک).\nقبول سیاست اجباری است.\nکد معرف هشت‌رقمی اختیاری است.\nکد تخفیف بعد از انتخاب آزمون پرسیده می‌شود.\nورود سایت با همان شماره و رمز لینک است، نه با این چت.",
+    "هادیران — {service}\n\nمن ربات آزمون‌ها هستم؛ ورود مرورگر با تلگرام نیست.\n\nمسیر:\n۱. شمارهٔ خودتان\n۲. پذیرش سیاست\n۳. نام و نام‌خانوادگی\n۴. انتخاب آزمون",
+  help: "راهنما — {service}\n\n/start شروع یا ادامه\n/help همین راهنما\n/clear پاک کردن همین صفحهٔ چت\n\nشماره با دکمه، یا تایپ (آن‌وقت کد پیامک).\nقبول سیاست اجباری است.\nکد معرف هشت‌رقمی اختیاری است.\nکد تخفیف بعد از انتخاب آزمون پرسیده می‌شود.\nرمز ثابت در این چت خواسته نمی‌شود.",
   phonePrompt: "شمارهٔ همراه خودتان را با دکمه بفرستید. اگر دکمه نیست، همان شماره را بنویسید تا کد پیامک بیاید.",
   phoneButton: "ارسال شمارهٔ همراه",
   phoneSaved: "شماره ثبت شد.",
@@ -226,7 +237,6 @@ export const BOT_TEXT_FIELDS: { id: keyof BotTexts; labelFa: string; hintFa: str
   { id: "discountPrompt", labelFa: "درخواست تخفیف", hintFa: "{exam}" },
   { id: "discountSkip", labelFa: "دکمهٔ رد تخفیف", hintFa: "" },
   { id: "discountBad", labelFa: "تخفیف نامعتبر", hintFa: "" },
-  { id: "passwordLink", labelFa: "لینک تعیین رمز", hintFa: "{link}" },
   { id: "staleButton", labelFa: "دکمهٔ منقضی", hintFa: "" },
   { id: "saveFailed", labelFa: "ذخیرهٔ پاسخ نشد", hintFa: "" },
   { id: "textTooLong", labelFa: "متن سؤال باز خیلی بلند", hintFa: "{max}" },
@@ -244,7 +254,6 @@ export const BOT_FLOW_FIELDS: { id: keyof BotFlow; labelFa: string; services?: B
   { id: "askNames", labelFa: "پرسیدن نام و نام‌خانوادگی" },
   { id: "askReferral", labelFa: "پرسیدن کد معرف" },
   { id: "askDiscount", labelFa: "پرسیدن کد تخفیف بعد از انتخاب آزمون", services: ["analyzers"] },
-  { id: "sendPasswordLink", labelFa: "فرستادن لینک تعیین رمز سایت" },
 ];
 
 export const ANALYZER_TEXT_IDS: (keyof BotTexts)[] = [
@@ -262,8 +271,8 @@ export const ANALYZER_TEXT_IDS: (keyof BotTexts)[] = [
 ];
 
 const CUSTOM_WELCOME =
-  "هادیران — {service}\n\nورود سایت با تلگرام نیست.\nشمارهٔ خودتان را بفرستید. رمز را در چت ننویسید.";
-const CUSTOM_HELP = "راهنما — {service}\n\n/start شروع یا ادامه\n/help همین راهنما\n\nورود سایت با همین شماره و رمز لینک است، نه با این چت.";
+  "هادیران — {service}\n\nورود سایت با تلگرام نیست.\nشمارهٔ خودتان را بفرستید. رمز ثابت در این چت خواسته نمی‌شود.";
+const CUSTOM_HELP = "راهنما — {service}\n\n/start شروع یا ادامه\n/help همین راهنما\n/clear پاک کردن همین صفحهٔ چت";
 const CUSTOM_READY = "ثبت شد. اگر پیامی دارید همین‌جا بنویسید.";
 
 function asCommand(value: unknown): string {
@@ -317,7 +326,23 @@ export function matchBotKey(script: BotScript, text: string, command: string | n
   }
   const label = text.replace(/\s+/g, " ").trim();
   if (!label) return null;
-  return script.keys.find((key) => key.labelFa === label) ?? null;
+  const byLabel = script.keys.find((key) => key.labelFa === label);
+  if (byLabel) return byLabel;
+  if (label === "پاک کردن تاریخچه" || command === "clear") {
+    return (
+      script.keys.find((key) => key.action === "clear") ?? {
+        id: "clear",
+        labelFa: "پاک کردن تاریخچه",
+        action: "clear",
+        command: "clear",
+        descriptionFa: "فقط همین صفحهٔ چت را تمیز می‌کند",
+        replyFa: "",
+        inMenu: true,
+        inKeyboard: true,
+      }
+    );
+  }
+  return null;
 }
 
 function asMultiline(value: unknown, max: number, fallback: string): string {
@@ -363,6 +388,7 @@ export function parseBotScript(raw: unknown): BotScript {
     if (flowRaw[key] === false) flow[key] = false;
   }
   if (service !== "analyzers") flow.askDiscount = false;
+  flow.sendPasswordLink = false;
   const texts: BotTexts = { ...base.texts };
   for (const key of Object.keys(DEFAULT_BOT_TEXTS) as (keyof BotTexts)[]) {
     texts[key] = asMultiline(textRaw[key], key === "policy" || key === "welcome" || key === "help" ? 3500 : 500, base.texts[key]);
@@ -373,7 +399,12 @@ export function parseBotScript(raw: unknown): BotScript {
         .filter((item): item is BotKey => Boolean(item))
         .slice(0, 20)
     : [];
-  return { service, flow, texts, keys: parsedKeys.length ? parsedKeys : base.keys };
+  const keys = parsedKeys.length ? parsedKeys : base.keys.map((key) => ({ ...key }));
+  if (!keys.some((key) => key.action === "clear")) {
+    const clear = DEFAULT_ANALYZER_KEYS.find((key) => key.action === "clear");
+    if (clear) keys.push({ ...clear });
+  }
+  return { service, flow, texts, keys };
 }
 
 export function botVars(input: {

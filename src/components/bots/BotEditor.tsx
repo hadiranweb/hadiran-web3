@@ -466,7 +466,7 @@ export function BotEditor({
                   {field.labelFa}
                   {field.hintFa ? <span className="mr-2 text-xs text-slate-400">{field.hintFa}</span> : null}
                 </span>
-                {field.id === "policy" || field.id === "welcome" || field.id === "help" || field.id === "passwordLink" ? (
+                {field.id === "policy" || field.id === "welcome" || field.id === "help" ? (
                   <textarea
                     className={`${fieldClass} min-h-28`}
                     value={script.texts[field.id]}
