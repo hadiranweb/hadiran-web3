@@ -1,0 +1,19 @@
+{
+  "status": "PASS",
+  "checks": [
+    "Overlay opens with zero main displacement; ordinary Tab links, Escape closes and restores focus",
+    "Click outside/select closes; upward exit uses WAAPI and disables links during closing",
+    "Rapid toggles cancel smoothly without stuck panels",
+    "10 widths 320–1920px, desktop switch, short landscape scroll with reachable footer",
+    "Reduced motion skips sliding/scaling and completes without lingering animations",
+    "Theme coordinates with navigation, keyboard Escape works, new header targets are at least 44px",
+    "Login becomes avatar circle; eight original SVGs; selection updates header and persists on refresh",
+    "Profile panel stays within viewport; public modules reflow at seven widths",
+    "320 CSS px reflow, 200% text zoom and matching workspace avatar",
+    "Only one disclosure remains open; logout clears identity and returns login button"
+  ],
+  "layout_cases": 59,
+  "browser_errors": [],
+  "http_5xx": [],
+  "production_build": true
+}

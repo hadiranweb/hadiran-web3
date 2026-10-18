@@ -905,3 +905,11 @@ export const messagesRelations = relations(messages, ({ one }) => ({
     references: [conversations.id],
   }),
 }));
+
+/** Independent avatar metadata; the image bytes belong on the mounted media disk. */
+export const accountAvatars = pgTable("account_avatars", {
+  accountId: integer("account_id").primaryKey().references(() => accounts.id, { onDelete: "cascade" }),
+  variant: integer("variant").notNull(),
+  imageKey: varchar("image_key", { length: 160 }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});

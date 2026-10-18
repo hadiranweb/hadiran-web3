@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "layout_cases": 134,
+  "checks": [
+    "Public routes in 5 widths and 2 themes",
+    "All public routes at 320 CSS px and 200% text zoom",
+    "Real secure JWT member login; no owner management link",
+    "Real member avatar change, live header sync, reload persistence",
+    "Member dropdown in viewport at 200% zoom"
+  ],
+  "browser_errors": [],
+  "http_5xx": [],
+  "production_build": true
+}

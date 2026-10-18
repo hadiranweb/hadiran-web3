@@ -1,3 +1,4 @@
+import { readAccountAvatar } from "@/lib/account/avatar-store";
 import { cookies, headers } from "next/headers";
 import { db } from "@/db";
 import { accounts, sessions } from "@/db/schema";
@@ -24,6 +25,7 @@ export type SessionAccount = {
   policiesAccepted: boolean;
   needsProfile: boolean;
   onboardingComplete: boolean;
+  avatar?: import("@/lib/account/avatar").AccountAvatar;
   previewTicket?: string;
 };
 
@@ -224,6 +226,7 @@ export async function completePhoneLogin(input: {
   }
 
   await ensureAccountPublicCode(account.id);
+  await readAccountAvatar(toSessionAccount(account));
 
   const token = await createSession(account.id, {
     ip: requestIp(input.request),

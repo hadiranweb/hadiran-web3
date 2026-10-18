@@ -1,3 +1,5 @@
+import { AccountAvatarPanel } from "@/components/auth/AccountAvatarPanel";
+import { readAccountAvatar } from "@/lib/account/avatar-store";
 import { previewStore } from "@/lib/preview/store";
 import type { Metadata } from "next";
 import { eq } from "drizzle-orm";
@@ -21,6 +23,7 @@ export const metadata: Metadata = {
 export default async function AccountPage() {
   const session = await requirePageAccount("/account");
   const preview = await previewStore(session);
+  const { avatar } = await readAccountAvatar(session);
   const publicCode = preview ? "پیش‌نمایش" : await ensureAccountPublicCode(session.id);
   const [row] = preview ? [{ ...preview.profile, phone: session.phone }] : await db
     .select({
@@ -33,7 +36,7 @@ export default async function AccountPage() {
     .limit(1);
 
   return (
-    <PageShell width="narrow">
+    <PageShell width="narrow" className="account-profile-page">
       {preview ? <p className="integration-notice mb-6">حساب نمایشی؛ نام‌ها فقط تا پایان همین نشست نگه داشته می‌شوند و شناسهٔ واقعی ساخته نمی‌شود.</p> : null}
       <PageHeader
         title="حساب من"
@@ -54,6 +57,7 @@ export default async function AccountPage() {
           <dd className="mt-1 text-xs text-muted">موبایل تأییدشده. ایمیل و تلگرام هنوز روشن نیستند.</dd>
         </div>
       </dl>
+      <AccountAvatarPanel initial={avatar} name={row?.givenName || "دوست هادیران"} />
       <AccountProfileForm givenName={row?.givenName ?? ""} familyName={row?.familyName ?? ""} />
     </PageShell>
   );

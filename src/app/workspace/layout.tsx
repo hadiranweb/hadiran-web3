@@ -1,3 +1,4 @@
+import { readAccountAvatar } from "@/lib/account/avatar-store";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -11,6 +12,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
   const account = await getCurrentAccount();
   if (!account) redirect("/signin?next=/workspace");
   if (account.role !== "owner") redirect("/signin?next=/workspace&error=owner_required");
+  const { avatar } = await readAccountAvatar(account);
   const jar = await cookies();
-  return <WorkspaceShell account={account} initialLocale={jar.get("hadiran-workspace-locale")?.value === "en" ? "en" : "fa"} demo={!process.env.DATABASE_URL}>{children}</WorkspaceShell>;
+  return <WorkspaceShell account={{ ...account, avatar }} initialLocale={jar.get("hadiran-workspace-locale")?.value === "en" ? "en" : "fa"} demo={!process.env.DATABASE_URL}>{children}</WorkspaceShell>;
 }

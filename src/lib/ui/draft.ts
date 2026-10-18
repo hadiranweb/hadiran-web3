@@ -4,6 +4,7 @@ const MAX_CHARS = 400_000;
 export const ACCOUNT_CHANGED = "hadiran:account";
 
 export type AccountChangedDetail = {
+  avatar?: import("@/lib/account/avatar").AccountAvatar;
   givenName?: string;
   familyName?: string;
   displayName?: string | null;

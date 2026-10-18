@@ -8,7 +8,7 @@ import type { semanticRecords } from "@/db/schema";
 import type { AttemptView } from "@/lib/analyzers/casio-ss/answers";
 import { demoKnowledge } from "@/lib/workspace/demo";
 export type PreviewRecord = typeof semanticRecords.$inferSelect;
-type Store = { expires: number; records: PreviewRecord[]; attempt: AttemptView | null; profile: { givenName: string; familyName: string } };
+type Store = { avatarVariant?: number; expires: number; records: PreviewRecord[]; attempt: AttemptView | null; profile: { givenName: string; familyName: string } };
 const shared = globalThis as typeof globalThis & { __hadiranPreviewData?: Map<string, Store> };
 /** Separate data per verified one-hour grant; never substitutes for a real DB. */
 export async function previewStore(account?: SessionAccount): Promise<Store | null> {

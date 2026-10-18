@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "checks": [
+    "Anonymous cannot read, change or fetch a private account photo",
+    "Stable automatic defaults available in real login/me and authenticated metadata API",
+    "Strict integer 0–7 validation rejects malformed avatar choices",
+    "Preset persists across new real JWT sessions, never changes another account; no fake photo"
+  ],
+  "database": "disposable local hadiran_integration_qa only",
+  "owner_saved_variant": 4
+}

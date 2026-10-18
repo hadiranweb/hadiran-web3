@@ -1,88 +1,52 @@
 "use client";
-
 import { previewFetch as fetch } from "@/lib/auth/preview-fetch";
-
 import { useEffect, useState } from "react";
 import Link from "@/components/workspace/WorkspaceLink";
 import { usePathname, useRouter } from "next/navigation";
-import { LogIn, LogOut, PenLine, User } from "lucide-react";
+import { KeyRound, LogOut, LayoutDashboard, UserRound, ChartNoAxesCombined, ShoppingBag, ArrowUpLeft } from "lucide-react";
 import { PREVIEW_SESSION_KEY } from "@/lib/auth/preview-client";
 import { clearDraftsByPrefix, subscribeAccount } from "@/lib/ui/draft";
-
-type Account = { id: number; displayName: string | null; phone: string; role: string };
-
-const itemClass =
-  "inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] px-3 py-2 text-sm font-medium text-muted hover:bg-elev hover:text-ink";
-
+import { defaultAvatarVariant, type AccountAvatar } from "@/lib/account/avatar";
+import { UserAvatar } from "./UserAvatar";
+import { useDisclosure } from "@/components/navigation/useDisclosure";
+type Account = { id: number; displayName: string | null; phone: string; role: string; avatar?: AccountAvatar };
 export function SessionMenu() {
-  const pathname = usePathname();
-  const router = useRouter();
+  const pathname = usePathname(); const router = useRouter();
   const [account, setAccount] = useState<Account | null | undefined>(undefined);
-
+  const [busy, setBusy] = useState(false); const [error, setError] = useState(false);
+  const { id, open, visible, panel, trigger, toggle, close } = useDisclosure();
+  useEffect(() => { close(); }, [pathname, close]);
   useEffect(() => {
     let cancelled = false;
-    function load() {
-      fetch("/api/auth/me", { cache: "no-store" })
-        .then(async (res) => {
-          if (!res.ok) return null;
-          const data = (await res.json()) as { account: Account | null };
-          return data.account;
-        })
-        .then((next) => {
-          if (!cancelled) setAccount(next);
-        })
-        .catch(() => {
-          if (!cancelled) setAccount(null);
-        });
-    }
-    load();
-    const stop = subscribeAccount(() => load());
-    return () => {
-      cancelled = true;
-      stop();
-    };
+    function load() { fetch("/api/auth/me", { cache: "no-store" }).then(async res => res.ok ? (await res.json()).account as Account | null : null).then(next => { if (!cancelled) setAccount(next); }).catch(() => { if (!cancelled) setAccount(null); }); }
+    load(); const stop = subscribeAccount(() => load());
+    return () => { cancelled = true; stop(); };
   }, [pathname]);
-
   async function logout() {
-    const response = await fetch("/api/auth/logout", { method: "POST" });
-    if (!response.ok) return;
-    try { sessionStorage.removeItem(PREVIEW_SESSION_KEY); } catch {}
-    clearDraftsByPrefix("account");
-    clearDraftsByPrefix("onboarding");
-    clearDraftsByPrefix("casio");
-    setAccount(null);
-    router.refresh();
+    if (busy) return; setBusy(true); setError(false);
+    try {
+      const response = await fetch("/api/auth/logout", { method: "POST" });
+      if (!response.ok) throw new Error("logout_failed");
+      try { sessionStorage.removeItem(PREVIEW_SESSION_KEY); } catch {}
+      for (const prefix of ["account", "onboarding", "casio", "capture", "analyzer"]) clearDraftsByPrefix(prefix);
+      close(); setAccount(null); router.replace("/"); router.refresh();
+    } catch { setError(true); } finally { setBusy(false); }
   }
-
-  if (pathname === "/signin") return null;
-  if (account === undefined) return <span className="h-9 w-16" />;
-
-  if (!account) {
-    const next = pathname.startsWith("/") ? pathname : "/";
-    return (
-      <Link href={`/signin?next=${encodeURIComponent(next)}`} className={itemClass}>
-        <LogIn className="h-4 w-4" strokeWidth={1.5} />
-        ورود
-      </Link>
-    );
-  }
-
-  return (
-    <div className="flex items-center gap-1">
-      <Link href="/account" className={itemClass}>
-        <User className="h-4 w-4" strokeWidth={1.5} />
-        حساب
-      </Link>
-      {account.role === "owner" ? (
-        <Link href="/workspace" className={itemClass}>
-          <PenLine className="h-4 w-4" strokeWidth={1.5} />
-          میز کار
-        </Link>
-      ) : null}
-      <button type="button" onClick={() => void logout()} className={itemClass}>
-        <LogOut className="h-4 w-4" strokeWidth={1.5} />
-        خروج
-      </button>
+  if (account === undefined) return <span className="session-loading" aria-label="در حال بررسی حساب" />;
+  if (!account) return <Link href={`/signin?next=${encodeURIComponent(pathname === "/signin" ? "/" : pathname)}`} className="session-login-button" aria-label="ورود به حساب"><KeyRound size={17} strokeWidth={1.8} aria-hidden="true" /><span>ورود</span></Link>;
+  const name = account.displayName?.trim() || "حساب من";
+  const links = [
+    { href: "/account", title: "حساب و تصویر پروفایل", icon: UserRound },
+    ...(account.role === "owner" ? [{ href: "/workspace", title: "میز مدیریت", icon: LayoutDashboard }] : []),
+    { href: "/analyzers", title: "تحلیلگرهای من", icon: ChartNoAxesCombined },
+    { href: "/shop", title: "فروشگاه", icon: ShoppingBag },
+  ];
+  return <div className="session-control">
+    <button ref={trigger} type="button" className="session-avatar-button" onClick={toggle} aria-label={`باز کردن دسترسی‌های حساب ${name}`} aria-expanded={open} aria-controls={`profile-${id}`} title={name}><UserAvatar variant={account.avatar?.variant ?? defaultAvatarVariant(account.id)} photoUrl={account.avatar?.photoUrl} /></button>
+    <div id={`profile-${id}`} ref={panel} className="profile-dropdown" hidden={!visible} inert={!open || undefined} aria-hidden={!open}>
+      <div className="profile-dropdown-identity"><UserAvatar variant={account.avatar?.variant ?? defaultAvatarVariant(account.id)} photoUrl={account.avatar?.photoUrl} size={48} /><div><strong>{name}</strong><small>{account.role === "owner" ? "حساب مالک" : "حساب کاربری"}</small></div></div>
+      <nav aria-label="دسترسی‌های سریع حساب"><ul>{links.map(link => <li key={link.href}><Link href={link.href} onClick={() => close()}><link.icon size={18} aria-hidden="true" /><span>{link.title}</span><ArrowUpLeft size={15} className="profile-link-arrow" aria-hidden="true" /></Link></li>)}</ul></nav>
+      <div className="profile-dropdown-footer"><button type="button" onClick={() => void logout()} disabled={busy} className="profile-logout"><LogOut size={18} aria-hidden="true" />{busy ? "در حال خروج…" : "خروج از حساب"}</button>{error ? <p role="alert">خروج انجام نشد؛ دوباره تلاش کنید.</p> : null}</div>
     </div>
-  );
+  </div>;
 }

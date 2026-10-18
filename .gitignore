@@ -26,3 +26,7 @@ hadiran-web3-v2/
 !.env.example
 
 .config/
+
+# Python QA bytecode
+__pycache__/
+*.py[cod]

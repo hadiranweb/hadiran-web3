@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useSyncExternalStore } from "react";
+import { DISCLOSURE_EVENT } from "@/components/navigation/useDisclosure";
 import { Check, Monitor, Moon, Sun } from "lucide-react";
 
 const KEY = "hadiran-theme";
@@ -55,7 +56,7 @@ export function ThemeSwitcher({ locale = "fa" }: { locale?: "fa" | "en" }) {
   const Icon = active.icon;
 
   useEffect(() => {
-    const onPointer = (event: PointerEvent) => {
+    const onPointer = (event: Event) => {
       if (!detailsRef.current?.contains(event.target as Node)) detailsRef.current?.removeAttribute("open");
     };
     const onKey = (event: KeyboardEvent) => {
@@ -64,13 +65,20 @@ export function ThemeSwitcher({ locale = "fa" }: { locale?: "fa" | "en" }) {
         detailsRef.current.querySelector("summary")?.focus();
       }
     };
+    const onOther = (event: Event) => {
+      if ((event as CustomEvent).detail !== `theme-${groupName}`) detailsRef.current?.removeAttribute("open");
+    };
+    document.addEventListener("focusin", onPointer);
+    window.addEventListener(DISCLOSURE_EVENT, onOther);
     document.addEventListener("pointerdown", onPointer);
     document.addEventListener("keydown", onKey);
     return () => {
+      document.removeEventListener("focusin", onPointer);
+      window.removeEventListener(DISCLOSURE_EVENT, onOther);
       document.removeEventListener("pointerdown", onPointer);
       document.removeEventListener("keydown", onKey);
     };
-  }, []);
+  }, [groupName]);
 
   function choose(value: Preference) {
     apply(value);
@@ -79,7 +87,9 @@ export function ThemeSwitcher({ locale = "fa" }: { locale?: "fa" | "en" }) {
   }
 
   return (
-    <details className="theme-switcher" ref={detailsRef}>
+    <details className="theme-switcher" ref={detailsRef} onToggle={event => {
+      if (event.currentTarget.open) window.dispatchEvent(new CustomEvent(DISCLOSURE_EVENT, { detail: `theme-${groupName}` }));
+    }}>
       <summary className="theme-trigger" aria-label={t(`تغییر تم؛ انتخاب فعلی: ${active.label}`, `Change appearance; selected: ${optionLabel(active.value, active.label)}`)} title={optionLabel(active.value, active.label)}>
         <Icon size={17} aria-hidden="true" />
       </summary>

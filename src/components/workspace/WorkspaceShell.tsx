@@ -6,6 +6,8 @@ import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } fro
 import Link from "./WorkspaceLink";
 import { usePathname, useRouter } from "next/navigation";
 import { UserRound, ChartNoAxesCombined, BookOpen, LayoutDashboard, FlaskConical, Users, ShoppingBag, Settings, PanelLeftClose, PanelLeftOpen, Menu, X, Search, ExternalLink, LogOut, Languages, Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { UserAvatar } from "@/components/auth/UserAvatar";
+import { defaultAvatarVariant } from "@/lib/account/avatar";
 import { HadiranMark } from "@/components/HadiranMark";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { clearDraftsByPrefix } from "@/lib/ui/draft";
@@ -120,7 +122,7 @@ export function WorkspaceShell({ children, account, initialLocale, demo }: { chi
           <div className="ws-sidebar-bottom">
             <Link className="ws-nav-item" href="/" title={t("مشاهده سایت", "View website")}><ExternalLink size={18} /><span className="ws-sidebar-text">{t("مشاهده سایت", "View website")}</span></Link>
             <button className="ws-nav-item ws-collapse" onClick={toggleCollapsed} aria-expanded={!collapsed} title={t(collapsed ? "بازکردن سایدبار" : "جمع‌کردن سایدبار", collapsed ? "Expand sidebar" : "Collapse sidebar")}>{collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}<span className="ws-sidebar-text">{t("جمع‌کردن منو", "Collapse sidebar")}</span></button>
-            <div className="ws-account"><span className="ws-avatar">{account.displayName?.slice(0, 1) || "H"}</span><div className="ws-sidebar-text"><strong>{account.id === 0 ? t("مالک آزمایشی", "Preview owner") : account.displayName || account.phone}</strong><small>{t("دسترسی مالک", "Owner access")}</small></div><button className="ws-icon-button" disabled={loggingOut} onClick={() => void logout()} title={t("خروج", "Sign out")} aria-label={t("خروج از حساب", "Sign out")}><LogOut size={17} /></button></div>
+            <div className="ws-account"><Link className="ws-avatar-link" href="/account" aria-label={t("حساب و تصویر پروفایل", "Account and profile image")}><UserAvatar variant={account.avatar?.variant ?? defaultAvatarVariant(account.id)} photoUrl={account.avatar?.photoUrl} size={38} /></Link><div className="ws-sidebar-text"><strong>{account.id === 0 ? t("مالک آزمایشی", "Preview owner") : account.displayName || account.phone}</strong><small>{t("دسترسی مالک", "Owner access")}</small></div><button className="ws-icon-button" disabled={loggingOut} onClick={() => void logout()} title={t("خروج", "Sign out")} aria-label={t("خروج از حساب", "Sign out")}><LogOut size={17} /></button></div>
             {logoutError ? <p role="alert" className="ws-error">{t("خروج انجام نشد؛ دوباره تلاش کنید.", "Sign out failed. Try again.")}</p> : null}
           </div>
         </aside>
