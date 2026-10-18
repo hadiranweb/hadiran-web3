@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { requirePageOwner } from "@/lib/auth/guard";
+import { botServiceLabel } from "@/lib/bots/script";
 import { listBots } from "@/lib/bots/store";
 
 export const dynamic = "force-dynamic";
@@ -27,7 +28,7 @@ export default async function WorkspaceBotsPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">ربات‌ها</h1>
           <p className="mt-2 text-sm leading-7 text-slate-500">
-            ربات لایهٔ سرویس تحلیل‌گر است، نه یک آزمون. اتصال و قالب گفتگو در همین میز. ورود مرورگر با تلگرام نیست.
+            بخش مستقل میز. هر ربات تلگرام جدا ساخته می‌شود و زیر هیچ آزمونی — از جمله عارضه‌یابی — نیست. ورود مرورگر با تلگرام نیست.
           </p>
         </div>
         <Link href="/workspace/bots/new" className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white">
@@ -47,9 +48,9 @@ export default async function WorkspaceBotsPage() {
               >
                 <p className="font-medium text-slate-900">{bot.titleFa}</p>
                 <p className="mt-1 text-xs text-slate-500">
-                  تلگرام · تحلیل‌گر · {statusFa[bot.status] ?? bot.status}
+                  تلگرام · {botServiceLabel(bot.service)} · {statusFa[bot.status] ?? bot.status}
                   {bot.telegramUsername ? ` · @${bot.telegramUsername}` : ""}
-                  {bot.analyzerSlug ? ` · فقط ${bot.analyzerSlug}` : ""}
+                  {bot.service === "analyzers" && bot.analyzerSlug ? ` · فقط ${bot.analyzerSlug}` : ""}
                 </p>
               </Link>
             </li>

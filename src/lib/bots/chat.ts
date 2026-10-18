@@ -340,6 +340,11 @@ async function afterAccount(
     });
     return;
   }
+  if (script.service !== "analyzers") {
+    await patchSession(botId, telegramUserId, String(chatId), { step: "idle", awaitingReferral: false });
+    await say(token, botId, chatId, line(script, "ready", v), { remove_keyboard: true });
+    return;
+  }
   await patchSession(botId, telegramUserId, String(chatId), { step: "pick", awaitingReferral: false });
   await promptExamList(token, botId, chatId, script, titleFa, boundSlug);
 }
@@ -354,6 +359,10 @@ async function startPack(
   titleFa: string,
   boundSlug: string | null,
 ) {
+  if (script.service !== "analyzers") {
+    await say(token, botId, chatId, line(script, "ready", varsOf(titleFa)));
+    return;
+  }
   if (boundSlug && slug !== boundSlug) {
     await say(token, botId, chatId, line(script, "examClosed", varsOf(titleFa, { exam: slug })));
     return;
@@ -443,8 +452,10 @@ export async function handleTelegramUpdate(input: {
   }
 
   if (callback?.data === "skipref") {
+    const accountId = await accountIdByTelegramUserId(telegramUserId);
     await patchSession(botId, telegramUserId, String(chatId), { awaitingReferral: false, step: "pick" });
-    await promptExamList(token, botId, chatId, script, titleFa, boundSlug);
+    if (accountId) await afterAccount(token, botId, chatId, telegramUserId, accountId, script, titleFa, boundSlug);
+    else await promptExamList(token, botId, chatId, script, titleFa, boundSlug);
     return;
   }
 
@@ -489,6 +500,10 @@ export async function handleTelegramUpdate(input: {
     const accountId = await accountIdByTelegramUserId(telegramUserId);
     if (!accountId) {
       await promptPhone(token, botId, chatId, script, titleFa);
+      return;
+    }
+    if (script.service !== "analyzers") {
+      await afterAccount(token, botId, chatId, telegramUserId, accountId, script, titleFa, boundSlug);
       return;
     }
     await startPack(token, botId, chatId, telegramUserId, slug, script, titleFa, boundSlug);
@@ -752,6 +767,11 @@ export async function handleTelegramUpdate(input: {
       return;
     }
     await continueQuiz(token, botId, chatId, accountId, pack, script, titleFa);
+    return;
+  }
+
+  if (script.service !== "analyzers" && session?.step === "idle") {
+    if (text) await say(token, botId, chatId, line(script, "idleReply", v));
     return;
   }
 

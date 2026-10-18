@@ -1,9 +1,22 @@
-/** قالب گفتگوی ربات سرویس تحلیل‌گر. بدون eval. */
+/** قالب گفتگوی هر ربات. سرویس روی خود ربات است، نه روی یک آزمون. بدون eval. */
 
 import { privacySummary, privacyUseTerms } from "@/lib/privacy/content";
 
-export const BOT_SERVICES = ["analyzers"] as const;
+export const BOT_SERVICES = ["analyzers", "custom"] as const;
 export type BotService = (typeof BOT_SERVICES)[number];
+
+export const BOT_SERVICE_OPTIONS: { id: BotService; labelFa: string; hintFa: string }[] = [
+  { id: "analyzers", labelFa: "آزمون‌ها", hintFa: "فهرست آزمون‌های باز. به عارضه‌یابی یا هیچ آزمون دیگری قفل نیست." },
+  { id: "custom", labelFa: "گفتگوی آزاد", hintFa: "خوشامد و ثبت هویت؛ بدون آزمون." },
+];
+
+export function parseBotService(raw: unknown): BotService {
+  return raw === "custom" ? "custom" : "analyzers";
+}
+
+export function botServiceLabel(id: BotService): string {
+  return BOT_SERVICE_OPTIONS.find((item) => item.id === id)?.labelFa ?? id;
+}
 
 export type BotFlow = {
   allowTypedPhone: boolean;
@@ -47,6 +60,8 @@ export type BotTexts = {
   staleButton: string;
   saveFailed: string;
   textTooLong: string;
+  ready: string;
+  idleReply: string;
   startDescription: string;
   helpDescription: string;
 };
@@ -102,6 +117,8 @@ export const DEFAULT_BOT_TEXTS: BotTexts = {
   staleButton: "این دکمه دیگر معتبر نیست. /start بزنید.",
   saveFailed: "این پاسخ ذخیره نشد. دوباره تلاش کنید.",
   textTooLong: "متن را کوتاه‌تر بنویسید (تا {max} نویسه).",
+  ready: "ثبت شد.",
+  idleReply: "اگر کاری دارید /start بزنید.",
   startDescription: "شروع یا ادامه",
   helpDescription: "راهنمای ربات",
 };
@@ -139,18 +156,37 @@ export const BOT_TEXT_FIELDS: { id: keyof BotTexts; labelFa: string; hintFa: str
   { id: "staleButton", labelFa: "دکمهٔ منقضی", hintFa: "" },
   { id: "saveFailed", labelFa: "ذخیرهٔ پاسخ نشد", hintFa: "" },
   { id: "textTooLong", labelFa: "متن سؤال باز خیلی بلند", hintFa: "{max}" },
+  { id: "ready", labelFa: "بعد از ثبت هویت", hintFa: "{service}" },
+  { id: "idleReply", labelFa: "پاسخ وقتی کار دیگری نیست", hintFa: "" },
   { id: "startDescription", labelFa: "شرح دستور /start در منو", hintFa: "" },
   { id: "helpDescription", labelFa: "شرح دستور /help در منو", hintFa: "" },
 ];
 
-export const BOT_FLOW_FIELDS: { id: keyof BotFlow; labelFa: string }[] = [
+export const BOT_FLOW_FIELDS: { id: keyof BotFlow; labelFa: string; services?: BotService[] }[] = [
   { id: "allowTypedPhone", labelFa: "تایپ شماره و OTP (اگر خام باشد فقط دکمه)" },
   { id: "askPolicy", labelFa: "پرسیدن قبول سیاست در ربات" },
   { id: "askNames", labelFa: "پرسیدن نام و نام‌خانوادگی" },
   { id: "askReferral", labelFa: "پرسیدن کد معرف" },
-  { id: "askDiscount", labelFa: "پرسیدن کد تخفیف بعد از انتخاب آزمون" },
+  { id: "askDiscount", labelFa: "پرسیدن کد تخفیف بعد از انتخاب آزمون", services: ["analyzers"] },
   { id: "sendPasswordLink", labelFa: "فرستادن لینک تعیین رمز سایت" },
 ];
+
+export const ANALYZER_TEXT_IDS: (keyof BotTexts)[] = [
+  "examPick",
+  "noExams",
+  "examClosed",
+  "packConsentFailed",
+  "examMissing",
+  "discountPrompt",
+  "discountSkip",
+  "discountBad",
+  "textTooLong",
+];
+
+const CUSTOM_WELCOME =
+  "هادیران — {service}\n\nورود سایت با تلگرام نیست.\nشمارهٔ خودتان را بفرستید. رمز را در چت ننویسید.";
+const CUSTOM_HELP = "راهنما — {service}\n\n/start شروع یا ادامه\n/help همین راهنما\n\nورود سایت با همین شماره و رمز لینک است، نه با این چت.";
+const CUSTOM_READY = "ثبت شد. اگر پیامی دارید همین‌جا بنویسید.";
 
 function asMultiline(value: unknown, max: number, fallback: string): string {
   if (typeof value !== "string") return fallback;
@@ -166,24 +202,35 @@ export function interpolateBotText(template: string, vars: Record<string, string
   });
 }
 
+export function defaultScript(service: BotService = "analyzers"): BotScript {
+  const texts: BotTexts = { ...DEFAULT_BOT_TEXTS };
+  const flow: BotFlow = { ...DEFAULT_BOT_FLOW };
+  if (service === "custom") {
+    texts.welcome = CUSTOM_WELCOME;
+    texts.help = CUSTOM_HELP;
+    texts.ready = CUSTOM_READY;
+    flow.askDiscount = false;
+  }
+  return { service, flow, texts };
+}
+
 export function parseBotScript(raw: unknown): BotScript {
   const row = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
+  const service = parseBotService(row.service);
+  const base = defaultScript(service);
   const flowRaw = row.flow && typeof row.flow === "object" && !Array.isArray(row.flow) ? (row.flow as Record<string, unknown>) : {};
   const textRaw = row.texts && typeof row.texts === "object" && !Array.isArray(row.texts) ? (row.texts as Record<string, unknown>) : row;
-  const flow: BotFlow = { ...DEFAULT_BOT_FLOW };
+  const flow: BotFlow = { ...base.flow };
   for (const key of Object.keys(DEFAULT_BOT_FLOW) as (keyof BotFlow)[]) {
     if (flowRaw[key] === true) flow[key] = true;
     if (flowRaw[key] === false) flow[key] = false;
   }
-  const texts: BotTexts = { ...DEFAULT_BOT_TEXTS };
+  if (service !== "analyzers") flow.askDiscount = false;
+  const texts: BotTexts = { ...base.texts };
   for (const key of Object.keys(DEFAULT_BOT_TEXTS) as (keyof BotTexts)[]) {
-    texts[key] = asMultiline(textRaw[key], key === "policy" || key === "welcome" || key === "help" ? 3500 : 500, DEFAULT_BOT_TEXTS[key]);
+    texts[key] = asMultiline(textRaw[key], key === "policy" || key === "welcome" || key === "help" ? 3500 : 500, base.texts[key]);
   }
-  return {
-    service: "analyzers",
-    flow,
-    texts,
-  };
+  return { service, flow, texts };
 }
 
 export function botVars(input: {

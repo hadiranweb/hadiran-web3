@@ -1,4 +1,4 @@
-import type { BotScript } from "@/lib/bots/script";
+import type { BotScript, BotService } from "@/lib/bots/script";
 
 export type BotStatus = "disconnected" | "connected" | "paused" | "error";
 
@@ -7,7 +7,7 @@ export type BotView = {
   titleFa: string;
   channel: "telegram";
   status: BotStatus;
-  service: "analyzers";
+  service: BotService;
   analyzerSlug: string | null;
   script: BotScript;
   telegramUsername: string | null;

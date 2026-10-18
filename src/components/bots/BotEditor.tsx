@@ -2,7 +2,18 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { BOT_FLOW_FIELDS, BOT_TEXT_FIELDS, parseBotScript, type BotFlow, type BotScript, type BotTexts } from "@/lib/bots/script";
+import {
+  ANALYZER_TEXT_IDS,
+  BOT_FLOW_FIELDS,
+  BOT_SERVICE_OPTIONS,
+  BOT_TEXT_FIELDS,
+  parseBotScript,
+  parseBotService,
+  type BotFlow,
+  type BotScript,
+  type BotService,
+  type BotTexts,
+} from "@/lib/bots/script";
 import type { BotView } from "@/lib/bots/types";
 
 const fieldClass =
@@ -32,12 +43,19 @@ export function BotEditor({
   const [bot, setBot] = useState(initial);
   const [tab, setTab] = useState<Tab>("connect");
   const [titleFa, setTitleFa] = useState(initial.titleFa);
+  const [service, setService] = useState<BotService>(parseBotService(initial.service));
   const [analyzerSlug, setAnalyzerSlug] = useState(initial.analyzerSlug ?? "");
-  const [script, setScript] = useState<BotScript>(parseBotScript(initial.script));
+  const [script, setScript] = useState<BotScript>(parseBotScript({ ...initial.script, service: initial.service }));
   const [token, setToken] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+
+  function changeService(next: BotService) {
+    setService(next);
+    setScript((current) => parseBotScript({ ...current, service: next }));
+    if (next !== "analyzers") setAnalyzerSlug("");
+  }
 
   function setFlow(id: keyof BotFlow, value: boolean) {
     setScript((current) => ({ ...current, flow: { ...current.flow, [id]: value } }));
@@ -63,13 +81,15 @@ export function BotEditor({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           titleFa,
-          analyzerSlug: analyzerSlug.trim() || null,
-          script: parseBotScript(script),
+          service,
+          analyzerSlug: service === "analyzers" ? analyzerSlug.trim() || null : null,
+          script: parseBotScript({ ...script, service }),
         }),
       });
       const next = await parse(res);
       setBot(next);
-      setScript(parseBotScript(next.script));
+      setService(parseBotService(next.service));
+      setScript(parseBotScript({ ...next.script, service: next.service }));
       setSaved(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "ذخیره نشد.");
@@ -191,10 +211,21 @@ export function BotEditor({
               <input className={fieldClass} value={titleFa} onChange={(event) => setTitleFa(event.target.value)} />
             </label>
             <label className="block text-sm">
-              <span className="mb-1 block text-slate-600">سرویس</span>
-              <select className={fieldClass} disabled value="analyzers">
-                <option value="analyzers">تحلیل‌گر هوشمند</option>
+              <span className="mb-1 block text-slate-600">کار این ربات</span>
+              <select
+                className={fieldClass}
+                value={service}
+                onChange={(event) => changeService(parseBotService(event.target.value))}
+              >
+                {BOT_SERVICE_OPTIONS.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.labelFa}
+                  </option>
+                ))}
               </select>
+              <span className="mt-1 block text-xs leading-6 text-slate-500">
+                {BOT_SERVICE_OPTIONS.find((item) => item.id === service)?.hintFa}
+              </span>
             </label>
             <label className="block text-sm">
               <span className="mb-1 block text-slate-600">کانال</span>
@@ -202,17 +233,19 @@ export function BotEditor({
                 <option value="telegram">تلگرام</option>
               </select>
             </label>
-            <label className="block text-sm">
-              <span className="mb-1 block text-slate-600">محدود کردن به یک آزمون (اختیاری)</span>
-              <select className={fieldClass} value={analyzerSlug} onChange={(event) => setAnalyzerSlug(event.target.value)}>
-                <option value="">همهٔ آزمون‌های باز</option>
-                {analyzers.map((item) => (
-                  <option key={item.slug} value={item.slug}>
-                    {item.nameFa} ({item.slug})
-                  </option>
-                ))}
-              </select>
-            </label>
+            {service === "analyzers" ? (
+              <label className="block text-sm">
+                <span className="mb-1 block text-slate-600">محدود کردن فهرست آزمون (اختیاری)</span>
+                <select className={fieldClass} value={analyzerSlug} onChange={(event) => setAnalyzerSlug(event.target.value)}>
+                  <option value="">همهٔ آزمون‌های باز</option>
+                  {analyzers.map((item) => (
+                    <option key={item.slug} value={item.slug}>
+                      {item.nameFa} ({item.slug})
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
             <button
               type="button"
               onClick={() => void saveSettings()}
@@ -284,12 +317,13 @@ export function BotEditor({
           <div>
             <h2 className="text-base font-bold text-slate-900">قالب گفتگو</h2>
             <p className="mt-1 text-sm leading-7 text-slate-500">
-              متن‌ها و پرچم‌های ربات به سرور. جانشینی مثل خلاصه با {"{token}"} بدون اجرای کد. رضایت و خلاصهٔ هر آزمون از pack همان آزمون است.
+              متن‌ها روی همین ربات است، نه زیر یک آزمون. جانشینی مثل {"{service}"} بدون اجرای کد.
+              {service === "analyzers" ? " رضایت و خلاصهٔ هر آزمون از pack همان آزمون می‌ماند." : ""}
             </p>
           </div>
           <fieldset className="space-y-2">
             <legend className="text-sm font-medium text-slate-800">جریان</legend>
-            {BOT_FLOW_FIELDS.map((field) => (
+            {BOT_FLOW_FIELDS.filter((field) => !field.services || field.services.includes(service)).map((field) => (
               <label key={field.id} className="flex items-start gap-2 text-sm text-slate-700">
                 <input
                   type="checkbox"
@@ -302,7 +336,9 @@ export function BotEditor({
             ))}
           </fieldset>
           <div className="space-y-4">
-            {BOT_TEXT_FIELDS.map((field) => (
+            {BOT_TEXT_FIELDS.filter(
+              (field) => service === "analyzers" || !ANALYZER_TEXT_IDS.includes(field.id),
+            ).map((field) => (
               <label key={field.id} className="block text-sm">
                 <span className="mb-1 block text-slate-600">
                   {field.labelFa}

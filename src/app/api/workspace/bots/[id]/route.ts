@@ -19,15 +19,21 @@ export async function PATCH(request: Request, { params }: Ctx) {
   const auth = await requireOwner();
   if (auth.error) return auth.error;
   const { id } = await params;
-  let body: { titleFa?: unknown; analyzerSlug?: unknown; script?: unknown };
+  let body: { titleFa?: unknown; service?: unknown; analyzerSlug?: unknown; script?: unknown };
   try {
-    body = (await request.json()) as { titleFa?: unknown; analyzerSlug?: unknown; script?: unknown };
+    body = (await request.json()) as {
+      titleFa?: unknown;
+      service?: unknown;
+      analyzerSlug?: unknown;
+      script?: unknown;
+    };
   } catch {
     return NextResponse.json({ error: "بدنه نامعتبر است." }, { status: 400 });
   }
   try {
     const bot = await updateBot(auth.account.id, id, {
       titleFa: typeof body.titleFa === "string" ? body.titleFa : undefined,
+      service: "service" in body ? body.service : undefined,
       analyzerSlug:
         body.analyzerSlug === null
           ? null

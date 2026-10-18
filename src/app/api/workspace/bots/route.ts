@@ -14,9 +14,9 @@ export async function GET() {
 export async function POST(request: Request) {
   const auth = await requireOwner();
   if (auth.error) return auth.error;
-  let body: { titleFa?: unknown; analyzerSlug?: unknown };
+  let body: { titleFa?: unknown; service?: unknown; analyzerSlug?: unknown };
   try {
-    body = (await request.json()) as { titleFa?: unknown; analyzerSlug?: unknown };
+    body = (await request.json()) as { titleFa?: unknown; service?: unknown; analyzerSlug?: unknown };
   } catch {
     return NextResponse.json({ error: "بدنه نامعتبر است." }, { status: 400 });
   }
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   const analyzerSlug =
     typeof body.analyzerSlug === "string" && body.analyzerSlug.trim() ? body.analyzerSlug.trim() : null;
   try {
-    const bot = await createBot(auth.account.id, { titleFa, analyzerSlug });
+    const bot = await createBot(auth.account.id, { titleFa, service: body.service, analyzerSlug });
     return NextResponse.json({ ok: true, bot });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "ساخته نشد." }, { status: 400 });

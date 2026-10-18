@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { requirePageOwner } from "@/lib/auth/guard";
+import { botServiceLabel } from "@/lib/bots/script";
+import { listBots } from "@/lib/bots/store";
 import { loadWorkspaceDesk, recordStatusFa } from "@/lib/workspace/pulse";
 import { PulseTile } from "@/components/workspace/PulseTile";
 import type { Metadata } from "next";
@@ -19,6 +21,7 @@ function whenFa(value: Date | null): string {
 export default async function WorkspacePage() {
   const account = await requirePageOwner("/workspace");
   const desk = await loadWorkspaceDesk(account.id);
+  const bots = await listBots(account.id);
   const { pulse } = desk;
 
   return (
@@ -63,6 +66,40 @@ export default async function WorkspacePage() {
               ? ""
               : `${pulse.knowledgeProjections.toLocaleString("fa-IR")} نمود عمومی`}
         />
+      </section>
+
+      <section>
+        <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+          <h2 className="text-lg font-bold text-slate-900">ربات‌ها</h2>
+          <Link href="/workspace/bots/new" className="text-sm text-indigo-700 hover:text-indigo-900">
+            ربات تازه
+          </Link>
+        </div>
+        {bots.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-sm text-slate-500">
+            <p>رباتی نیست. این بخش مستقل است و زیر عارضه‌یابی یا هیچ آزمون دیگری نمی‌آید.</p>
+            <Link href="/workspace/bots/new" className="mt-3 inline-block text-indigo-600 hover:text-indigo-800">
+              افزودن ربات تلگرام
+            </Link>
+          </div>
+        ) : (
+          <ul className="space-y-2">
+            {bots.map((bot) => (
+              <li key={bot.id}>
+                <Link
+                  href={`/workspace/bots/${bot.id}`}
+                  className="block rounded-2xl border border-slate-200 bg-white p-4 hover:border-indigo-200"
+                >
+                  <p className="font-medium text-slate-900">{bot.titleFa}</p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    تلگرام · {botServiceLabel(bot.service)}
+                    {bot.telegramUsername ? ` · @${bot.telegramUsername}` : ""}
+                  </p>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section id="open" className="scroll-mt-8">
