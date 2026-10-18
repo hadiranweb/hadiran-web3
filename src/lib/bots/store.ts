@@ -16,10 +16,12 @@ import {
   telegramDeleteWebhook,
   telegramGetMe,
   telegramGetWebhookInfo,
+  telegramSetMyCommands,
   telegramSetWebhook,
   webhookUrlFor,
   webhookUrlIsPublicHttps,
 } from "@/lib/bots/telegram";
+import { BOT_COMMANDS } from "@/lib/bots/copy";
 import type { BotStatus, BotView } from "@/lib/bots/types";
 
 export type { BotStatus, BotView };
@@ -169,6 +171,11 @@ export async function connectBot(
     if (!me.is_bot) throw new Error(persianTelegramError("invalid_token"));
     const webhookSecret = newWebhookSecret();
     await telegramSetWebhook(token, { url, secretToken: webhookSecret });
+    try {
+      await telegramSetMyCommands(token, BOT_COMMANDS);
+    } catch {
+      // menu is optional; webhook still counts as connected
+    }
     const [row] = await db
       .update(bots)
       .set({

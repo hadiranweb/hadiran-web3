@@ -88,6 +88,16 @@ export async function telegramGetWebhookInfo(token: string): Promise<TelegramWeb
   return call<TelegramWebhookInfo>(token, "getWebhookInfo");
 }
 
+export async function telegramSetMyCommands(
+  token: string,
+  commands: { command: string; description: string }[],
+): Promise<true> {
+  return call<true>(token, "setMyCommands", {
+    commands,
+    language_code: "fa",
+  });
+}
+
 export async function telegramSendMessage(
   token: string,
   args: { chatId: number | string; text: string; replyMarkup?: Record<string, unknown> },
