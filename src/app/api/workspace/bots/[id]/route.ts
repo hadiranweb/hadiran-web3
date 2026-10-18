@@ -19,9 +19,9 @@ export async function PATCH(request: Request, { params }: Ctx) {
   const auth = await requireOwner();
   if (auth.error) return auth.error;
   const { id } = await params;
-  let body: { titleFa?: unknown; analyzerSlug?: unknown };
+  let body: { titleFa?: unknown; analyzerSlug?: unknown; script?: unknown };
   try {
-    body = (await request.json()) as { titleFa?: unknown; analyzerSlug?: unknown };
+    body = (await request.json()) as { titleFa?: unknown; analyzerSlug?: unknown; script?: unknown };
   } catch {
     return NextResponse.json({ error: "بدنه نامعتبر است." }, { status: 400 });
   }
@@ -34,6 +34,7 @@ export async function PATCH(request: Request, { params }: Ctx) {
           : typeof body.analyzerSlug === "string"
             ? body.analyzerSlug.trim() || null
             : undefined,
+      script: "script" in body ? body.script : undefined,
     });
     return NextResponse.json({ ok: true, bot });
   } catch (error) {

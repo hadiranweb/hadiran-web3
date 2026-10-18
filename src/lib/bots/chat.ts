@@ -28,7 +28,8 @@ import { ensureBotsSchema } from "@/lib/auth/schema-guard";
 import { privacyPolicyVersion } from "@/lib/privacy/version";
 import { accountIdByTelegramUserId, linkTelegramContact } from "@/lib/bots/identity";
 import { markBotLastError } from "@/lib/bots/store";
-import { botConsent, botHubHelp, botHubPolicy, botHubWelcome } from "@/lib/bots/copy";
+import { botConsent } from "@/lib/bots/copy";
+import { botVars, line, parseBotScript, type BotScript } from "@/lib/bots/script";
 import { telegramAnswerCallback, telegramSendMessage } from "@/lib/bots/telegram";
 import { absoluteUrl } from "@/lib/site";
 
@@ -139,9 +140,18 @@ async function patchSession(botId: string, telegramUserId: string, chatId: strin
   }
 }
 
-function phoneKeyboard() {
+function varsOf(titleFa: string, extra?: Record<string, string>) {
+  return botVars({ service: titleFa || "تحلیل‌گر هوشمند", privacy: absoluteUrl("/privacy"), ...extra });
+}
+
+function isSkipText(text: string, label: string) {
+  const n = text.replace(/\s+/g, " ").trim();
+  return n === "رد" || n === "/skip" || n === label.trim();
+}
+
+function phoneKeyboard(script: BotScript) {
   return {
-    keyboard: [[{ text: "ارسال شمارهٔ همراه", request_contact: true }]],
+    keyboard: [[{ text: script.texts.phoneButton.slice(0, 64), request_contact: true }]],
     resize_keyboard: true,
     one_time_keyboard: true,
   };
@@ -192,23 +202,26 @@ async function readAccount(id: number) {
   return row ?? null;
 }
 
-async function promptPhone(token: string, botId: string, chatId: number) {
-  await say(
-    token,
-    botId,
-    chatId,
-    "شمارهٔ همراه خودتان را با دکمه بفرستید. اگر دکمه نیست، همان شماره را بنویسید تا کد پیامک بیاید.",
-    phoneKeyboard(),
-  );
+async function promptPhone(token: string, botId: string, chatId: number, script: BotScript, titleFa: string) {
+  await say(token, botId, chatId, line(script, "phonePrompt", varsOf(titleFa)), phoneKeyboard(script));
 }
 
-async function promptExamList(token: string, botId: string, chatId: number) {
-  const open = (await loadAnalyzers()).filter((item) => item.status === "open");
+async function promptExamList(
+  token: string,
+  botId: string,
+  chatId: number,
+  script: BotScript,
+  titleFa: string,
+  boundSlug: string | null,
+) {
+  const open = (await loadAnalyzers()).filter(
+    (item) => item.status === "open" && (!boundSlug || item.slug === boundSlug),
+  );
   if (!open.length) {
-    await say(token, botId, chatId, "الان آزمون بازی نیست.");
+    await say(token, botId, chatId, line(script, "noExams", varsOf(titleFa)));
     return;
   }
-  await say(token, botId, chatId, "آزمون را انتخاب کنید:", {
+  await say(token, botId, chatId, line(script, "examPick", varsOf(titleFa)), {
     inline_keyboard: open.map((item) => [{ text: item.nameFa.slice(0, 64), callback_data: `exam:${item.slug}` }]),
   });
 }
@@ -240,18 +253,20 @@ async function continueQuiz(
   chatId: number,
   accountId: number,
   pack: AnalyzerPack,
+  script: BotScript,
+  titleFa: string,
 ) {
   let attempt = await liveReadAttempt(accountId, pack.slug);
   if (!attempt?.consentAt) {
     const next = await liveConsentAttempt(accountId, pack.slug);
     if (next && "error" in next) {
-      await say(token, botId, chatId, "رضایت آزمون ثبت نشد.");
+      await say(token, botId, chatId, line(script, "packConsentFailed", varsOf(titleFa, { exam: pack.nameFa })));
       return;
     }
     attempt = next;
   }
   if (!attempt) {
-    await say(token, botId, chatId, "آزمون در دسترس نیست.");
+    await say(token, botId, chatId, line(script, "examMissing", varsOf(titleFa, { exam: pack.nameFa })));
     return;
   }
   if (attempt.status === "submitted") {
@@ -274,54 +289,59 @@ async function afterAccount(
   chatId: number,
   telegramUserId: string,
   accountId: number,
+  script: BotScript,
+  titleFa: string,
+  boundSlug: string | null,
 ) {
   const account = await readAccount(accountId);
   if (!account) {
-    await promptPhone(token, botId, chatId);
+    await promptPhone(token, botId, chatId, script, titleFa);
     return;
   }
   const flags = onboardingFlags(account);
   const session = await readSession(botId, telegramUserId);
-  if (needsPasswordSetup({ phone: account.phone, passwordHash: account.passwordHash })) {
+  const v = varsOf(titleFa);
+  if (script.flow.sendPasswordLink && needsPasswordSetup({ phone: account.phone, passwordHash: account.passwordHash })) {
     if (!session?.passwordLinkSentAt) {
       const url = await issuePasswordSetupUrl(accountId);
-      await say(
-        token,
-        botId,
-        chatId,
-        `برای ورود بعدی به سایت، رمز را در این لینک بگذارید (در چت ننویسید):\n${url}`,
-        { remove_keyboard: true },
-      );
+      await say(token, botId, chatId, line(script, "passwordLink", { ...v, link: url }), { remove_keyboard: true });
       await patchSession(botId, telegramUserId, String(chatId), { passwordLinkSentAt: new Date() });
     }
   }
-  if (!flags.policiesAccepted) {
+  if (script.flow.askPolicy && !flags.policiesAccepted) {
     await patchSession(botId, telegramUserId, String(chatId), { step: "policy" });
-    await say(token, botId, chatId, botHubPolicy(), {
-      inline_keyboard: [[{ text: "قبول می‌کنم", callback_data: "policyok" }]],
+    await say(token, botId, chatId, line(script, "policy", v), {
+      inline_keyboard: [[{ text: script.texts.policyButton.slice(0, 64), callback_data: "policyok" }]],
     });
     return;
   }
-  if (!account.givenName?.trim()) {
+  if (script.flow.askNames && !account.givenName?.trim()) {
     await patchSession(botId, telegramUserId, String(chatId), { step: "given" });
-    await say(token, botId, chatId, "نام کوچک را بنویسید.");
+    await say(token, botId, chatId, line(script, "givenPrompt", v));
     return;
   }
-  if (!account.familyName?.trim()) {
+  if (script.flow.askNames && !account.familyName?.trim()) {
     await patchSession(botId, telegramUserId, String(chatId), { step: "family" });
-    await say(token, botId, chatId, "نام‌خانوادگی را بنویسید.");
+    await say(token, botId, chatId, line(script, "familyPrompt", v));
     return;
   }
   const already = await referredByPublicCode(accountId);
-  if (!already && session?.step !== "pick" && session?.step !== "quiz" && session?.step !== "discount" && session?.step !== "pack_consent") {
+  if (
+    script.flow.askReferral &&
+    !already &&
+    session?.step !== "pick" &&
+    session?.step !== "quiz" &&
+    session?.step !== "discount" &&
+    session?.step !== "pack_consent"
+  ) {
     await patchSession(botId, telegramUserId, String(chatId), { step: "referral", awaitingReferral: true });
-    await say(token, botId, chatId, "اگر کد معرف دارید بفرستید (۸ رقم). اگر ندارید «رد».", {
-      inline_keyboard: [[{ text: "رد کردن", callback_data: "skipref" }]],
+    await say(token, botId, chatId, line(script, "referralPrompt", v), {
+      inline_keyboard: [[{ text: script.texts.referralSkip.slice(0, 64), callback_data: "skipref" }]],
     });
     return;
   }
   await patchSession(botId, telegramUserId, String(chatId), { step: "pick", awaitingReferral: false });
-  await promptExamList(token, botId, chatId);
+  await promptExamList(token, botId, chatId, script, titleFa, boundSlug);
 }
 
 async function startPack(
@@ -330,10 +350,17 @@ async function startPack(
   chatId: number,
   telegramUserId: string,
   slug: string,
+  script: BotScript,
+  titleFa: string,
+  boundSlug: string | null,
 ) {
+  if (boundSlug && slug !== boundSlug) {
+    await say(token, botId, chatId, line(script, "examClosed", varsOf(titleFa, { exam: slug })));
+    return;
+  }
   const pack = await livePack(slug);
   if (!pack || pack.status !== "open") {
-    await say(token, botId, chatId, "این آزمون باز نیست.");
+    await say(token, botId, chatId, line(script, "examClosed", varsOf(titleFa, { exam: pack?.nameFa ?? slug })));
     return;
   }
   await patchSession(botId, telegramUserId, String(chatId), {
@@ -348,9 +375,11 @@ async function startPack(
 
 export async function handleTelegramUpdate(input: {
   botId: string;
-  analyzerSlug: string | null;
   token: string;
   update: unknown;
+  script?: unknown;
+  titleFa?: string;
+  analyzerSlug?: string | null;
 }): Promise<void> {
   const update = asUpdate(input.update);
   if (!update) return;
@@ -368,29 +397,33 @@ export async function handleTelegramUpdate(input: {
   const telegramUserId = String(from.id);
   const text = message?.text?.trim() ?? "";
   const command = commandName(text);
+  const script = parseBotScript(input.script);
+  const titleFa = input.titleFa?.trim() || "تحلیل‌گر هوشمند";
+  const boundSlug = input.analyzerSlug?.trim() || null;
+  const v = varsOf(titleFa);
 
   if (command === "help") {
-    await say(token, botId, chatId, botHubHelp());
+    await say(token, botId, chatId, line(script, "help", v));
     return;
   }
 
   if (command === "start") {
     await patchSession(botId, telegramUserId, String(chatId), { step: "start" });
-    await say(token, botId, chatId, botHubWelcome());
+    await say(token, botId, chatId, line(script, "welcome", v));
     const accountId = await accountIdByTelegramUserId(telegramUserId);
     if (!accountId) {
       await patchSession(botId, telegramUserId, String(chatId), { step: "phone" });
-      await promptPhone(token, botId, chatId);
+      await promptPhone(token, botId, chatId, script, titleFa);
       return;
     }
-    await afterAccount(token, botId, chatId, telegramUserId, accountId);
+    await afterAccount(token, botId, chatId, telegramUserId, accountId, script, titleFa, boundSlug);
     return;
   }
 
   if (callback?.data === "policyok") {
     const accountId = await accountIdByTelegramUserId(telegramUserId);
     if (!accountId) {
-      await promptPhone(token, botId, chatId);
+      await promptPhone(token, botId, chatId, script, titleFa);
       return;
     }
     const now = new Date();
@@ -405,13 +438,13 @@ export async function handleTelegramUpdate(input: {
         updatedAt: now,
       })
       .where(eq(accounts.id, accountId));
-    await afterAccount(token, botId, chatId, telegramUserId, accountId);
+    await afterAccount(token, botId, chatId, telegramUserId, accountId, script, titleFa, boundSlug);
     return;
   }
 
   if (callback?.data === "skipref") {
     await patchSession(botId, telegramUserId, String(chatId), { awaitingReferral: false, step: "pick" });
-    await promptExamList(token, botId, chatId);
+    await promptExamList(token, botId, chatId, script, titleFa, boundSlug);
     return;
   }
 
@@ -420,12 +453,12 @@ export async function handleTelegramUpdate(input: {
     const accountId = await accountIdByTelegramUserId(telegramUserId);
     const slug = session?.analyzerSlug;
     if (!accountId || !slug) {
-      await promptExamList(token, botId, chatId);
+      await promptExamList(token, botId, chatId, script, titleFa, boundSlug);
       return;
     }
     await patchSession(botId, telegramUserId, String(chatId), { awaitingDiscount: false, step: "quiz" });
     const pack = await livePack(slug);
-    if (pack) await continueQuiz(token, botId, chatId, accountId, pack);
+    if (pack) await continueQuiz(token, botId, chatId, accountId, pack, script, titleFa);
     return;
   }
 
@@ -434,14 +467,20 @@ export async function handleTelegramUpdate(input: {
     const accountId = await accountIdByTelegramUserId(telegramUserId);
     const slug = session?.analyzerSlug;
     if (!accountId || !slug) {
-      await promptExamList(token, botId, chatId);
+      await promptExamList(token, botId, chatId, script, titleFa, boundSlug);
       return;
     }
     await liveConsentAttempt(accountId, slug);
-    await patchSession(botId, telegramUserId, String(chatId), { step: "discount", awaitingDiscount: true });
-    await say(token, botId, chatId, "اگر کد تخفیف دارید بفرستید. اگر ندارید «رد».", {
-      inline_keyboard: [[{ text: "رد کردن", callback_data: "skipdisc" }]],
-    });
+    if (script.flow.askDiscount) {
+      await patchSession(botId, telegramUserId, String(chatId), { step: "discount", awaitingDiscount: true });
+      await say(token, botId, chatId, line(script, "discountPrompt", v), {
+        inline_keyboard: [[{ text: script.texts.discountSkip.slice(0, 64), callback_data: "skipdisc" }]],
+      });
+      return;
+    }
+    await patchSession(botId, telegramUserId, String(chatId), { awaitingDiscount: false, step: "quiz" });
+    const pack = await livePack(slug);
+    if (pack) await continueQuiz(token, botId, chatId, accountId, pack, script, titleFa);
     return;
   }
 
@@ -449,10 +488,10 @@ export async function handleTelegramUpdate(input: {
     const slug = callback.data.slice(5);
     const accountId = await accountIdByTelegramUserId(telegramUserId);
     if (!accountId) {
-      await promptPhone(token, botId, chatId);
+      await promptPhone(token, botId, chatId, script, titleFa);
       return;
     }
-    await startPack(token, botId, chatId, telegramUserId, slug);
+    await startPack(token, botId, chatId, telegramUserId, slug, script, titleFa, boundSlug);
     return;
   }
 
@@ -462,8 +501,8 @@ export async function handleTelegramUpdate(input: {
     const accountId = await accountIdByTelegramUserId(telegramUserId);
     if (!accountId || !slug) {
       const aid = await accountIdByTelegramUserId(telegramUserId);
-      if (aid) await afterAccount(token, botId, chatId, telegramUserId, aid);
-      else await promptPhone(token, botId, chatId);
+      if (aid) await afterAccount(token, botId, chatId, telegramUserId, aid, script, titleFa, boundSlug);
+      else await promptPhone(token, botId, chatId, script, titleFa);
       return;
     }
     const pack = await livePack(slug);
@@ -482,7 +521,7 @@ export async function handleTelegramUpdate(input: {
       if (item?.kind === "choice") value = item.options[optionIndex]?.value;
     }
     if (!item || value == null) {
-      await say(token, botId, chatId, "این دکمه دیگر معتبر نیست. /start بزنید.");
+      await say(token, botId, chatId, line(script, "staleButton", v));
       return;
     }
     const saved = await liveSaveAnswer(accountId, pack.slug, item.id, value);
@@ -492,10 +531,10 @@ export async function handleTelegramUpdate(input: {
         if (attempt) await say(token, botId, chatId, doneText(pack, attempt));
         return;
       }
-      await say(token, botId, chatId, "این پاسخ ذخیره نشد. دوباره تلاش کنید.");
+      await say(token, botId, chatId, line(script, "saveFailed", v));
       return;
     }
-    await continueQuiz(token, botId, chatId, accountId, pack);
+    await continueQuiz(token, botId, chatId, accountId, pack, script, titleFa);
     return;
   }
 
@@ -504,7 +543,7 @@ export async function handleTelegramUpdate(input: {
 
   if (message.contact) {
     if (message.contact.user_id != null && message.contact.user_id !== from.id) {
-      await say(token, botId, chatId, "فقط شمارهٔ خودتان را بفرستید.");
+      await say(token, botId, chatId, line(script, "onlyOwnPhone", v));
       return;
     }
     let phone: string;
@@ -512,7 +551,7 @@ export async function handleTelegramUpdate(input: {
       phone = normalizePhone(message.contact.phone_number);
     } catch (error) {
       if (error instanceof InvalidPhoneError) {
-        await say(token, botId, chatId, "فقط موبایل ایران پذیرفته می‌شود.");
+        await say(token, botId, chatId, line(script, "iranPhoneOnly", v));
         return;
       }
       throw error;
@@ -532,15 +571,15 @@ export async function handleTelegramUpdate(input: {
       pendingPhone: null,
       step: "policy",
     });
-    await say(token, botId, chatId, "شماره ثبت شد.", { remove_keyboard: true });
-    await afterAccount(token, botId, chatId, telegramUserId, linked.accountId);
+    await say(token, botId, chatId, line(script, "phoneSaved", v), { remove_keyboard: true });
+    await afterAccount(token, botId, chatId, telegramUserId, linked.accountId, script, titleFa, boundSlug);
     return;
   }
 
   if (session?.step === "otp" && session.pendingPhone && text) {
     const ok = await consumeLoginOtp(session.pendingPhone, text);
     if (!ok) {
-      await say(token, botId, chatId, "کد درست نیست. دوباره بفرستید یا /start.");
+      await say(token, botId, chatId, line(script, "otpBad", v));
       return;
     }
     const linked = await linkTelegramContact({
@@ -554,11 +593,15 @@ export async function handleTelegramUpdate(input: {
       return;
     }
     await patchSession(botId, telegramUserId, String(chatId), { pendingPhone: null, viaContact: false, step: "policy" });
-    await afterAccount(token, botId, chatId, telegramUserId, linked.accountId);
+    await afterAccount(token, botId, chatId, telegramUserId, linked.accountId, script, titleFa, boundSlug);
     return;
   }
 
   if ((session?.step === "phone" || !session || session.step === "start") && text && !command) {
+    if (!script.flow.allowTypedPhone) {
+      await promptPhone(token, botId, chatId, script, titleFa);
+      return;
+    }
     try {
       const phone = normalizePhone(text);
       const sent = await issueLoginOtp(phone);
@@ -567,12 +610,12 @@ export async function handleTelegramUpdate(input: {
           token,
           botId,
           chatId,
-          sent.error === "rate_limit" ? "کمی صبر کنید و دوباره بفرستید." : "پیامک ارسال نشد. دکمهٔ شماره را بزنید.",
+          line(script, sent.error === "rate_limit" ? "rateLimit" : "smsFailed", v),
         );
         return;
       }
       await patchSession(botId, telegramUserId, String(chatId), { step: "otp", pendingPhone: phone, viaContact: false });
-      await say(token, botId, chatId, "کد شش‌رقمی پیامک را همین‌جا بفرستید.");
+      await say(token, botId, chatId, line(script, "otpPrompt", v));
       return;
     } catch (error) {
       if (!(error instanceof InvalidPhoneError)) throw error;
@@ -584,7 +627,7 @@ export async function handleTelegramUpdate(input: {
   if (session?.step === "given" && accountId && text) {
     const givenName = normalizePersonName(text);
     if (!givenName) {
-      await say(token, botId, chatId, "نام را کوتاه و بدون نویسهٔ کنترل بنویسید.");
+      await say(token, botId, chatId, line(script, "givenBad", v));
       return;
     }
     const account = await readAccount(accountId);
@@ -596,14 +639,14 @@ export async function handleTelegramUpdate(input: {
         updatedAt: new Date(),
       })
       .where(eq(accounts.id, accountId));
-    await afterAccount(token, botId, chatId, telegramUserId, accountId);
+    await afterAccount(token, botId, chatId, telegramUserId, accountId, script, titleFa, boundSlug);
     return;
   }
 
   if (session?.step === "family" && accountId && text) {
     const familyName = normalizePersonName(text);
     if (!familyName) {
-      await say(token, botId, chatId, "نام‌خانوادگی را کوتاه بنویسید.");
+      await say(token, botId, chatId, line(script, "familyBad", v));
       return;
     }
     const account = await readAccount(accountId);
@@ -619,66 +662,66 @@ export async function handleTelegramUpdate(input: {
         updatedAt: now,
       })
       .where(eq(accounts.id, accountId));
-    await afterAccount(token, botId, chatId, telegramUserId, accountId);
+    await afterAccount(token, botId, chatId, telegramUserId, accountId, script, titleFa, boundSlug);
     return;
   }
 
   if (session?.awaitingReferral && accountId && text) {
-    if (text === "رد" || text === "/skip") {
+    if (isSkipText(text, script.texts.referralSkip)) {
       await patchSession(botId, telegramUserId, String(chatId), { awaitingReferral: false, step: "pick" });
-      await afterAccount(token, botId, chatId, telegramUserId, accountId);
+      await afterAccount(token, botId, chatId, telegramUserId, accountId, script, titleFa, boundSlug);
       return;
     }
     const set = await setAccountReferrer(accountId, text);
     if (!set.ok && set.error !== "invalid_referral") {
-      await say(token, botId, chatId, "این کد معرف پذیرفته نشد. دوباره بفرستید یا «رد».");
+      await say(token, botId, chatId, line(script, "referralBad", v));
       return;
     }
     if (!set.ok) {
-      await say(token, botId, chatId, "کد معرف هشت رقم است یا «رد».");
+      await say(token, botId, chatId, line(script, "referralBad", v));
       return;
     }
     await patchSession(botId, telegramUserId, String(chatId), { awaitingReferral: false, step: "pick" });
-    await afterAccount(token, botId, chatId, telegramUserId, accountId);
+    await afterAccount(token, botId, chatId, telegramUserId, accountId, script, titleFa, boundSlug);
     return;
   }
 
   if (session?.awaitingDiscount && accountId && session.analyzerSlug && text) {
     const pack = await livePack(session.analyzerSlug);
     if (!pack) {
-      await promptExamList(token, botId, chatId);
+      await promptExamList(token, botId, chatId, script, titleFa, boundSlug);
       return;
     }
-    if (text === "رد" || text === "/skip") {
+    if (isSkipText(text, script.texts.discountSkip)) {
       await patchSession(botId, telegramUserId, String(chatId), { awaitingDiscount: false, step: "quiz" });
-      await continueQuiz(token, botId, chatId, accountId, pack);
+      await continueQuiz(token, botId, chatId, accountId, pack, script, titleFa);
       return;
     }
     const applied = await applyAttemptCodes({ slug: pack.slug, accountId, discountCode: text });
     if (!applied.ok) {
-      await say(token, botId, chatId, "این کد تخفیف پذیرفته نشد. دوباره بفرستید یا «رد».");
+      await say(token, botId, chatId, line(script, "discountBad", v));
       return;
     }
     await patchSession(botId, telegramUserId, String(chatId), { awaitingDiscount: false, step: "quiz" });
-    await continueQuiz(token, botId, chatId, accountId, pack);
+    await continueQuiz(token, botId, chatId, accountId, pack, script, titleFa);
     return;
   }
 
   if (!accountId) {
     await patchSession(botId, telegramUserId, String(chatId), { step: "phone" });
-    await promptPhone(token, botId, chatId);
+    await promptPhone(token, botId, chatId, script, titleFa);
     return;
   }
 
   if (session?.step === "quiz" && session.analyzerSlug && text) {
     const pack = await livePack(session.analyzerSlug);
     if (!pack) {
-      await promptExamList(token, botId, chatId);
+      await promptExamList(token, botId, chatId, script, titleFa, boundSlug);
       return;
     }
     const attempt = await liveReadAttempt(accountId, pack.slug);
     if (!attempt?.consentAt) {
-      await startPack(token, botId, chatId, telegramUserId, pack.slug);
+      await startPack(token, botId, chatId, telegramUserId, pack.slug, script, titleFa, boundSlug);
       return;
     }
     if (attempt.status === "submitted") {
@@ -689,7 +732,7 @@ export async function handleTelegramUpdate(input: {
     const index = firstUnansweredIndex(pack, attempt.answers);
     const item = items[index];
     if (!item) {
-      await continueQuiz(token, botId, chatId, accountId, pack);
+      await continueQuiz(token, botId, chatId, accountId, pack, script, titleFa);
       return;
     }
     if (item.kind !== "text") {
@@ -703,14 +746,14 @@ export async function handleTelegramUpdate(input: {
         botId,
         chatId,
         saved.error === "invalid_answer"
-          ? `متن را کوتاه‌تر بنویسید (تا ${faNum(item.maxLength)} نویسه).`
-          : "ذخیره نشد.",
+          ? line(script, "textTooLong", { ...v, max: faNum(item.maxLength) })
+          : line(script, "saveFailed", v),
       );
       return;
     }
-    await continueQuiz(token, botId, chatId, accountId, pack);
+    await continueQuiz(token, botId, chatId, accountId, pack, script, titleFa);
     return;
   }
 
-  await afterAccount(token, botId, chatId, telegramUserId, accountId);
+  await afterAccount(token, botId, chatId, telegramUserId, accountId, script, titleFa, boundSlug);
 }

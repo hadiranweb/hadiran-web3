@@ -45,13 +45,19 @@ export function BotCreateForm({
         <input name="titleFa" required minLength={3} className={fieldClass} defaultValue="تحلیل‌گر هوشمند" />
       </label>
       <label className="block text-sm">
+        <span className="mb-1 block text-slate-600">سرویس</span>
+        <select className={fieldClass} disabled defaultValue="analyzers">
+          <option value="analyzers">تحلیل‌گر هوشمند</option>
+        </select>
+      </label>
+      <label className="block text-sm">
         <span className="mb-1 block text-slate-600">کانال</span>
         <select className={fieldClass} disabled defaultValue="telegram">
           <option value="telegram">تلگرام</option>
         </select>
       </label>
       <label className="block text-sm">
-        <span className="mb-1 block text-slate-600">آزمون متصل</span>
+        <span className="mb-1 block text-slate-600">محدود کردن به یک آزمون (اختیاری)</span>
         <select name="analyzerSlug" className={fieldClass} defaultValue="">
           <option value="">همهٔ آزمون‌های باز — تحلیل‌گر هوشمند</option>
           {analyzers.map((item) => (

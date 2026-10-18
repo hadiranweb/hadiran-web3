@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { BOT_FLOW_FIELDS, BOT_TEXT_FIELDS, parseBotScript, type BotFlow, type BotScript, type BotTexts } from "@/lib/bots/script";
 import type { BotView } from "@/lib/bots/types";
 
 const fieldClass =
@@ -18,6 +19,8 @@ function faStatus(status: number) {
   return String(status).replace(/\d/g, (digit) => "۰۱۲۳۴۵۶۷۸۹"[Number(digit)] ?? digit);
 }
 
+type Tab = "connect" | "script";
+
 export function BotEditor({
   initial,
   analyzers,
@@ -27,12 +30,22 @@ export function BotEditor({
 }) {
   const router = useRouter();
   const [bot, setBot] = useState(initial);
+  const [tab, setTab] = useState<Tab>("connect");
   const [titleFa, setTitleFa] = useState(initial.titleFa);
   const [analyzerSlug, setAnalyzerSlug] = useState(initial.analyzerSlug ?? "");
+  const [script, setScript] = useState<BotScript>(parseBotScript(initial.script));
   const [token, setToken] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+
+  function setFlow(id: keyof BotFlow, value: boolean) {
+    setScript((current) => ({ ...current, flow: { ...current.flow, [id]: value } }));
+  }
+
+  function setText(id: keyof BotTexts, value: string) {
+    setScript((current) => ({ ...current, texts: { ...current.texts, [id]: value } }));
+  }
 
   async function parse(res: Response) {
     const data = (await res.json()) as { error?: string; bot?: BotView };
@@ -48,10 +61,15 @@ export function BotEditor({
       const res = await fetch(`/api/workspace/bots/${bot.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ titleFa, analyzerSlug }),
+        body: JSON.stringify({
+          titleFa,
+          analyzerSlug: analyzerSlug.trim() || null,
+          script: parseBotScript(script),
+        }),
       });
       const next = await parse(res);
       setBot(next);
+      setScript(parseBotScript(next.script));
       setSaved(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "ذخیره نشد.");
@@ -123,139 +141,200 @@ export function BotEditor({
     router.refresh();
   }
 
+  const tabClass = (id: Tab) =>
+    `rounded-t-xl px-4 py-2 text-sm ${tab === id ? "bg-white font-medium text-slate-900 border border-b-white border-slate-200" : "text-slate-500"}`;
+
   return (
     <div className="space-y-6">
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4">
-        <p className="text-sm text-slate-500">
-          وضعیت: <span className="font-medium text-slate-900">{statusFa[bot.status]}</span>
-          {bot.telegramUsername ? ` · @${bot.telegramUsername}` : ""}
-          {bot.tokenHint ? ` · توکن ‎••••${bot.tokenHint}` : ""}
-        </p>
-        {bot.lastError ? <p className="text-sm text-red-700">{bot.lastError}</p> : null}
-        <dl className="grid gap-1 text-xs leading-6 text-slate-500 sm:grid-cols-2">
-          <div>
-            آخرین POST:{" "}
-            {bot.lastWebhookAt ? new Date(bot.lastWebhookAt).toLocaleString("fa-IR") : "نرسیده"}
-            {bot.lastUpdateKind ? ` · ${bot.lastUpdateKind}` : ""}
-          </div>
-          <div>پاسخ origin: {bot.lastInboundStatus != null ? faStatus(bot.lastInboundStatus) : "—"}</div>
-          <div>صف تلگرام: {bot.pendingUpdateCount != null ? bot.pendingUpdateCount.toLocaleString("fa-IR") : "وضعیت وب‌هوک را بزنید"}</div>
-          <div>خطای تلگرام: {bot.telegramLastError ?? "—"}</div>
-        </dl>
-        {bot.pendingUpdateCount ? (
-          <p className="text-sm text-amber-800">
-            تلگرام پیام در صف دارد. اگر آخرین POST خالی است، ورودی به origin نرسیده (timeout یا Worker). اگر پاسخ
-            ۴۰۱ است، دوباره اتصال بزنید.
-          </p>
-        ) : null}
-        {bot.lastWebhookAt && bot.lastError?.includes("ارسال پیام") ? (
-          <p className="text-sm text-amber-800">
-            وب‌هوک رسید ولی پیام نرفت. روی لیارا TELEGRAM_API_BASE را به Worker کلودفلر بدهید.
-          </p>
-        ) : null}
-
-        <label className="block text-sm">
-          <span className="mb-1 block text-slate-600">نام</span>
-          <input className={fieldClass} value={titleFa} onChange={(event) => setTitleFa(event.target.value)} />
-        </label>
-        <label className="block text-sm">
-          <span className="mb-1 block text-slate-600">کانال</span>
-          <select className={fieldClass} disabled value="telegram">
-            <option value="telegram">تلگرام</option>
-          </select>
-        </label>
-        <label className="block text-sm">
-          <span className="mb-1 block text-slate-600">آزمون</span>
-          <select className={fieldClass} value={analyzerSlug} onChange={(event) => setAnalyzerSlug(event.target.value)}>
-            <option value="">همهٔ آزمون‌های باز — تحلیل‌گر هوشمند</option>
-            {analyzers.map((item) => (
-              <option key={item.slug} value={item.slug}>
-                {item.nameFa} ({item.slug})
-              </option>
-            ))}
-          </select>
-        </label>
-        <button
-          type="button"
-          onClick={() => void saveSettings()}
-          disabled={busy !== null}
-          className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-        >
-          {busy === "save" ? "در حال ذخیره…" : "ذخیرهٔ تنظیمات"}
+      <div className="flex gap-1 border-b border-slate-200">
+        <button type="button" className={tabClass("connect")} onClick={() => setTab("connect")}>
+          اتصال
         </button>
-        {saved ? <p className="text-sm text-teal-800">تنظیمات ذخیره شد.</p> : null}
-      </section>
+        <button type="button" className={tabClass("script")} onClick={() => setTab("script")}>
+          گفتگو
+        </button>
+      </div>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 space-y-3">
-        <h2 className="text-base font-bold text-slate-900">گفتگوی ربات</h2>
-        <ol className="list-decimal space-y-1 pr-5 text-sm leading-7 text-slate-600">
-          <li>/start → تحلیل‌گر هوشمند</li>
-          <li>شماره با دکمه، یا تایپ + کد پیامک</li>
-          <li>لینک تعیین رمز سایت (رمز در چت نیست)</li>
-          <li>قبول سیاست، نام، معرف</li>
-          <li>انتخاب آزمون، رضایت pack، تخفیف اختیاری، سؤال‌ها</li>
-        </ol>
-        <p className="text-xs leading-6 text-slate-500">
-          اگر /start زد و هیچ متنی نیامد: اول «وضعیت وب‌هوک»، بعد اتصال دوباره. منوی ربات (/start و /help) هنگام اتصال ثبت می‌شود.
-        </p>
-      </section>
+      {tab === "connect" ? (
+        <>
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4">
+            <p className="text-sm text-slate-500">
+              وضعیت: <span className="font-medium text-slate-900">{statusFa[bot.status]}</span>
+              {bot.telegramUsername ? ` · @${bot.telegramUsername}` : ""}
+              {bot.tokenHint ? ` · توکن ‎••••${bot.tokenHint}` : ""}
+            </p>
+            {bot.lastError ? <p className="text-sm text-red-700">{bot.lastError}</p> : null}
+            <dl className="grid gap-1 text-xs leading-6 text-slate-500 sm:grid-cols-2">
+              <div>
+                آخرین POST:{" "}
+                {bot.lastWebhookAt ? new Date(bot.lastWebhookAt).toLocaleString("fa-IR") : "نرسیده"}
+                {bot.lastUpdateKind ? ` · ${bot.lastUpdateKind}` : ""}
+              </div>
+              <div>پاسخ origin: {bot.lastInboundStatus != null ? faStatus(bot.lastInboundStatus) : "—"}</div>
+              <div>صف تلگرام: {bot.pendingUpdateCount != null ? bot.pendingUpdateCount.toLocaleString("fa-IR") : "وضعیت وب‌هوک را بزنید"}</div>
+              <div>خطای تلگرام: {bot.telegramLastError ?? "—"}</div>
+            </dl>
+            {bot.pendingUpdateCount ? (
+              <p className="text-sm text-amber-800">
+                تلگرام پیام در صف دارد. اگر آخرین POST خالی است، ورودی به origin نرسیده (timeout یا Worker). اگر پاسخ
+                ۴۰۱ است، دوباره اتصال بزنید.
+              </p>
+            ) : null}
+            {bot.lastWebhookAt && bot.lastError?.includes("ارسال پیام") ? (
+              <p className="text-sm text-amber-800">
+                وب‌هوک رسید ولی پیام نرفت. روی لیارا TELEGRAM_API_BASE را به Worker کلودفلر بدهید.
+              </p>
+            ) : null}
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4">
-        <h2 className="text-base font-bold text-slate-900">اتصال تلگرام</h2>
-        <ol className="list-decimal space-y-1 pr-5 text-sm leading-7 text-slate-600">
-          <li>در تلگرام به @BotFather بروید و /newbot بزنید.</li>
-          <li>توکن را فقط در این کادر بگذارید؛ در گیت و چت نگذارید.</li>
-          <li>اتصال، getMe و setWebhook با secret_token را می‌زند. polling استفاده نمی‌شود.</li>
-          <li>
-            سرور لیارا داخل ایران به api.telegram.org نمی‌رسد و تلگرام هم اغلب به مبدأ ایرانی timeout
-            می‌دهد. هم خروجی (/bot) هم ورودی وب‌هوک (/hook) از Worker کلودفلر می‌رود (متغیر
-            TELEGRAM_API_BASE روی لیارا، نه گیت).
-          </li>
-        </ol>
-        <label className="block text-sm">
-          <span className="mb-1 block text-slate-600">
-            {bot.hasToken ? "توکن تازه (اختیاری؛ خالی = همان توکن ذخیره‌شده)" : "توکن BotFather"}
-          </span>
-          <input
-            className={fieldClass}
-            dir="ltr"
-            type="password"
-            autoComplete="off"
-            value={token}
-            onChange={(event) => setToken(event.target.value)}
-            placeholder={bot.hasToken ? "••••" : "123456789:AA..."}
-          />
-        </label>
-        <p className="text-xs leading-6 text-slate-500 break-all">
-          آدرس وب‌هوک: {bot.webhookUrl}
-        </p>
-        <div className="flex flex-wrap gap-3">
+            <label className="block text-sm">
+              <span className="mb-1 block text-slate-600">نام</span>
+              <input className={fieldClass} value={titleFa} onChange={(event) => setTitleFa(event.target.value)} />
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1 block text-slate-600">سرویس</span>
+              <select className={fieldClass} disabled value="analyzers">
+                <option value="analyzers">تحلیل‌گر هوشمند</option>
+              </select>
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1 block text-slate-600">کانال</span>
+              <select className={fieldClass} disabled value="telegram">
+                <option value="telegram">تلگرام</option>
+              </select>
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1 block text-slate-600">محدود کردن به یک آزمون (اختیاری)</span>
+              <select className={fieldClass} value={analyzerSlug} onChange={(event) => setAnalyzerSlug(event.target.value)}>
+                <option value="">همهٔ آزمون‌های باز</option>
+                {analyzers.map((item) => (
+                  <option key={item.slug} value={item.slug}>
+                    {item.nameFa} ({item.slug})
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              onClick={() => void saveSettings()}
+              disabled={busy !== null}
+              className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+            >
+              {busy === "save" ? "در حال ذخیره…" : "ذخیرهٔ تنظیمات"}
+            </button>
+            {saved ? <p className="text-sm text-teal-800">تنظیمات ذخیره شد.</p> : null}
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4">
+            <h2 className="text-base font-bold text-slate-900">اتصال تلگرام</h2>
+            <ol className="list-decimal space-y-1 pr-5 text-sm leading-7 text-slate-600">
+              <li>در تلگرام به @BotFather بروید و /newbot بزنید.</li>
+              <li>توکن را فقط در این کادر بگذارید؛ در گیت و چت نگذارید.</li>
+              <li>اتصال، getMe و setWebhook با secret_token را می‌زند. polling استفاده نمی‌شود.</li>
+              <li>
+                سرور لیارا داخل ایران به api.telegram.org نمی‌رسد و تلگرام هم اغلب به مبدأ ایرانی timeout
+                می‌دهد. هم خروجی (/bot) هم ورودی وب‌هوک (/hook) از Worker کلودفلر می‌رود (متغیر
+                TELEGRAM_API_BASE روی لیارا، نه گیت).
+              </li>
+            </ol>
+            <label className="block text-sm">
+              <span className="mb-1 block text-slate-600">
+                {bot.hasToken ? "توکن تازه (اختیاری؛ خالی = همان توکن ذخیره‌شده)" : "توکن BotFather"}
+              </span>
+              <input
+                className={fieldClass}
+                dir="ltr"
+                type="password"
+                autoComplete="off"
+                value={token}
+                onChange={(event) => setToken(event.target.value)}
+                placeholder={bot.hasToken ? "••••" : "123456789:AA..."}
+              />
+            </label>
+            <p className="text-xs leading-6 text-slate-500 break-all">آدرس وب‌هوک: {bot.webhookUrl}</p>
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => void connect()}
+                disabled={busy !== null}
+                className="rounded-xl bg-indigo-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+              >
+                {busy === "connect" ? "در حال اتصال…" : bot.hasToken ? "اتصال / ثبت وب‌هوک" : "اتصال"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void refresh()}
+                disabled={busy !== null || !bot.hasToken}
+                className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 disabled:opacity-60"
+              >
+                {busy === "refresh" ? "…" : "وضعیت وب‌هوک"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void disconnect()}
+                disabled={busy !== null || bot.status === "disconnected"}
+                className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 disabled:opacity-60"
+              >
+                {busy === "disconnect" ? "…" : "قطع وب‌هوک"}
+              </button>
+            </div>
+          </section>
+        </>
+      ) : (
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 space-y-5">
+          <div>
+            <h2 className="text-base font-bold text-slate-900">قالب گفتگو</h2>
+            <p className="mt-1 text-sm leading-7 text-slate-500">
+              متن‌ها و پرچم‌های ربات به سرور. جانشینی مثل خلاصه با {"{token}"} بدون اجرای کد. رضایت و خلاصهٔ هر آزمون از pack همان آزمون است.
+            </p>
+          </div>
+          <fieldset className="space-y-2">
+            <legend className="text-sm font-medium text-slate-800">جریان</legend>
+            {BOT_FLOW_FIELDS.map((field) => (
+              <label key={field.id} className="flex items-start gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={script.flow[field.id]}
+                  onChange={(event) => setFlow(field.id, event.target.checked)}
+                />
+                <span>{field.labelFa}</span>
+              </label>
+            ))}
+          </fieldset>
+          <div className="space-y-4">
+            {BOT_TEXT_FIELDS.map((field) => (
+              <label key={field.id} className="block text-sm">
+                <span className="mb-1 block text-slate-600">
+                  {field.labelFa}
+                  {field.hintFa ? <span className="mr-2 text-xs text-slate-400">{field.hintFa}</span> : null}
+                </span>
+                {field.id === "policy" || field.id === "welcome" || field.id === "help" || field.id === "passwordLink" ? (
+                  <textarea
+                    className={`${fieldClass} min-h-28`}
+                    value={script.texts[field.id]}
+                    onChange={(event) => setText(field.id, event.target.value)}
+                  />
+                ) : (
+                  <input
+                    className={fieldClass}
+                    value={script.texts[field.id]}
+                    onChange={(event) => setText(field.id, event.target.value)}
+                  />
+                )}
+              </label>
+            ))}
+          </div>
           <button
             type="button"
-            onClick={() => void connect()}
+            onClick={() => void saveSettings()}
             disabled={busy !== null}
-            className="rounded-xl bg-indigo-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+            className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
           >
-            {busy === "connect" ? "در حال اتصال…" : bot.hasToken ? "اتصال / ثبت وب‌هوک" : "اتصال"}
+            {busy === "save" ? "در حال ذخیره…" : "ذخیرهٔ گفتگو"}
           </button>
-          <button
-            type="button"
-            onClick={() => void refresh()}
-            disabled={busy !== null || !bot.hasToken}
-            className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 disabled:opacity-60"
-          >
-            {busy === "refresh" ? "…" : "وضعیت وب‌هوک"}
-          </button>
-          <button
-            type="button"
-            onClick={() => void disconnect()}
-            disabled={busy !== null || bot.status === "disconnected"}
-            className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 disabled:opacity-60"
-          >
-            {busy === "disconnect" ? "…" : "قطع وب‌هوک"}
-          </button>
-        </div>
-      </section>
+          {saved ? <p className="text-sm text-teal-800">تنظیمات ذخیره شد.</p> : null}
+        </section>
+      )}
 
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
 

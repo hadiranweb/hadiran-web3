@@ -78,5 +78,9 @@ export const MIGRATION_FILES: { id: string; sql: string }[] = [
   {
     "id": "0019_bot_hub.sql",
     "sql": "-- Hub bot chat + webhook diagnostics. Password setup tokens are not a Telegram login.\n\nALTER TABLE bots ADD COLUMN IF NOT EXISTS last_inbound_status INTEGER;\nALTER TABLE bots ADD COLUMN IF NOT EXISTS telegram_pending_count INTEGER;\nALTER TABLE bots ADD COLUMN IF NOT EXISTS telegram_last_error TEXT;\n\nALTER TABLE bot_chat_sessions ADD COLUMN IF NOT EXISTS step VARCHAR(32) NOT NULL DEFAULT 'start';\nALTER TABLE bot_chat_sessions ADD COLUMN IF NOT EXISTS analyzer_slug VARCHAR(64);\nALTER TABLE bot_chat_sessions ADD COLUMN IF NOT EXISTS pending_phone VARCHAR(16);\nALTER TABLE bot_chat_sessions ADD COLUMN IF NOT EXISTS via_contact BOOLEAN NOT NULL DEFAULT FALSE;\nALTER TABLE bot_chat_sessions ADD COLUMN IF NOT EXISTS awaiting_discount BOOLEAN NOT NULL DEFAULT FALSE;\nALTER TABLE bot_chat_sessions ADD COLUMN IF NOT EXISTS password_link_sent_at TIMESTAMPTZ;\n\nCREATE TABLE IF NOT EXISTS password_setup_tokens (\n  id SERIAL PRIMARY KEY,\n  account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,\n  token_hash VARCHAR(64) NOT NULL UNIQUE,\n  expires_at TIMESTAMPTZ NOT NULL,\n  consumed_at TIMESTAMPTZ,\n  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()\n);\n\nCREATE INDEX IF NOT EXISTS password_setup_tokens_account_idx ON password_setup_tokens (account_id, created_at DESC);\n"
+  },
+  {
+    "id": "0020_bot_service_script.sql",
+    "sql": "-- Bot belongs to a service (analyzers), not a single exam. Script JSON is hub copy + flow flags.\n\nALTER TABLE bots ADD COLUMN IF NOT EXISTS service VARCHAR(32) NOT NULL DEFAULT 'analyzers';\nALTER TABLE bots ADD COLUMN IF NOT EXISTS script JSONB;\n"
   }
 ];

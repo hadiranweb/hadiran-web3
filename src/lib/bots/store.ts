@@ -21,7 +21,7 @@ import {
   webhookUrlFor,
   webhookUrlIsPublicHttps,
 } from "@/lib/bots/telegram";
-import { BOT_COMMANDS } from "@/lib/bots/copy";
+import { parseBotScript } from "@/lib/bots/script";
 import type { BotStatus, BotView } from "@/lib/bots/types";
 
 export type { BotStatus, BotView };
@@ -39,7 +39,9 @@ function viewOf(row: BotRow, extra?: { pendingUpdateCount?: number | null }): Bo
     titleFa: row.titleFa,
     channel: "telegram",
     status: asStatus(row.status),
+    service: "analyzers",
     analyzerSlug: row.analyzerSlug,
+    script: parseBotScript(row.script),
     telegramUsername: row.telegramUsername,
     telegramFirstName: row.telegramFirstName,
     tokenHint: row.tokenHint,
@@ -103,7 +105,9 @@ export async function createBot(
       ownerId,
       channel: "telegram",
       titleFa,
+      service: "analyzers",
       analyzerSlug: input.analyzerSlug,
+      script: parseBotScript(null),
       status: "disconnected",
     })
     .returning();
@@ -113,7 +117,7 @@ export async function createBot(
 export async function updateBot(
   ownerId: number,
   id: string,
-  input: { titleFa?: string; analyzerSlug?: string | null },
+  input: { titleFa?: string; analyzerSlug?: string | null; script?: unknown },
 ): Promise<BotView> {
   await ensureBotsSchema();
   const [existing] = await db.select().from(bots).where(eq(bots.id, id)).limit(1);
@@ -123,9 +127,10 @@ export async function updateBot(
       ? input.titleFa.replace(/\s+/g, " ").trim()
       : existing.titleFa;
   const analyzerSlug = input.analyzerSlug === undefined ? existing.analyzerSlug : input.analyzerSlug;
+  const script = input.script === undefined ? existing.script : parseBotScript(input.script);
   const [row] = await db
     .update(bots)
-    .set({ titleFa, analyzerSlug, updatedAt: new Date() })
+    .set({ titleFa, analyzerSlug, script, service: "analyzers", updatedAt: new Date() })
     .where(eq(bots.id, id))
     .returning();
   return viewOf(row);
@@ -174,7 +179,11 @@ export async function connectBot(
     const webhookSecret = newWebhookSecret();
     await telegramSetWebhook(token, { url, secretToken: webhookSecret });
     try {
-      await telegramSetMyCommands(token, BOT_COMMANDS);
+      const script = parseBotScript(existing.script);
+      await telegramSetMyCommands(token, [
+        { command: "start", description: script.texts.startDescription.slice(0, 32) },
+        { command: "help", description: script.texts.helpDescription.slice(0, 32) },
+      ]);
     } catch {
       // menu is optional; webhook still counts as connected
     }

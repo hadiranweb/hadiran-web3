@@ -176,6 +176,8 @@ export async function ensureBotsSchema() {
   await db.execute(sql`ALTER TABLE bot_chat_sessions ADD COLUMN IF NOT EXISTS via_contact BOOLEAN NOT NULL DEFAULT FALSE`);
   await db.execute(sql`ALTER TABLE bot_chat_sessions ADD COLUMN IF NOT EXISTS awaiting_discount BOOLEAN NOT NULL DEFAULT FALSE`);
   await db.execute(sql`ALTER TABLE bot_chat_sessions ADD COLUMN IF NOT EXISTS password_link_sent_at TIMESTAMPTZ`);
+  await db.execute(sql`ALTER TABLE bots ADD COLUMN IF NOT EXISTS service VARCHAR(32) NOT NULL DEFAULT 'analyzers'`);
+  await db.execute(sql`ALTER TABLE bots ADD COLUMN IF NOT EXISTS script JSONB`);
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS password_setup_tokens (
       id SERIAL PRIMARY KEY,

@@ -51,9 +51,11 @@ export async function POST(request: Request, { params }: Ctx) {
     const token = openSecret(row.tokenCipher);
     await handleTelegramUpdate({
       botId: row.id,
-      analyzerSlug: row.analyzerSlug,
       token,
       update: body,
+      script: row.script,
+      titleFa: row.titleFa,
+      analyzerSlug: row.analyzerSlug,
     });
   } catch {
     // ACK anyway so Telegram does not retry. Token is never logged.
