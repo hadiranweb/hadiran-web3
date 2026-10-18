@@ -48,10 +48,6 @@ export function SignInDialog({
           </button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
-          <p className="mb-5 text-sm leading-7 text-muted">
-            شماره را بگذار. اگر رمز ثابت دارید با رمز وارد شوید؛ وگرنه کد پیامکی می‌آید. گذاشتن رمز هنگام ثبت‌نام لازم
-            نیست.
-          </p>
           <SignInForm nextPath={nextPath} onAuthenticated={onAuthenticated} hideHint />
         </div>
       </div>

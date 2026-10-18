@@ -31,11 +31,7 @@ export default async function SignInPage({
     <PageShell width="narrow" className="auth-shell flex min-h-[70vh] flex-col justify-center py-16">
       <HadiranMark className="mb-4 h-12 w-12" />
       <p className="hadiran-brand-text mb-2 text-sm font-medium">هادیران</p>
-      <h1 className="text-3xl font-extrabold leading-[1.35] text-ink">ورود با موبایل</h1>
-      <p className="mt-2 mb-8 text-sm leading-7 text-muted">
-        شماره را بگذار. اگر رمز ثابت دارید همان را می‌خواهیم؛ وگرنه یک کد پیامکی می‌آید. گذاشتن رمز هنگام ثبت‌نام لازم
-        نیست.
-      </p>
+      <h1 className="mb-8 text-3xl font-extrabold leading-[1.35] text-ink">ورود با موبایل</h1>
       <SignInForm nextPath={nextPath} previewLogin={!!preview} />
     </PageShell>
   );
