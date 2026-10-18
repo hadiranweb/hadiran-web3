@@ -1,4 +1,6 @@
-import Link from "next/link";
+import { buildCasioAuthoredPack } from "@/lib/analyzers/casio-ss/authored-pack";
+import { ModuleHeading } from "@/components/workspace/ModuleHeading";
+import Link from "@/components/workspace/WorkspaceLink";
 import type { Metadata } from "next";
 import { requirePageOwner } from "@/lib/auth/guard";
 import { listAuthoredPacks } from "@/lib/analyzers/authored";
@@ -17,39 +19,28 @@ const statusFa: Record<string, string> = {
 };
 
 export default async function WorkspaceAnalyzersPage() {
-  await requirePageOwner("/workspace/analyzers");
-  const authored = await listAuthoredPacks();
+  const account = await requirePageOwner("/workspace/analyzers");
+  const authored = account.id === 0 ? [buildCasioAuthoredPack()] : await listAuthoredPacks();
 
   return (
-    <main className="mx-auto max-w-3xl space-y-8 px-4 py-8">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">تحلیلگر‌ها</h1>
-          <p className="mt-2 text-sm leading-7 text-slate-500">
-            همهٔ آزمون‌ها از همین میز ویرایش می‌شوند؛ سؤال، نمره، رضایت و متن گزارش داخل pack است.
-          </p>
-        </div>
-        <Link
-          href="/workspace/analyzers/new"
-          className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white"
-        >
-          آزمون تازه
-        </Link>
-      </div>
+    <main className="ws-page repo-module space-y-8">
+      <ModuleHeading title="تحلیلگرها" en="Analyzer authoring" lede="ساخت و ویرایش سؤال، نمره، رضایت و گزارش؛ همهٔ آزمون‌ها از جمله CASIO از همین میز مدیریت می‌شوند." ledeEn="Manage questions, scoring, consent and reports for every assessment, including CASIO." action={<Link href="/workspace/analyzers/new" className="ws-button ws-primary">آزمون تازه</Link>} />
+      {account.id === 0 ? <p className="integration-notice">در پیش‌نمایش، CASIO با بستهٔ بذر اولیه اجرا می‌شود. ویرایشگر قابل بررسی است؛ ذخیرهٔ تغییرات و ساخت تحلیلگر به دیتابیس نیاز دارد.</p> : null}
+
 
       <section>
         {authored.length === 0 ? (
-          <p className="text-sm text-slate-500">آزمونی نیست.</p>
+          <p className="text-sm text-muted">آزمونی نیست.</p>
         ) : (
           <ul className="space-y-2">
             {authored.map((pack) => (
               <li key={pack.slug}>
                 <Link
                   href={`/workspace/analyzers/${pack.slug}`}
-                  className="block rounded-2xl border border-slate-200 bg-white p-4 hover:border-indigo-200"
+                  className="block rounded-2xl border border-line bg-elev p-4 hover:border-accent"
                 >
-                  <p className="font-medium text-slate-900">{pack.nameFa}</p>
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="font-medium text-ink">{pack.nameFa}</p>
+                  <p className="mt-1 text-xs text-muted">
                     {pack.slug} · {statusFa[pack.status] ?? pack.status} · {pack.version}
                   </p>
                 </Link>

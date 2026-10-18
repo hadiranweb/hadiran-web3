@@ -1,5 +1,6 @@
 {
   "status": "PASS",
+  "upstream": "a78b1bb56faa4b0306bcc5e9aae6136c573550ef",
   "checks": {
     "public/hadiran-portrait.svg": true,
     "src/components/portrait/ReassemblyPortrait.tsx": true,
@@ -8,11 +9,13 @@
     "src/app/fonts/IRANSharp-Bold.woff2": true,
     "src/app/fonts/IRANSharp-Light.woff2": true,
     "production_shop_services_unchanged": true,
-    "scoring_and_reports_unchanged": true,
+    "latest_scoring_authoring_storage_and_reports_unchanged": true,
     "all_migrations_preserved": true,
     "no_npm_dependency_changes": true,
     "lockfile_unchanged": true,
-    "all_upstream_pages_present": true
+    "all_upstream_pages_present": true,
+    "frame_policy_3001": true,
+    "frame_policy_3002": true
   },
   "upstream_pages_checked": 38,
   "migrations_checked": 15

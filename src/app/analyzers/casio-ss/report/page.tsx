@@ -1,5 +1,7 @@
+import { previewStore } from "@/lib/preview/store";
+import { withPreviewAccess } from "@/lib/auth/preview-url";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/workspace/WorkspaceLink";
 import { redirect } from "next/navigation";
 import { CasioSsReport } from "@/components/analyzers/CasioSsReport";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -19,10 +21,11 @@ export const metadata: Metadata = {
 
 export default async function CasioSsReportPage() {
   const account = await requirePageAccount("/analyzers/casio-ss/report");
-  const pack = (await resolveLivePack("casio-ss")) ?? buildCasioAuthoredPack();
-  const attempt = await readAttempt(account.id);
+  const pack = account.id === 0 ? buildCasioAuthoredPack() : (await resolveLivePack("casio-ss")) ?? buildCasioAuthoredPack();
+  const preview = await previewStore(account);
+  const attempt = preview ? preview.attempt : await readAttempt(account.id);
   if (!attempt || attempt.status !== "submitted") {
-    redirect("/analyzers/casio-ss");
+    redirect(withPreviewAccess("/analyzers/casio-ss", account.previewTicket));
   }
 
   let report;
@@ -31,6 +34,7 @@ export default async function CasioSsReportPage() {
   } catch {
     return (
       <PageShell width="narrow">
+      {account.id === 0 ? <p className="integration-notice mb-6">پاسخ‌ها و گزارش فقط در نشست موقت پیش‌نمایش نگه‌داری می‌شوند.</p> : null}
         <PageHeader title={pack.nameFa} lede="این گزارش از پاسخ‌های ثبت‌شده قابل بازتولید نیست." />
         <Link href="/analyzers/casio-ss" className="text-sm font-medium text-accent hover:text-ink">
           بازگشت به ارزیابی
@@ -43,6 +47,7 @@ export default async function CasioSsReportPage() {
 
   return (
     <PageShell width="narrow">
+      {account.id === 0 ? <p className="integration-notice mb-6">پاسخ‌ها و گزارش فقط در نشست موقت پیش‌نمایش نگه‌داری می‌شوند.</p> : null}
       <p className="mb-4 text-sm">
         <Link href="/analyzers" className="text-muted hover:text-ink">
           تحلیلگر‌ها

@@ -17,6 +17,7 @@ import { absoluteUrl } from "@/lib/site";
 export const dynamic = "force-dynamic";
 
 async function livePack() {
+  if (!process.env.DATABASE_URL) return buildCasioAuthoredPack();
   return (await resolveLivePack("casio-ss")) ?? buildCasioAuthoredPack();
 }
 

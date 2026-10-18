@@ -1,4 +1,5 @@
 "use client";
+import { previewFetch as fetch } from "@/lib/auth/preview-fetch";
 
 import { useMemo, useState } from "react";
 import type {
@@ -17,7 +18,7 @@ import type {
 import { DEFAULT_ANCHORS } from "@/lib/analyzers/sanitize";
 
 const fieldClass =
-  "w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-400";
+  "w-full rounded-xl border border-line bg-elev px-3 py-2 text-sm text-ink outline-none focus:border-indigo-400";
 const ops: FormulaOp[] = [
   "mean",
   "sum",
@@ -51,7 +52,7 @@ function clonePack(pack: AnalyzerPack): AnalyzerPack {
   return JSON.parse(JSON.stringify(pack)) as AnalyzerPack;
 }
 
-export function AnalyzerEditor({ initial }: { initial: AnalyzerPack }) {
+export function AnalyzerEditor({ initial, readOnly = false }: { initial: AnalyzerPack; readOnly?: boolean }) {
   const [pack, setPack] = useState<AnalyzerPack>(() => clonePack(initial));
   const [tab, setTab] = useState<Tab>("meta");
   const [busy, setBusy] = useState(false);
@@ -69,6 +70,7 @@ export function AnalyzerEditor({ initial }: { initial: AnalyzerPack }) {
   }
 
   async function save() {
+    if (readOnly) return;
     setBusy(true);
     setError(null);
     const res = await fetch(`/api/workspace/analyzers/${pack.slug}`, {
@@ -147,7 +149,7 @@ export function AnalyzerEditor({ initial }: { initial: AnalyzerPack }) {
             type="button"
             onClick={() => setTab(id)}
             className={`rounded-full px-4 py-1.5 text-sm ${
-              tab === id ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              tab === id ? "bg-accent text-accent-fg" : "bg-paper text-muted hover:bg-accent-soft"
             }`}
           >
             {label}
@@ -156,10 +158,10 @@ export function AnalyzerEditor({ initial }: { initial: AnalyzerPack }) {
       </div>
 
       {tab === "meta" ? (
-        <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6">
-          <p className="text-xs text-slate-500">شناسه: {pack.slug} — بعد از ساخت عوض نمی‌شود.</p>
+        <section className="space-y-4 rounded-2xl border border-line bg-elev p-6">
+          <p className="text-xs text-muted">شناسه: {pack.slug} — بعد از ساخت عوض نمی‌شود.</p>
           <label className="block text-sm">
-            <span className="mb-1 block text-slate-600">نام</span>
+            <span className="mb-1 block text-muted">نام</span>
             <input
               className={fieldClass}
               value={pack.nameFa}
@@ -167,7 +169,7 @@ export function AnalyzerEditor({ initial }: { initial: AnalyzerPack }) {
             />
           </label>
           <label className="block text-sm">
-            <span className="mb-1 block text-slate-600">خلاصهٔ هب</span>
+            <span className="mb-1 block text-muted">خلاصهٔ هب</span>
             <textarea
               className={`${fieldClass} min-h-24`}
               value={pack.summaryFa}
@@ -176,7 +178,7 @@ export function AnalyzerEditor({ initial }: { initial: AnalyzerPack }) {
           </label>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block text-sm">
-              <span className="mb-1 block text-slate-600">نسخه</span>
+              <span className="mb-1 block text-muted">نسخه</span>
               <input
                 className={fieldClass}
                 dir="ltr"
@@ -185,7 +187,7 @@ export function AnalyzerEditor({ initial }: { initial: AnalyzerPack }) {
               />
             </label>
             <label className="block text-sm">
-              <span className="mb-1 block text-slate-600">وضعیت</span>
+              <span className="mb-1 block text-muted">وضعیت</span>
               <select
                 className={fieldClass}
                 value={pack.status}
@@ -198,7 +200,7 @@ export function AnalyzerEditor({ initial }: { initial: AnalyzerPack }) {
             </label>
           </div>
           <label className="block text-sm">
-            <span className="mb-1 block text-slate-600">عنوان رضایت</span>
+            <span className="mb-1 block text-muted">عنوان رضایت</span>
             <input
               className={fieldClass}
               value={pack.consent.titleFa}
@@ -208,7 +210,7 @@ export function AnalyzerEditor({ initial }: { initial: AnalyzerPack }) {
             />
           </label>
           <label className="block text-sm">
-            <span className="mb-1 block text-slate-600">برچسب دکمهٔ رضایت</span>
+            <span className="mb-1 block text-muted">برچسب دکمهٔ رضایت</span>
             <input
               className={fieldClass}
               value={pack.consent.acceptLabelFa}
@@ -218,7 +220,7 @@ export function AnalyzerEditor({ initial }: { initial: AnalyzerPack }) {
             />
           </label>
           <label className="block text-sm">
-            <span className="mb-1 block text-slate-600">متن رضایت (هر خط یک پاراگراف)</span>
+            <span className="mb-1 block text-muted">متن رضایت (هر خط یک پاراگراف)</span>
             <textarea
               className={`${fieldClass} min-h-32`}
               value={pack.consent.bodyFa.join("\n")}
@@ -238,7 +240,7 @@ export function AnalyzerEditor({ initial }: { initial: AnalyzerPack }) {
 
       {tab === "items" ? (
         <section className="space-y-5">
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-muted">
             مقیاس فقط کاشی ۰ تا ۱۰ است. بخش با شناسهٔ <span dir="ltr">business</span> در نمره نمی‌آید.
           </p>
           {pack.sections.map((section, sectionIndex) => (
@@ -258,7 +260,7 @@ export function AnalyzerEditor({ initial }: { initial: AnalyzerPack }) {
               onAdd={(kind) => addItem(sectionIndex, kind)}
             />
           ))}
-          <button type="button" onClick={addSection} className="text-sm font-medium text-indigo-700">
+          <button type="button" onClick={addSection} className="text-sm font-medium text-mark">
             + بخش
           </button>
         </section>
@@ -266,13 +268,13 @@ export function AnalyzerEditor({ initial }: { initial: AnalyzerPack }) {
 
       {tab === "score" ? (
         <section className="space-y-6">
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-muted">
             فرمول اعلانی است؛ جاوااسکریپت و eval پذیرفته نمی‌شود. یال سؤال→بخش هنگام ذخیره از روی بخش‌ها ساخته می‌شود.
           </p>
           <button
             type="button"
             onClick={suggestFormulas}
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+            className="rounded-xl border border-line bg-elev px-3 py-2 text-sm text-ink"
           >
             پیشنهاد میانگین هر بخش
           </button>
@@ -304,8 +306,8 @@ export function AnalyzerEditor({ initial }: { initial: AnalyzerPack }) {
       <button
         type="button"
         onClick={() => void save()}
-        disabled={busy}
-        className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-medium text-white disabled:opacity-60"
+        disabled={busy || readOnly}
+        className="rounded-xl bg-accent px-5 py-2.5 text-sm font-medium text-accent-fg disabled:opacity-60"
       >
         {busy ? "در حال ذخیره…" : "ذخیره"}
       </button>
@@ -325,7 +327,7 @@ function SectionCard({
   onAdd: (kind: Item["kind"]) => void;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5">
+    <div className="rounded-2xl border border-line bg-elev p-5">
       <div className="grid gap-3 sm:grid-cols-2">
         <input
           className={fieldClass}
@@ -349,7 +351,7 @@ function SectionCard({
       />
       <ul className="mt-4 space-y-4">
         {section.items.map((item, index) => (
-          <li key={`${item.id}-${index}`} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+          <li key={`${item.id}-${index}`} className="rounded-xl border border-line bg-paper p-3">
             <ItemEditor
               item={item}
               onChange={(next) => {
@@ -363,16 +365,16 @@ function SectionCard({
         ))}
       </ul>
       <div className="mt-3 flex flex-wrap gap-3 text-sm">
-        <button type="button" className="text-indigo-700" onClick={() => onAdd("range")}>
+        <button type="button" className="text-mark" onClick={() => onAdd("range")}>
           + مقیاس ۰–۱۰
         </button>
-        <button type="button" className="text-indigo-700" onClick={() => onAdd("text")}>
+        <button type="button" className="text-mark" onClick={() => onAdd("text")}>
           + متن
         </button>
-        <button type="button" className="text-indigo-700" onClick={() => onAdd("choice")}>
+        <button type="button" className="text-mark" onClick={() => onAdd("choice")}>
           + گزینه
         </button>
-        <button type="button" className="text-slate-400" onClick={onRemove}>
+        <button type="button" className="text-muted" onClick={onRemove}>
           حذف بخش
         </button>
       </div>
@@ -398,7 +400,7 @@ function ItemEditor({
           value={item.id}
           onChange={(event) => onChange({ ...item, id: event.target.value } as Item)}
         />
-        <p className="self-center text-xs text-slate-500">{item.kind}</p>
+        <p className="self-center text-xs text-muted">{item.kind}</p>
       </div>
       <textarea
         className={fieldClass}
@@ -407,7 +409,7 @@ function ItemEditor({
       />
       {item.kind === "range" ? (
         <>
-          <label className="flex items-center gap-2 text-sm text-slate-600">
+          <label className="flex items-center gap-2 text-sm text-muted">
             <input
               type="checkbox"
               checked={item.reverse}
@@ -465,7 +467,7 @@ function ItemEditor({
           ))}
           <button
             type="button"
-            className="text-sm text-indigo-700"
+            className="text-sm text-mark"
             onClick={() =>
               onChange({
                 ...item,
@@ -477,7 +479,7 @@ function ItemEditor({
           </button>
         </div>
       ) : null}
-      <button type="button" className="text-xs text-slate-400" onClick={onRemove}>
+      <button type="button" className="text-xs text-muted" onClick={onRemove}>
         حذف سؤال
       </button>
     </div>
@@ -492,11 +494,11 @@ function FindingsEditor({
   onChange: (findings: Finding[]) => void;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5">
-      <h2 className="text-base font-bold text-slate-900">عارضه‌ها</h2>
+    <div className="rounded-2xl border border-line bg-elev p-5">
+      <h2 className="text-base font-bold text-ink">عارضه‌ها</h2>
       <ul className="mt-3 space-y-3">
         {findings.map((finding, index) => (
-          <li key={index} className="space-y-2 rounded-xl border border-slate-100 bg-slate-50 p-3">
+          <li key={index} className="space-y-2 rounded-xl border border-line bg-paper p-3">
             <div className="grid gap-2 sm:grid-cols-4">
               <input
                 className={fieldClass}
@@ -588,7 +590,7 @@ function FindingsEditor({
       </ul>
       <button
         type="button"
-        className="mt-3 text-sm text-indigo-700"
+        className="mt-3 text-sm text-mark"
         onClick={() => onChange([...findings, { id: uid("F"), titleFa: "عارضه", kind: "layer" }])}
       >
         + عارضه
@@ -629,12 +631,12 @@ function KeywordsEditor({
   }
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5">
-      <h2 className="text-base font-bold text-slate-900">کلیدواژه‌ها</h2>
-      <p className="mt-1 text-xs text-slate-500">ستون سوم: شناسهٔ سؤال‌ها با ویرگول. وکتور نیست.</p>
+    <div className="rounded-2xl border border-line bg-elev p-5">
+      <h2 className="text-base font-bold text-ink">کلیدواژه‌ها</h2>
+      <p className="mt-1 text-xs text-muted">ستون سوم: شناسهٔ سؤال‌ها با ویرگول. وکتور نیست.</p>
       <ul className="mt-3 space-y-3">
         {keywords.map((keyword, index) => (
-          <li key={index} className="space-y-2 rounded-xl border border-slate-100 bg-slate-50 p-3">
+          <li key={index} className="space-y-2 rounded-xl border border-line bg-paper p-3">
             <div className="grid gap-2 sm:grid-cols-3">
               <input
                 className={fieldClass}
@@ -681,7 +683,7 @@ function KeywordsEditor({
       </ul>
       <button
         type="button"
-        className="mt-3 text-sm text-indigo-700"
+        className="mt-3 text-sm text-mark"
         onClick={() => emit([...keywords, { id: uid("K"), labelFa: "کلیدواژه" }], fromMap)}
       >
         + کلیدواژه
@@ -698,11 +700,11 @@ function FormulasEditor({
   onChange: (formulas: Formula[]) => void;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5">
-      <h2 className="text-base font-bold text-slate-900">فرمول‌ها</h2>
+    <div className="rounded-2xl border border-line bg-elev p-5">
+      <h2 className="text-base font-bold text-ink">فرمول‌ها</h2>
       <ul className="mt-3 space-y-4">
         {formulas.map((formula, index) => (
-          <li key={index} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+          <li key={index} className="rounded-xl border border-line bg-paper p-3">
             <div className="grid gap-2 sm:grid-cols-3">
               <input
                 className={fieldClass}
@@ -795,7 +797,7 @@ function FormulasEditor({
             ) : null}
             <button
               type="button"
-              className="mt-2 text-xs text-slate-400"
+              className="mt-2 text-xs text-muted"
               onClick={() => onChange(formulas.filter((_, i) => i !== index))}
             >
               حذف فرمول
@@ -805,7 +807,7 @@ function FormulasEditor({
       </ul>
       <button
         type="button"
-        className="mt-3 text-sm text-indigo-700"
+        className="mt-3 text-sm text-mark"
         onClick={() => onChange([...formulas, { id: uid("f"), op: "mean", of: [] }])}
       >
         + فرمول
@@ -821,11 +823,11 @@ function ReportEditor({ report, onChange }: { report: PackReport; onChange: (rep
 
   return (
     <section className="space-y-6">
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-muted">
         متن گزارش، باند لایه، و الگوهای بین‌لایه. نمرهٔ گیت اگر مخفی باشد در گزارش عضو نمی‌آید.
       </p>
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4">
-        <label className="flex items-center gap-2 text-sm text-slate-700">
+      <div className="rounded-2xl border border-line bg-elev p-5 space-y-4">
+        <label className="flex items-center gap-2 text-sm text-ink">
           <input
             type="checkbox"
             checked={report.hideGateScores !== false}
@@ -834,7 +836,7 @@ function ReportEditor({ report, onChange }: { report: PackReport; onChange: (rep
           گیت سبز/زرد/قرمز در گزارش نباشد
         </label>
         <label className="block text-sm">
-          <span className="mb-1 block text-slate-600">جملهٔ پایانی</span>
+          <span className="mb-1 block text-muted">جملهٔ پایانی</span>
           <textarea
             className={fieldClass}
             value={report.closingFa ?? ""}
@@ -842,7 +844,7 @@ function ReportEditor({ report, onChange }: { report: PackReport; onChange: (rep
           />
         </label>
         <label className="block text-sm">
-          <span className="mb-1 block text-slate-600">شناسهٔ سؤال نام کسب‌وکار</span>
+          <span className="mb-1 block text-muted">شناسهٔ سؤال نام کسب‌وکار</span>
           <input
             className={fieldClass}
             dir="ltr"
@@ -852,8 +854,8 @@ function ReportEditor({ report, onChange }: { report: PackReport; onChange: (rep
         </label>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-5">
-        <h2 className="text-base font-bold text-slate-900">زمینه‌های گزارش</h2>
+      <div className="rounded-2xl border border-line bg-elev p-5">
+        <h2 className="text-base font-bold text-ink">زمینه‌های گزارش</h2>
         <ul className="mt-3 space-y-2">
           {fields.map((field, index) => (
             <li key={index} className="grid gap-2 sm:grid-cols-2">
@@ -881,7 +883,7 @@ function ReportEditor({ report, onChange }: { report: PackReport; onChange: (rep
         </ul>
         <button
           type="button"
-          className="mt-3 text-sm text-indigo-700"
+          className="mt-3 text-sm text-mark"
           onClick={() =>
             onChange({ ...report, contextFields: [...fields, { id: uid("BIZ"), labelFa: "زمینه" }] })
           }
@@ -890,8 +892,8 @@ function ReportEditor({ report, onChange }: { report: PackReport; onChange: (rep
         </button>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-5">
-        <h2 className="text-base font-bold text-slate-900">باند لایه</h2>
+      <div className="rounded-2xl border border-line bg-elev p-5">
+        <h2 className="text-base font-bold text-ink">باند لایه</h2>
         <ul className="mt-3 space-y-3">
           {bands.map((band, index) => (
             <li key={index} className="grid gap-2 sm:grid-cols-2">
@@ -948,7 +950,7 @@ function ReportEditor({ report, onChange }: { report: PackReport; onChange: (rep
         </ul>
         <button
           type="button"
-          className="mt-3 text-sm text-indigo-700"
+          className="mt-3 text-sm text-mark"
           onClick={() =>
             onChange({
               ...report,
@@ -963,11 +965,11 @@ function ReportEditor({ report, onChange }: { report: PackReport; onChange: (rep
         </button>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-5">
-        <h2 className="text-base font-bold text-slate-900">الگوی بین‌لایه</h2>
+      <div className="rounded-2xl border border-line bg-elev p-5">
+        <h2 className="text-base font-bold text-ink">الگوی بین‌لایه</h2>
         <ul className="mt-3 space-y-3">
           {patterns.map((pattern, index) => (
-            <li key={index} className="space-y-2 rounded-xl border border-slate-100 bg-slate-50 p-3">
+            <li key={index} className="space-y-2 rounded-xl border border-line bg-paper p-3">
               <input
                 className={fieldClass}
                 dir="ltr"
@@ -1053,7 +1055,7 @@ function ReportEditor({ report, onChange }: { report: PackReport; onChange: (rep
         </ul>
         <button
           type="button"
-          className="mt-3 text-sm text-indigo-700"
+          className="mt-3 text-sm text-mark"
           onClick={() => {
             const row: CrossPattern = {
               id: uid("p"),

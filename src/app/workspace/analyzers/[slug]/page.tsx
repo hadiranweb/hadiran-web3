@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { buildCasioAuthoredPack } from "@/lib/analyzers/casio-ss/authored-pack";
+import Link from "@/components/workspace/WorkspaceLink";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { requirePageOwner } from "@/lib/auth/guard";
@@ -15,25 +16,26 @@ export const metadata: Metadata = {
 type Props = { params: Promise<{ slug: string }> };
 
 export default async function EditAnalyzerPage({ params }: Props) {
-  await requirePageOwner("/workspace/analyzers");
+  const account = await requirePageOwner("/workspace/analyzers");
   const { slug } = await params;
-  const pack = await readAuthoredPack(slug);
+  const pack = account.id === 0 ? (slug === "casio-ss" ? buildCasioAuthoredPack() : null) : await readAuthoredPack(slug);
   if (!pack) notFound();
 
   return (
-    <main className="mx-auto max-w-3xl space-y-6 px-4 py-8">
+    <main className="ws-page repo-module space-y-6">
       <p className="text-sm">
-        <Link href="/workspace/analyzers" className="text-slate-500 hover:text-indigo-700">
+        <Link href="/workspace/analyzers" className="text-muted hover:text-mark">
           تحلیلگر‌ها
         </Link>
       </p>
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <h1 className="text-2xl font-bold text-slate-900">{pack.nameFa}</h1>
-        <Link href={`/analyzers/${pack.slug}`} className="text-sm text-indigo-700">
+        <h1 className="text-2xl font-bold text-ink">{pack.nameFa}</h1>
+        <Link href={`/analyzers/${pack.slug}`} className="text-sm text-mark">
           اجرای آزمایشی
         </Link>
       </div>
-      <AnalyzerEditor initial={pack} />
+      {account.id === 0 ? <p className="integration-notice">بررسی ویرایشگر و سؤال‌ها آزاد است؛ ذخیره در محیط بدون دیتابیس انجام نمی‌شود.</p> : null}
+      <AnalyzerEditor initial={pack} readOnly={account.id === 0} />
     </main>
   );
 }

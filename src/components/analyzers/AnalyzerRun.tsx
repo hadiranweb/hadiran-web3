@@ -3,6 +3,8 @@ import { previewFetch as fetch } from "@/lib/auth/preview-fetch";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "@/components/workspace/WorkspaceLink";
+import { withPreviewAccess } from "@/lib/auth/preview-url";
+import { PREVIEW_SESSION_KEY } from "@/lib/auth/preview-client";
 import { useRouter } from "next/navigation";
 import { itemsOf, sectionOf, type AnalyzerPack, type Item } from "@/lib/analyzers/pack";
 import {
@@ -39,6 +41,7 @@ type DraftState = { consent: boolean; answers: AnswerMap; index: number };
 
 export function AnalyzerRun({ pack }: { pack: AnalyzerPack }) {
   const router = useRouter();
+  const previewPath = (href: string) => { try { return withPreviewAccess(href, sessionStorage.getItem(PREVIEW_SESSION_KEY) || new URL(location.href).searchParams.get("preview_access") || ""); } catch { return href; } };
   const allItems = itemsOf(pack);
   const draftKey = pack.slug === "casio-ss" ? "casio-ss" : `analyzer:${pack.slug}`;
   const api = `/api/analyzers/${pack.slug}`;
@@ -94,7 +97,7 @@ export function AnalyzerRun({ pack }: { pack: AnalyzerPack }) {
       if (!attempt) return;
       if (attempt.status === "submitted") {
         clearDraft(draftKey);
-        router.replace(reportHref);
+        router.replace(previewPath(reportHref));
         setSubmitted(true);
         setConsent(true);
         setAnswers(attempt.answers);
@@ -150,7 +153,7 @@ export function AnalyzerRun({ pack }: { pack: AnalyzerPack }) {
     if (!attempt) return;
     if (attempt.status === "submitted") {
       clearDraft(draftKey);
-      router.replace(reportHref);
+      router.replace(previewPath(reportHref));
       setSubmitted(true);
       return;
     }
@@ -178,7 +181,7 @@ export function AnalyzerRun({ pack }: { pack: AnalyzerPack }) {
     setBusy(false);
     if (!attempt || attempt.status !== "submitted") return;
     clearDraft(draftKey);
-    router.replace(reportHref);
+    router.replace(previewPath(reportHref));
     setSubmitted(true);
   }
 
