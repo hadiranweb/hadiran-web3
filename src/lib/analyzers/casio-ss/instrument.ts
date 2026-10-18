@@ -1,4 +1,4 @@
-/** منبع: questions.source-of-truth.yaml v1.3.0 + سند ۰۴. نمره/PDF در این برش نیست. */
+/** منبع: questions.source-of-truth.yaml v1.3.0 + سند ۰۴ + interpretation-matrix v1.3.0. */
 
 import {
   edgesFromScoredSections,
@@ -6,6 +6,7 @@ import {
   type ScaleAnchors,
   type Section,
 } from "@/lib/analyzers/pack";
+import { casioKeywordEdges, casioKeywords } from "./interpretation";
 
 export type { ChoiceItem, Item, RangeItem, ScaleAnchors, Section, TextItem } from "@/lib/analyzers/pack";
 
@@ -27,7 +28,7 @@ export const CONSENT_BODY = [
 ];
 
 export const INTRO_SUMMARY =
-  "عارضه‌یابی سازمانی هادیران: ارزیابی الگوی ذهنی، زمینهٔ کسب‌وکار، و بیست سؤال پنج‌لایه روی مقیاس ۰ تا ۱۰. گزارش تفسیری در برش بعد می‌آید.";
+  "عارضه‌یابی سازمانی هادیران: ارزیابی الگوی ذهنی، زمینهٔ کسب‌وکار، و بیست سؤال پنج‌لایه روی مقیاس ۰ تا ۱۰. پس از ثبت پاسخ‌ها گزارش شخصی پنج‌لایه ساخته می‌شود.";
 
 const gateSections: Section[] = [
   { id: "gate-control", titleFa: "ارزیابی — منبع کنترل", introFa: "۱۲ گزاره؛ عدد نزدیک به تجربهٔ واقعی. درست یا غلط وجود ندارد.", items: [
@@ -448,8 +449,8 @@ export const casioSsPack: AnalyzerPack = {
   },
   sections,
   findings,
-  keywords: [],
-  edges: edgesFromScoredSections(sections),
+  keywords: casioKeywords,
+  edges: [...edgesFromScoredSections(sections), ...casioKeywordEdges],
   formulas,
 };
 

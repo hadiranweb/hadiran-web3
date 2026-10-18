@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   answeredCount,
   firstUnansweredIndex,
@@ -50,6 +51,7 @@ function emptyDraft(): DraftState {
 }
 
 export function CasioSsRun() {
+  const router = useRouter();
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -83,6 +85,7 @@ export function CasioSsRun() {
       if (!attempt) return;
       if (attempt.status === "submitted") {
         clearDraft(DRAFT_KEY);
+        router.replace("/analyzers/casio-ss/report");
         setSubmitted(true);
         setConsent(true);
         setAnswers(attempt.answers);
@@ -166,6 +169,7 @@ export function CasioSsRun() {
     if (!attempt) return;
     if (attempt.status === "submitted") {
       clearDraft(DRAFT_KEY);
+      router.replace("/analyzers/casio-ss/report");
       setSubmitted(true);
       return;
     }
@@ -184,6 +188,7 @@ export function CasioSsRun() {
     setBusy(false);
     if (!attempt || attempt.status !== "submitted") return;
     clearDraft(DRAFT_KEY);
+    router.replace("/analyzers/casio-ss/report");
     setSubmitted(true);
   }
 
@@ -197,11 +202,12 @@ export function CasioSsRun() {
     return (
       <section className="surface p-6 sm:p-8">
         <h2 className="text-xl font-bold leading-[1.7] text-ink">پاسخ‌ها ثبت شد</h2>
-        <p className="mt-3 text-sm leading-7 text-muted">
-          جمع‌بندی و تفسیر در برش بعد می‌آید. نمره یا گزارش PDF در این مرحله ساخته نمی‌شود.
-        </p>
-        <Link href="/analyzers" className="mt-6 inline-flex text-sm font-medium text-accent hover:text-ink">
-          بازگشت به تحلیلگر‌ها
+        <p className="mt-3 text-sm leading-7 text-muted">گزارش شخصی پنج‌لایه آماده است.</p>
+        <Link
+          href="/analyzers/casio-ss/report"
+          className="mt-6 inline-flex text-sm font-medium text-accent hover:text-ink"
+        >
+          مشاهده گزارش
         </Link>
       </section>
     );

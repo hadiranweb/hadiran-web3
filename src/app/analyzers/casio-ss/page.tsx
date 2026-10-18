@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { CasioSsRun } from "@/components/analyzers/CasioSsRun";
 import { JsonLd } from "@/components/JsonLd";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PageShell } from "@/components/ui/PageShell";
+import { readAttempt } from "@/lib/analyzers/casio-ss/attempts";
 import { INTRO_SUMMARY } from "@/lib/analyzers/casio-ss/instrument";
 import { getCurrentAccount } from "@/lib/auth/session";
 import { absoluteUrl } from "@/lib/site";
@@ -25,6 +27,12 @@ export const metadata: Metadata = {
 
 export default async function CasioSsPage() {
   const account = await getCurrentAccount();
+  if (account) {
+    const attempt = await readAttempt(account.id);
+    if (attempt?.status === "submitted") {
+      redirect("/analyzers/casio-ss/report");
+    }
+  }
 
   return (
     <PageShell width="narrow">
