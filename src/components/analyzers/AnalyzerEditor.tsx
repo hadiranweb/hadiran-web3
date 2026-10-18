@@ -59,7 +59,7 @@ function clonePack(pack: AnalyzerPack): AnalyzerPack {
 
 export function AnalyzerEditor({ initial, readOnly = false, canEdit = true, canReadResponses = true, canGrant = false }: { initial: AnalyzerPack; readOnly?: boolean; canEdit?: boolean; canReadResponses?: boolean; canGrant?: boolean }) {
   const [pack, setPack] = useState<AnalyzerPack>(() => clonePack(initial));
-  const [tab, setTab] = useState<Tab>(canEdit ? "meta" : "responses");
+  const [tab, setTab] = useState<Tab>(canEdit || !canReadResponses ? "meta" : "responses");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -144,7 +144,7 @@ export function AnalyzerEditor({ initial, readOnly = false, canEdit = true, canR
       <div className="flex flex-wrap gap-2">
         {(
           [
-            ...(canEdit
+            ...(canEdit || !canReadResponses
               ? ([
                   ["meta", "مشخصات"],
                   ["items", `سؤال‌ها (${itemCount})`],
@@ -328,9 +328,9 @@ export function AnalyzerEditor({ initial, readOnly = false, canEdit = true, canR
       ) : null}
 
       </fieldset>
-      {tab === "responses" ? <AnalyzerResponses slug={pack.slug} /> : null}
-      {tab === "interpret" ? <AnalyzerInterpretation key={pack.slug} slug={pack.slug} pack={pack} /> : null}
-      {tab === "access" ? <AnalyzerGrants slug={pack.slug} /> : null}
+      {tab === "responses" && canReadResponses ? <AnalyzerResponses slug={pack.slug} /> : null}
+      {tab === "interpret" && canReadResponses ? <AnalyzerInterpretation key={pack.slug} slug={pack.slug} pack={pack} /> : null}
+      {tab === "access" && canGrant ? <AnalyzerGrants slug={pack.slug} /> : null}
 
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
       {saved ? <p className="text-sm text-teal-800">ذخیره شد.</p> : null}

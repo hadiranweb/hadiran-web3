@@ -195,3 +195,5 @@
 .wo-heading-actions .ws-button { max-width: 100%; white-space: normal; text-align: center; overflow-wrap: anywhere; }
 .wo-action .dp-action-copy { overflow-wrap: anywhere; }
 .wo-admin-body { min-width: 0; grid-template-columns: minmax(0,1fr); }
+
+.wo-activity small { display: block; font-size: .65rem; color: var(--fg-muted); margin-top: .15rem; }

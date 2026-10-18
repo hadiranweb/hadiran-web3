@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "checks": [
+    "Anonymous rejected and ordinary member cannot access author/owner overview APIs",
+    "Personal snapshot is scoped by session, exact counts, no answers/results or cross-account metadata",
+    "Personal orders and current attempts paginate without duplicates; report links do not target historical attempts",
+    "Author/delegated/owner metadata and four full counts match existing access rules, with deterministic pagination",
+    "View-only delegation does not promote member or permit edit, responses, grants or owner data",
+    "Revoked grants take effect without cached cross-account metadata",
+    "Closed instruments do not get misleading report actions; snapshots reflect source changes and multi-source owner activity"
+  ],
+  "database": "disposable local PostgreSQL",
+  "production_database_tested": false
+}

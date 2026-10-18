@@ -44,7 +44,7 @@ with sync_playwright() as p:
  for selector in ['.theme-trigger','.nav-menu-toggle','.session-login-button']:
   box=page.locator(selector).bounding_box();assert box['width']>=44 and box['height']>=44,(selector,box)
  check('Theme coordinates with navigation, keyboard Escape works, new header targets are at least 44px')
- page.goto(B+'/signin?next=/account');page.get_by_role('textbox',name='شمارهٔ موبایل').fill('09121234567');page.get_by_role('button',name='ارسال کد',exact=True).click();page.get_by_role('textbox',name='کد پیامک‌شده').fill('123456');page.get_by_role('button',name='ورود',exact=True).click();expect(page.locator('h1')).to_have_text('حساب من')
+ page.goto(B+'/signin?next=/account');page.get_by_role('textbox',name='شمارهٔ موبایل').fill('09121234567');page.get_by_role('button',name='ارسال کد',exact=True).click();page.get_by_role('textbox',name='کد پیامک‌شده').fill('123456');page.get_by_role('button',name='ورود',exact=True).click();expect(page.locator('h1')).to_have_text('خانهٔ من');expect(page.locator('#account-profile-title')).to_have_text('حساب من')
  ticket=parse_qs(urlparse(page.url).query)['preview_access'][0];expect(page.locator('.session-avatar-button')).to_be_visible();expect(page.locator('.session-login-button')).to_have_count(0)
  assert page.locator('.avatar-options input').count()==8
  initial=page.locator('.session-avatar-button img').get_attribute('src');initialindex=int(initial.split('avatar-')[1].split('.')[0]);nextindex=initialindex%8+1

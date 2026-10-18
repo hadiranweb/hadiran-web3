@@ -1,0 +1,522 @@
+{
+  "passed": true,
+  "checks": [
+    "Personal source list pagination, existing buyer action, persisted refresh and profile/avatar preservation",
+    "Continue and report routes open the existing account-scoped instrument runtime",
+    "Author full counts drill down into editable drafts and a paginated source list",
+    "View-only delegates do not request forbidden responses; response-only delegates see permitted empty responses",
+    "84 account-scoped layouts: four roles, supported FA/EN, light/dark and 320–1920px",
+    "All four role homes reflow at 200% text and 320 CSS pixels",
+    "Genuine empty state renders zero; no browser errors, HTTP 5xx or unexpected authorization failures"
+  ],
+  "layout_cases": 84,
+  "cases": [
+    {
+      "account": "member",
+      "locale": "fa",
+      "theme": "light",
+      "width": 320
+    },
+    {
+      "account": "member",
+      "locale": "fa",
+      "theme": "light",
+      "width": 375
+    },
+    {
+      "account": "member",
+      "locale": "fa",
+      "theme": "light",
+      "width": 768
+    },
+    {
+      "account": "member",
+      "locale": "fa",
+      "theme": "light",
+      "width": 1280
+    },
+    {
+      "account": "member",
+      "locale": "fa",
+      "theme": "light",
+      "width": 1440
+    },
+    {
+      "account": "member",
+      "locale": "fa",
+      "theme": "light",
+      "width": 1920
+    },
+    {
+      "account": "member",
+      "locale": "fa",
+      "theme": "dark",
+      "width": 320
+    },
+    {
+      "account": "member",
+      "locale": "fa",
+      "theme": "dark",
+      "width": 375
+    },
+    {
+      "account": "member",
+      "locale": "fa",
+      "theme": "dark",
+      "width": 768
+    },
+    {
+      "account": "member",
+      "locale": "fa",
+      "theme": "dark",
+      "width": 1280
+    },
+    {
+      "account": "member",
+      "locale": "fa",
+      "theme": "dark",
+      "width": 1440
+    },
+    {
+      "account": "member",
+      "locale": "fa",
+      "theme": "dark",
+      "width": 1920
+    },
+    {
+      "account": "author",
+      "locale": "fa",
+      "theme": "light",
+      "width": 320
+    },
+    {
+      "account": "author",
+      "locale": "fa",
+      "theme": "light",
+      "width": 375
+    },
+    {
+      "account": "author",
+      "locale": "fa",
+      "theme": "light",
+      "width": 768
+    },
+    {
+      "account": "author",
+      "locale": "fa",
+      "theme": "light",
+      "width": 1280
+    },
+    {
+      "account": "author",
+      "locale": "fa",
+      "theme": "light",
+      "width": 1440
+    },
+    {
+      "account": "author",
+      "locale": "fa",
+      "theme": "light",
+      "width": 1920
+    },
+    {
+      "account": "author",
+      "locale": "fa",
+      "theme": "dark",
+      "width": 320
+    },
+    {
+      "account": "author",
+      "locale": "fa",
+      "theme": "dark",
+      "width": 375
+    },
+    {
+      "account": "author",
+      "locale": "fa",
+      "theme": "dark",
+      "width": 768
+    },
+    {
+      "account": "author",
+      "locale": "fa",
+      "theme": "dark",
+      "width": 1280
+    },
+    {
+      "account": "author",
+      "locale": "fa",
+      "theme": "dark",
+      "width": 1440
+    },
+    {
+      "account": "author",
+      "locale": "fa",
+      "theme": "dark",
+      "width": 1920
+    },
+    {
+      "account": "author",
+      "locale": "en",
+      "theme": "light",
+      "width": 320
+    },
+    {
+      "account": "author",
+      "locale": "en",
+      "theme": "light",
+      "width": 375
+    },
+    {
+      "account": "author",
+      "locale": "en",
+      "theme": "light",
+      "width": 768
+    },
+    {
+      "account": "author",
+      "locale": "en",
+      "theme": "light",
+      "width": 1280
+    },
+    {
+      "account": "author",
+      "locale": "en",
+      "theme": "light",
+      "width": 1440
+    },
+    {
+      "account": "author",
+      "locale": "en",
+      "theme": "light",
+      "width": 1920
+    },
+    {
+      "account": "author",
+      "locale": "en",
+      "theme": "dark",
+      "width": 320
+    },
+    {
+      "account": "author",
+      "locale": "en",
+      "theme": "dark",
+      "width": 375
+    },
+    {
+      "account": "author",
+      "locale": "en",
+      "theme": "dark",
+      "width": 768
+    },
+    {
+      "account": "author",
+      "locale": "en",
+      "theme": "dark",
+      "width": 1280
+    },
+    {
+      "account": "author",
+      "locale": "en",
+      "theme": "dark",
+      "width": 1440
+    },
+    {
+      "account": "author",
+      "locale": "en",
+      "theme": "dark",
+      "width": 1920
+    },
+    {
+      "account": "viewer",
+      "locale": "fa",
+      "theme": "light",
+      "width": 320
+    },
+    {
+      "account": "viewer",
+      "locale": "fa",
+      "theme": "light",
+      "width": 375
+    },
+    {
+      "account": "viewer",
+      "locale": "fa",
+      "theme": "light",
+      "width": 768
+    },
+    {
+      "account": "viewer",
+      "locale": "fa",
+      "theme": "light",
+      "width": 1280
+    },
+    {
+      "account": "viewer",
+      "locale": "fa",
+      "theme": "light",
+      "width": 1440
+    },
+    {
+      "account": "viewer",
+      "locale": "fa",
+      "theme": "light",
+      "width": 1920
+    },
+    {
+      "account": "viewer",
+      "locale": "fa",
+      "theme": "dark",
+      "width": 320
+    },
+    {
+      "account": "viewer",
+      "locale": "fa",
+      "theme": "dark",
+      "width": 375
+    },
+    {
+      "account": "viewer",
+      "locale": "fa",
+      "theme": "dark",
+      "width": 768
+    },
+    {
+      "account": "viewer",
+      "locale": "fa",
+      "theme": "dark",
+      "width": 1280
+    },
+    {
+      "account": "viewer",
+      "locale": "fa",
+      "theme": "dark",
+      "width": 1440
+    },
+    {
+      "account": "viewer",
+      "locale": "fa",
+      "theme": "dark",
+      "width": 1920
+    },
+    {
+      "account": "viewer",
+      "locale": "en",
+      "theme": "light",
+      "width": 320
+    },
+    {
+      "account": "viewer",
+      "locale": "en",
+      "theme": "light",
+      "width": 375
+    },
+    {
+      "account": "viewer",
+      "locale": "en",
+      "theme": "light",
+      "width": 768
+    },
+    {
+      "account": "viewer",
+      "locale": "en",
+      "theme": "light",
+      "width": 1280
+    },
+    {
+      "account": "viewer",
+      "locale": "en",
+      "theme": "light",
+      "width": 1440
+    },
+    {
+      "account": "viewer",
+      "locale": "en",
+      "theme": "light",
+      "width": 1920
+    },
+    {
+      "account": "viewer",
+      "locale": "en",
+      "theme": "dark",
+      "width": 320
+    },
+    {
+      "account": "viewer",
+      "locale": "en",
+      "theme": "dark",
+      "width": 375
+    },
+    {
+      "account": "viewer",
+      "locale": "en",
+      "theme": "dark",
+      "width": 768
+    },
+    {
+      "account": "viewer",
+      "locale": "en",
+      "theme": "dark",
+      "width": 1280
+    },
+    {
+      "account": "viewer",
+      "locale": "en",
+      "theme": "dark",
+      "width": 1440
+    },
+    {
+      "account": "viewer",
+      "locale": "en",
+      "theme": "dark",
+      "width": 1920
+    },
+    {
+      "account": "reader",
+      "locale": "fa",
+      "theme": "light",
+      "width": 320
+    },
+    {
+      "account": "reader",
+      "locale": "fa",
+      "theme": "light",
+      "width": 375
+    },
+    {
+      "account": "reader",
+      "locale": "fa",
+      "theme": "light",
+      "width": 768
+    },
+    {
+      "account": "reader",
+      "locale": "fa",
+      "theme": "light",
+      "width": 1280
+    },
+    {
+      "account": "reader",
+      "locale": "fa",
+      "theme": "light",
+      "width": 1440
+    },
+    {
+      "account": "reader",
+      "locale": "fa",
+      "theme": "light",
+      "width": 1920
+    },
+    {
+      "account": "reader",
+      "locale": "fa",
+      "theme": "dark",
+      "width": 320
+    },
+    {
+      "account": "reader",
+      "locale": "fa",
+      "theme": "dark",
+      "width": 375
+    },
+    {
+      "account": "reader",
+      "locale": "fa",
+      "theme": "dark",
+      "width": 768
+    },
+    {
+      "account": "reader",
+      "locale": "fa",
+      "theme": "dark",
+      "width": 1280
+    },
+    {
+      "account": "reader",
+      "locale": "fa",
+      "theme": "dark",
+      "width": 1440
+    },
+    {
+      "account": "reader",
+      "locale": "fa",
+      "theme": "dark",
+      "width": 1920
+    },
+    {
+      "account": "reader",
+      "locale": "en",
+      "theme": "light",
+      "width": 320
+    },
+    {
+      "account": "reader",
+      "locale": "en",
+      "theme": "light",
+      "width": 375
+    },
+    {
+      "account": "reader",
+      "locale": "en",
+      "theme": "light",
+      "width": 768
+    },
+    {
+      "account": "reader",
+      "locale": "en",
+      "theme": "light",
+      "width": 1280
+    },
+    {
+      "account": "reader",
+      "locale": "en",
+      "theme": "light",
+      "width": 1440
+    },
+    {
+      "account": "reader",
+      "locale": "en",
+      "theme": "light",
+      "width": 1920
+    },
+    {
+      "account": "reader",
+      "locale": "en",
+      "theme": "dark",
+      "width": 320
+    },
+    {
+      "account": "reader",
+      "locale": "en",
+      "theme": "dark",
+      "width": 375
+    },
+    {
+      "account": "reader",
+      "locale": "en",
+      "theme": "dark",
+      "width": 768
+    },
+    {
+      "account": "reader",
+      "locale": "en",
+      "theme": "dark",
+      "width": 1280
+    },
+    {
+      "account": "reader",
+      "locale": "en",
+      "theme": "dark",
+      "width": 1440
+    },
+    {
+      "account": "reader",
+      "locale": "en",
+      "theme": "dark",
+      "width": 1920
+    }
+  ],
+  "errors": [],
+  "http_5xx": [],
+  "unexpected_auth_errors": []
+}

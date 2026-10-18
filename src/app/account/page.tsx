@@ -1,3 +1,5 @@
+import { PersonalOverview } from "@/components/account/PersonalOverview";
+import { loadPersonalSnapshot } from "@/lib/account/overview";
 import { AccountAvatarPanel } from "@/components/auth/AccountAvatarPanel";
 import { readAccountAvatar } from "@/lib/account/avatar-store";
 import { previewStore } from "@/lib/preview/store";
@@ -25,6 +27,7 @@ export const metadata: Metadata = {
 
 export default async function AccountPage() {
   const session = await requirePageAccount("/account");
+  const snapshot = await loadPersonalSnapshot(session);
   const preview = await previewStore(session);
   const { avatar } = await readAccountAvatar(session);
   const publicCode = preview ? "پیش‌نمایش" : await ensureAccountPublicCode(session.id);
@@ -42,10 +45,10 @@ export default async function AccountPage() {
   return (
     <PageShell width="narrow" className="account-profile-page">
       {preview ? <p className="integration-notice mb-6">حساب نمایشی؛ نام‌ها فقط تا پایان همین نشست نگه داشته می‌شوند و شناسهٔ واقعی ساخته نمی‌شود.</p> : null}
-      <PageHeader
-        title="حساب من"
-        lede="نام برای گزارش‌ها و تحلیلگر‌هاست. شناسهٔ هشت‌رقمی همان کد معرف شماست؛ با آن وارد نمی‌شوید."
-      />
+      <PageHeader title="خانهٔ من" />
+      <PersonalOverview snapshot={snapshot} />
+      <section className="rh-profile" id="account-profile" aria-labelledby="account-profile-title">
+      <h2 className="mb-6 text-xl font-bold text-ink" id="account-profile-title">حساب من</h2>
       <dl className="mb-8 grid gap-4 sm:grid-cols-2">
         <div className="surface p-5">
           <dt className="text-xs font-medium text-mark">کد معرف / شناسه</dt>
@@ -65,6 +68,7 @@ export default async function AccountPage() {
       {preview ? null : <AccountReferralForm referredBy={referredBy} />}
       <AccountProfileForm givenName={row?.givenName ?? ""} familyName={row?.familyName ?? ""} />
       {session.needsPassword ? <AccountPasswordForm /> : null}
+      </section>
     </PageShell>
   );
 }

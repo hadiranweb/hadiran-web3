@@ -14,6 +14,7 @@ const labels: Record<ActionKind, [string, string]> = {
   analyzers: ["تکمیل آزمون‌های من", "Complete my draft assessments"],
   bots: ["بررسی خطای ربات‌ها", "Review bot errors"],
 };
+const recentLabels: Record<ActionKind, [string,string]> = { orders:["سفارش","Order"],notes:["یادداشت","Note"],collaborations:["همکاری","Collaboration"],analyzers:["آزمون","Assessment"],bots:["ربات","Bot"] };
 const icons = { orders: Receipt, notes: FileText, collaborations: Users, analyzers: FlaskConical, bots: Bot };
 
 export function OperationalOverview({ snapshot, children, listOnly = false }: { snapshot: OperationalSnapshot; children?: ReactNode; listOnly?: boolean }) {
@@ -47,7 +48,7 @@ export function OperationalOverview({ snapshot, children, listOnly = false }: { 
       </section>
       {!listOnly ? <section className="dp-panel wo-queue-directory"><div className="dp-panel-heading"><h2>{t("همهٔ اقدام‌ها", "All pending work")}</h2></div><ul>{actionKinds.map((kind) => { const Icon = icons[kind]; return <li key={kind}><Link href={`/workspace/actions?kind=${kind}`}><Icon size={17} /><span>{t(...labels[kind])}</span><strong>{snapshot.counts[kind] == null ? "—" : number(snapshot.counts[kind]!)}</strong></Link></li>; })}</ul></section> : null}
     </div>
-    {!listOnly ? <section className="dp-panel dp-activity wo-activity"><div className="dp-panel-heading"><h2>{t("آخرین تغییر یادداشت‌های من", "My recently updated notes")}</h2><Link href="/workspace/knowledge">{t("همهٔ یادداشت‌ها", "All notes")}</Link></div>{snapshot.recent.length ? <ol>{snapshot.recent.map((item) => <li key={item.key}><span className="dp-activity-dot dp-dot-settled" /><span><strong>{item.title}</strong></span><time dateTime={item.updatedAt || undefined}>{date(item.updatedAt)}</time><Link className="ws-icon-button" href={item.href} aria-label={`${t("بازکردن", "Open")} ${item.title}`}><Arrow size={16} /></Link></li>)}</ol> : <div className="wo-empty"><p>{live ? t("یادداشتی ثبت نشده است", "No notes yet") : "—"}</p></div>}</section> : null}
+    {!listOnly ? <section className="dp-panel dp-activity wo-activity"><div className="dp-panel-heading"><h2>{t("آخرین تغییر رکوردها", "Recently updated records")}</h2></div>{snapshot.recent.length ? <ol>{snapshot.recent.map((item) => <li key={item.key}><span className="dp-activity-dot dp-dot-settled" /><span><strong>{item.title}</strong><small>{t(...recentLabels[item.kind])}</small></span><time dateTime={item.updatedAt || undefined}>{date(item.updatedAt)}</time><Link className="ws-icon-button" href={item.href} aria-label={`${t("بازکردن", "Open")} ${item.title}`}><Arrow size={16} /></Link></li>)}</ol> : <div className="wo-empty"><p>{live ? t("رکوردی ثبت نشده است", "No records yet") : "—"}</p></div>}</section> : null}
     {children}
     <footer className="dp-footer"><span>{live ? t("آخرین دریافت موفق", "Last successful read") : t("دادهٔ نامشخص، نه صفر", "Unavailable, not zero")}: {date(snapshot.asOf)}{snapshot.asOf ? " UTC" : ""}</span><Link href={listOnly ? "/workspace" : "/workspace/capture"}>{listOnly ? t("بازگشت به میزکار", "Back to overview") : t("ثبت یادداشت", "Create a note")}</Link></footer>
   </main>;

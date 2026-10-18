@@ -47,12 +47,19 @@ export async function loadOperationalSnapshot(account: Pick<SessionAccount, "id"
         const rows = await tx.select({ id: bots.id, title: bots.titleFa, updatedAt: bots.updatedAt }).from(bots).where(botErrors).orderBy(asc(bots.updatedAt), asc(bots.id)).limit(limit).offset(offset);
         actions.push(...rows.map((row) => ({ key: `bot:${row.id}`, kind: "bots" as const, title: row.title, href: `/workspace/bots/${encodeURIComponent(row.id)}`, updatedAt: row.updatedAt.toISOString() })));
       }
-      const recentNotes = await tx.select({ id: semanticRecords.id, title: semanticRecords.titleFa, updatedAt: semanticRecords.updatedAt }).from(semanticRecords).where(eq(semanticRecords.ownerId, account.id)).orderBy(desc(semanticRecords.updatedAt), desc(semanticRecords.id)).limit(4);
+      const recentNotes = await tx.select({ id: semanticRecords.id, title: semanticRecords.titleFa, updatedAt: semanticRecords.updatedAt }).from(semanticRecords).where(and(eq(semanticRecords.ownerId, account.id), isNotNull(semanticRecords.updatedAt))).orderBy(desc(semanticRecords.updatedAt), desc(semanticRecords.id)).limit(6);
       const recent: OperationalItem[] = recentNotes.map((row) => ({ key: `note:${row.id}`, kind: "notes", title: row.title, href: `/workspace/records/${encodeURIComponent(row.id)}`, updatedAt: row.updatedAt?.toISOString() ?? null }));
+      const recentOrders = await tx.select({ id: shopOrders.id, title: shopListings.titleFa, updatedAt: shopOrders.updatedAt }).from(shopOrders).innerJoin(shopListings, eq(shopOrders.listingId, shopListings.id)).where(isNotNull(shopOrders.updatedAt)).orderBy(desc(shopOrders.updatedAt), desc(shopOrders.id)).limit(6);
+      recent.push(...recentOrders.map(row => ({ key: `order:${row.id}`, kind: "orders" as const, title: row.title, href: `/workspace/shop/orders/${encodeURIComponent(row.id)}`, updatedAt: row.updatedAt!.toISOString() })));
+      const recentPacks = await tx.select({ slug: analyzerPacks.slug, title: sql<string>`${analyzerPacks.pack}->>'nameFa'`, updatedAt: analyzerPacks.updatedAt }).from(analyzerPacks).where(eq(analyzerPacks.createdBy, account.id)).orderBy(desc(analyzerPacks.updatedAt), desc(analyzerPacks.slug)).limit(6);
+      recent.push(...recentPacks.map(row => ({ key: `analyzer:${row.slug}`, kind: "analyzers" as const, title: row.title || row.slug, href: `/workspace/analyzers/${encodeURIComponent(row.slug)}`, updatedAt: row.updatedAt.toISOString() })));
+      const recentBots = await tx.select({ id: bots.id, title: bots.titleFa, updatedAt: bots.updatedAt }).from(bots).where(eq(bots.ownerId, account.id)).orderBy(desc(bots.updatedAt), desc(bots.id)).limit(6);
+      recent.push(...recentBots.map(row => ({ key: `bot:${row.id}`, kind: "bots" as const, title: row.title, href: `/workspace/bots/${encodeURIComponent(row.id)}`, updatedAt: row.updatedAt.toISOString() })));
+      recent.sort((a,b) => (b.updatedAt ? Date.parse(b.updatedAt) : 0) - (a.updatedAt ? Date.parse(a.updatedAt) : 0) || a.key.localeCompare(b.key));
       const snapshotTime = await tx.execute(sql`select transaction_timestamp() as "asOf"`);
       const asOf = new Date(snapshotTime.rows[0].asOf as string).toISOString();
       actions.sort((left, right) => actionKinds.indexOf(left.kind) - actionKinds.indexOf(right.kind));
-      return { ...empty, source: "live", asOf, counts, actions, recent };
+      return { ...empty, source: "live", asOf, counts, actions, recent: recent.slice(0,6) };
     }, { isolationLevel: "repeatable read", accessMode: "read only" });
   } catch (error) {
     console.error("[hadiran] operational snapshot unavailable", error instanceof Error ? error.name : "unknown");

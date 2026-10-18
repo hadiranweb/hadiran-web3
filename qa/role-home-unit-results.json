@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "checks": [
+    "Only explicit personal and author filters are accepted",
+    "Missing DB means unknown counts and time, without sample substitution",
+    "Preview account never touches DB or fabricates live rows",
+    "Invalid account identifiers are rejected before DB access",
+    "Injected transaction failure cannot claim a successful snapshot"
+  ]
+}
