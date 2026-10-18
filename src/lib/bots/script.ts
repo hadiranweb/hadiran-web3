@@ -62,6 +62,8 @@ export type BotTexts = {
   textTooLong: string;
   ready: string;
   idleReply: string;
+  questionGuide: string;
+  questionGuideClose: string;
   startDescription: string;
   helpDescription: string;
 };
@@ -189,6 +191,8 @@ export const DEFAULT_BOT_TEXTS: BotTexts = {
   textTooLong: "متن را کوتاه‌تر بنویسید (تا {max} نویسه).",
   ready: "ثبت شد.",
   idleReply: "اگر کاری دارید /start بزنید.",
+  questionGuide: "راهنمای این سوال",
+  questionGuideClose: "بستن راهنما",
   startDescription: "شروع یا ادامه",
   helpDescription: "راهنمای ربات",
 };
@@ -228,6 +232,8 @@ export const BOT_TEXT_FIELDS: { id: keyof BotTexts; labelFa: string; hintFa: str
   { id: "textTooLong", labelFa: "متن سؤال باز خیلی بلند", hintFa: "{max}" },
   { id: "ready", labelFa: "بعد از ثبت هویت", hintFa: "{service}" },
   { id: "idleReply", labelFa: "پاسخ وقتی کار دیگری نیست", hintFa: "" },
+  { id: "questionGuide", labelFa: "دکمهٔ راهنمای سؤال", hintFa: "" },
+  { id: "questionGuideClose", labelFa: "بستن راهنمای سؤال", hintFa: "" },
   { id: "startDescription", labelFa: "شرح دستور /start در منو", hintFa: "" },
   { id: "helpDescription", labelFa: "شرح دستور /help در منو", hintFa: "" },
 ];
@@ -251,6 +257,8 @@ export const ANALYZER_TEXT_IDS: (keyof BotTexts)[] = [
   "discountSkip",
   "discountBad",
   "textTooLong",
+  "questionGuide",
+  "questionGuideClose",
 ];
 
 const CUSTOM_WELCOME =

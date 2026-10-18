@@ -110,6 +110,19 @@ export async function telegramSendMessage(
   await call<unknown>(token, "sendMessage", payload);
 }
 
+export async function telegramEditMessage(
+  token: string,
+  args: { chatId: number | string; messageId: number; text: string; replyMarkup?: Record<string, unknown> },
+): Promise<void> {
+  const payload: Record<string, unknown> = {
+    chat_id: args.chatId,
+    message_id: args.messageId,
+    text: args.text.slice(0, 4096),
+  };
+  if (args.replyMarkup) payload.reply_markup = args.replyMarkup;
+  await call<unknown>(token, "editMessageText", payload);
+}
+
 export async function telegramAnswerCallback(token: string, callbackQueryId: string): Promise<void> {
   try {
     await call<unknown>(token, "answerCallbackQuery", { callback_query_id: callbackQueryId });

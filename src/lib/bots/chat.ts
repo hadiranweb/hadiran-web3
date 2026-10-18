@@ -31,7 +31,7 @@ import { accountIdByTelegramUserId, linkTelegramContact } from "@/lib/bots/ident
 import { markBotLastError } from "@/lib/bots/store";
 import { botConsent } from "@/lib/bots/copy";
 import { botVars, interpolateBotText, line, matchBotKey, parseBotScript, type BotKey, type BotScript } from "@/lib/bots/script";
-import { telegramAnswerCallback, telegramSendMessage } from "@/lib/bots/telegram";
+import { telegramAnswerCallback, telegramEditMessage, telegramSendMessage } from "@/lib/bots/telegram";
 import { absoluteUrl } from "@/lib/site";
 
 const FA = "۰۱۲۳۴۵۶۷۸۹";
@@ -168,34 +168,48 @@ function keysMarkup(script: BotScript) {
   return { keyboard: rows, resize_keyboard: true, is_persistent: true };
 }
 
-function rangeKeyboard(itemIndex: number) {
+function rangeRows(itemIndex: number) {
   const btn = (value: number) => ({ text: faNum(value), callback_data: `q:${itemIndex}:${value}` });
-  return { inline_keyboard: [[10, 9, 8, 7, 6].map(btn), [5, 4, 3, 2, 1, 0].map(btn)] };
+  return [[10, 9, 8, 7, 6].map(btn), [5, 4, 3, 2, 1, 0].map(btn)];
 }
 
-function choiceKeyboard(itemIndex: number, item: Extract<Item, { kind: "choice" }>) {
-  return {
-    inline_keyboard: item.options.map((option, optionIndex) => [
-      { text: option.label.slice(0, 64), callback_data: `c:${itemIndex}:${optionIndex}` },
-    ]),
-  };
+function choiceRows(itemIndex: number, item: Extract<Item, { kind: "choice" }>) {
+  return item.options.map((option, optionIndex) => [
+    { text: option.label.slice(0, 64), callback_data: `c:${itemIndex}:${optionIndex}` },
+  ]);
 }
 
-function questionText(pack: AnalyzerPack, item: Item, index: number) {
+function questionGuideBody(pack: AnalyzerPack, item: Item, index: number) {
   const all = itemsOf(pack);
   const section = sectionOf(pack, item.id);
-  const sectionItems = section ? section.items : [item];
-  const sectionPos = sectionItems.findIndex((row) => row.id === item.id) + 1;
-  const lines = [section?.titleFa ?? pack.nameFa, `سؤال ${faNum(index + 1)} از ${faNum(all.length)}`, ""];
-  if (section?.introFa && sectionPos === 1) lines.push(section.introFa, "");
-  lines.push(item.text);
+  const lines = [section?.titleFa ?? pack.nameFa, `سؤال ${faNum(index + 1)} از ${faNum(all.length)}`];
+  if (section?.introFa) lines.push("", section.introFa);
   if (item.kind === "range") {
-    lines.push("", `۰ (راست) — ${item.anchors[0]}`, `۱۰ (چپ) — ${item.anchors[10]}`);
+    lines.push("", `۰ (راست) — ${item.anchors[0]}`);
+    if (item.anchors[5]) lines.push(`۵ — ${item.anchors[5]}`);
+    lines.push(`۱۰ (چپ) — ${item.anchors[10]}`);
   }
   if (item.kind === "text") {
     lines.push("", `پاسخ را همین‌جا بنویسید (تا ${faNum(item.maxLength)} نویسه).`);
   }
   return lines.join("\n");
+}
+
+function questionText(item: Item) {
+  return item.text;
+}
+
+function questionMessage(item: Item, pack: AnalyzerPack, index: number, open: boolean) {
+  if (!open) return questionText(item);
+  return [questionText(item), "", questionGuideBody(pack, item, index)].join("\n");
+}
+
+function questionMarkup(itemIndex: number, item: Item, script: BotScript, open: boolean) {
+  const rows =
+    item.kind === "range" ? rangeRows(itemIndex) : item.kind === "choice" ? choiceRows(itemIndex, item) : [];
+  const label = (open ? script.texts.questionGuideClose : script.texts.questionGuide).slice(0, 64);
+  rows.push([{ text: label, callback_data: `g:${itemIndex}:${open ? "1" : "0"}` }]);
+  return { inline_keyboard: rows };
 }
 
 function doneText(pack: AnalyzerPack, attempt: AttemptView): string {
@@ -253,10 +267,7 @@ async function promptQuestion(
   const index = firstUnansweredIndex(pack, attempt.answers);
   const item = items[index];
   if (!item) return;
-  let markup: Record<string, unknown> | undefined;
-  if (item.kind === "range") markup = rangeKeyboard(index);
-  if (item.kind === "choice") markup = choiceKeyboard(index, item);
-  await say(token, botId, chatId, questionText(pack, item, index), markup);
+  await say(token, botId, chatId, questionMessage(item, pack, index, false), questionMarkup(index, item, script, false));
 }
 
 async function continueQuiz(
@@ -627,6 +638,26 @@ export async function handleTelegramUpdate(input: {
     const pack = await livePack(slug);
     if (!pack) return;
     const items = itemsOf(pack);
+    const guideMatch = /^g:(\d+):([01])$/.exec(callback.data);
+    if (guideMatch) {
+      const index = Number(guideMatch[1]);
+      const open = guideMatch[2] === "0";
+      const item = items[index];
+      if (!item) {
+        await say(token, botId, chatId, line(script, "staleButton", v));
+        return;
+      }
+      const text = questionMessage(item, pack, index, open);
+      const markup = questionMarkup(index, item, script, open);
+      const messageId = callback.message?.message_id;
+      try {
+        if (messageId == null) throw new Error("no_message");
+        await telegramEditMessage(token, { chatId, messageId, text, replyMarkup: markup });
+      } catch {
+        await say(token, botId, chatId, text, markup);
+      }
+      return;
+    }
     const rangeMatch = /^q:(\d+):(\d+)$/.exec(callback.data);
     const choiceMatch = /^c:(\d+):(\d+)$/.exec(callback.data);
     let item: Item | undefined;
