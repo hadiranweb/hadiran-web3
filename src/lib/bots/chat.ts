@@ -19,6 +19,7 @@ import { InvalidPhoneError, normalizePhone } from "@/lib/auth/phone";
 import { ensureBotsSchema } from "@/lib/auth/schema-guard";
 import { accountIdByTelegramUserId, linkTelegramContact } from "@/lib/bots/identity";
 import { markBotLastError } from "@/lib/bots/store";
+import { botConsent, botHelp, botWelcome } from "@/lib/bots/copy";
 import { telegramAnswerCallback, telegramSendMessage } from "@/lib/bots/telegram";
 import { absoluteUrl } from "@/lib/site";
 
@@ -189,9 +190,14 @@ function doneText(pack: AnalyzerPack, attempt: AttemptView): string {
   return lines.join("\n");
 }
 
+function commandName(text: string): string | null {
+  const match = /^\/([a-zA-Z0-9_]+)(?:@[A-Za-z0-9_]+)?(?:\s|$)/.exec(text);
+  return match ? match[1].toLowerCase() : null;
+}
+
 async function promptConsent(token: string, botId: string, chatId: number, pack: AnalyzerPack) {
-  const text = [`${pack.nameFa}`, pack.summaryFa, "", pack.consent.titleFa, "", ...pack.consent.bodyFa].join("\n");
-  await say(token, botId, chatId, text, consentKeyboard(pack.consent.acceptLabelFa));
+  await say(token, botId, chatId, botWelcome(pack));
+  await say(token, botId, chatId, botConsent(pack), consentKeyboard(pack.consent.acceptLabelFa));
 }
 
 async function promptPhone(token: string, botId: string, chatId: number) {
@@ -361,8 +367,9 @@ export async function handleTelegramUpdate(input: {
 
   if (!message) return;
   const text = message.text?.trim() ?? "";
+  const command = commandName(text);
   const session = await readSession(input.botId, telegramUserId);
-  if (session?.awaitingReferral && text && text !== "/start" && !text.startsWith("/start ")) {
+  if (session?.awaitingReferral && text && command !== "start" && command !== "help") {
     const accountId = await accountIdByTelegramUserId(telegramUserId);
     if (accountId && (text === "رد" || text === "/skip")) {
       await touchSession(input.botId, telegramUserId, String(chat.id), true, false);
@@ -388,7 +395,11 @@ export async function handleTelegramUpdate(input: {
       return;
     }
   }
-  if (text === "/start" || text === "/help" || text.startsWith("/start ")) {
+  if (command === "help") {
+    await say(input.token, input.botId, chat.id, botHelp(pack));
+    return;
+  }
+  if (command === "start") {
     await handleStart(input.token, input.botId, chat.id, telegramUserId, pack);
     return;
   }

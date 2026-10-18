@@ -1,5 +1,5 @@
 {
-  "upstream": "648b623515a21aa6f3bf2de3954080d4c50353e2",
+  "upstream": "ccc98d66f2c5a8b028986c9bfd22575825c4e5c0",
   "passed": true,
   "checks": [
     "Author role survives real password login and JWT session hydration",

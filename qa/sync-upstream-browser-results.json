@@ -1,6 +1,6 @@
 {
   "passed": true,
-  "layout_cases": 72,
+  "layout_cases": 80,
   "cases": [
     [
       "owner",
@@ -287,6 +287,54 @@
     [
       "owner",
       "/workspace/analyzers/casio-ss",
+      "dark",
+      1440
+    ],
+    [
+      "owner",
+      "/workspace/bots/2022dbc4107a8f325d8f8487",
+      "light",
+      320
+    ],
+    [
+      "owner",
+      "/workspace/bots/2022dbc4107a8f325d8f8487",
+      "light",
+      390
+    ],
+    [
+      "owner",
+      "/workspace/bots/2022dbc4107a8f325d8f8487",
+      "light",
+      768
+    ],
+    [
+      "owner",
+      "/workspace/bots/2022dbc4107a8f325d8f8487",
+      "light",
+      1440
+    ],
+    [
+      "owner",
+      "/workspace/bots/2022dbc4107a8f325d8f8487",
+      "dark",
+      320
+    ],
+    [
+      "owner",
+      "/workspace/bots/2022dbc4107a8f325d8f8487",
+      "dark",
+      390
+    ],
+    [
+      "owner",
+      "/workspace/bots/2022dbc4107a8f325d8f8487",
+      "dark",
+      768
+    ],
+    [
+      "owner",
+      "/workspace/bots/2022dbc4107a8f325d8f8487",
       "dark",
       1440
     ],

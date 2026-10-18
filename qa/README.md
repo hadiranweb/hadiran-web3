@@ -19,3 +19,13 @@ Limitations: no production DB was accessed; no SMS was sent; no real funds were 
 ## Navigation/profile iteration
 
 `navigation_browser.py` targets the no-DB preview (3001): 10 behavioral groups and 59 layout cases. `avatar_api.py` targets real local PostgreSQL APIs (3002); `profile_live_browser.py` targets the same server through simulated HTTPS: 134 public/member layout and text-zoom cases. These final scripts do not inject implementation CSS. Run the avatar API suite before the member browser suite. The existing DB rate limiter also applies to successful test logins: repeated suite runs can correctly return HTTP 429; reset ONLY the disposable local fixtures or wait for its window. Do not weaken production throttling for QA. Five upstream public content pages need a DB and are therefore covered by the DB-backed suite, not by pretending an error page is a valid no-DB layout. See `docs/navigation-profile-responsive.md` for storage limitations and deployment.
+
+## Upstream sync through ccc98d6
+
+- `sync_upstream_api.py`: 13 groups with real local JWT/PostgreSQL: author role, access grants/revocation, response visibility, referral isolation/cycles, discounts, bot owner isolation and denied webhook/connection prerequisites. No outbound Telegram calls.
+- `sync_upstream_browser.py`: 80 layouts across new modules, owner/author, 320/390/768/1440 px and light/dark. Also RTL/LTR sidebar, mobile close and response/access tabs. A simulated HTTPS origin fronts the real local DB build.
+- `sync_telegram_mock.cjs`: 8 groups using real disposable PostgreSQL and entirely mocked Telegram HTTP: AES-GCM, proxy normalization, malformed/group updates, commands/consent, strict contact ownership, answer scoring, submission/replay. Uses existing TypeScript, no new dependency.
+- `sync_migration_upgrade.cjs`: upgrade from both `289e3a6` and `ccc98d6` to the combined 20 migrations, followed by a second all-skip pass. Uses two separately provisioned local QA databases only. Original migration filenames are retained, including both distinct 0015 files.
+- `sync-preservation-results.json`: byte comparison of original portrait/font/avatar/brand assets, dependencies, disclosure animation and all old/new SQL migrations.
+
+The `sync_*` scripts use intentionally fake local-only fixture credentials. Never run these scripts on production. The bot mock is not evidence of real Telegram/Cloudflare/Liara/SMS/payment delivery. Author access is not a general personal workspace for every member: the original member restriction remains.

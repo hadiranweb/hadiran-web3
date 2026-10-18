@@ -1,4 +1,4 @@
-"""QA for upstream 648b623. Local disposable DB only; no external Telegram requests."""
+"""QA for upstream ccc98d6. Local disposable DB only; no external Telegram requests."""
 import json, os, subprocess, time, urllib.request, urllib.error
 from pathlib import Path
 BASE=os.getenv('QA_BASE','http://127.0.0.1:3002')
@@ -117,5 +117,5 @@ anon.call('/api/bots/telegram/'+bid+'/webhook','POST',{'update_id':1},expected=4
 owner.call('/api/workspace/bots/'+bid,'DELETE',{})
 owner.call('/api/workspace/bots/'+bid,expected=404)
 check('Unauthenticated webhook and unconfigured connection rejected; local bot deletion')
-Path('qa/sync-upstream-api-results.json').write_text(json.dumps({'upstream':'648b623515a21aa6f3bf2de3954080d4c50353e2','passed':True,'checks':checks,'external_telegram_tested':False},ensure_ascii=False,indent=2))
+Path('qa/sync-upstream-api-results.json').write_text(json.dumps({'upstream':'ccc98d66f2c5a8b028986c9bfd22575825c4e5c0','passed':True,'checks':checks,'external_telegram_tested':False},ensure_ascii=False,indent=2))
 print('PASS',len(checks),'groups')

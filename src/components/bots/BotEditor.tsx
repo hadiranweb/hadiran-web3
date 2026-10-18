@@ -130,10 +130,19 @@ export function BotEditor({
         </p>
         {bot.lastError ? <p className="text-sm text-red-700">{bot.lastError}</p> : null}
         {bot.lastWebhookAt ? (
-          <p className="text-xs text-muted">آخرین پیام وب‌هوک: {new Date(bot.lastWebhookAt).toLocaleString("fa-IR")}</p>
+          <p className="text-xs text-muted">
+            آخرین پیام وب‌هوک: {new Date(bot.lastWebhookAt).toLocaleString("fa-IR")}
+            {bot.lastUpdateKind ? ` · ${bot.lastUpdateKind}` : ""}
+            {bot.pendingUpdateCount != null ? ` · در صف: ${bot.pendingUpdateCount.toLocaleString("fa-IR")}` : ""}
+          </p>
         ) : (
           <p className="text-xs text-muted">هنوز به‌روزرسانی از تلگرام نیامده. در ربات /start بزنید.</p>
         )}
+        {bot.lastWebhookAt && bot.lastError?.includes("ارسال پیام") ? (
+          <p className="text-sm text-amber-800">
+            وب‌هوک رسید ولی پیام نرفت. روی لیارا TELEGRAM_API_BASE را به Worker کلودفلر بدهید.
+          </p>
+        ) : null}
 
         <label className="block text-sm">
           <span className="mb-1 block text-muted">نام</span>
@@ -164,6 +173,20 @@ export function BotEditor({
           {busy === "save" ? "در حال ذخیره…" : "ذخیرهٔ تنظیمات"}
         </button>
         {saved ? <p className="text-sm text-teal-800">تنظیمات ذخیره شد.</p> : null}
+      </section>
+
+      <section className="rounded-2xl border border-line bg-elev p-6 space-y-3">
+        <h2 className="text-base font-bold text-ink">گفتگوی ربات</h2>
+        <ol className="list-decimal space-y-1 pr-5 text-sm leading-7 text-muted">
+          <li>/start → معرفی کوتاه + متن رضایت و دکمهٔ قبول</li>
+          <li>ارسال شمارهٔ خودتان با دکمه</li>
+          <li>کد معرف اختیاری یا «رد»</li>
+          <li>سؤال‌ها یکی‌یکی؛ ۰ راست، ۱۰ چپ</li>
+          <li>جمع‌بندی در همان چت؛ گزارش کامل بعد از ورود با همین شماره</li>
+        </ol>
+        <p className="text-xs leading-6 text-muted">
+          اگر /start زد و هیچ متنی نیامد: اول «وضعیت وب‌هوک»، بعد اتصال دوباره. منوی ربات (/start و /help) هنگام اتصال ثبت می‌شود.
+        </p>
       </section>
 
       <section className="rounded-2xl border border-line bg-elev p-6 space-y-4">

@@ -21,6 +21,9 @@ with sync_playwright() as pw:
    assert page.locator('.ws-navigation a[href="/workspace/bots"]').count()==0
    assert page.locator('.ws-navigation a[href="/workspace/referrals"]').count()==1
   else:assert page.locator('.ws-navigation a[href="/workspace/bots"]').count()==1
+  if role=='owner':
+   created=page.evaluate("async()=>{const r=await fetch('/api/workspace/bots',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titleFa:'ربات بررسی رابط',analyzerSlug:'casio-ss'})});if(!r.ok)throw new Error('create failed');return r.json()}")
+   paths=paths+['/workspace/bots/'+created['bot']['id']]
   for path in paths:
    page.goto('https://sync.test'+path);expect(page.locator('h1')).to_be_visible()
    for theme in ['light','dark']:
@@ -29,6 +32,8 @@ with sync_playwright() as pw:
      page.set_viewport_size({'width':width,'height':900});page.wait_for_timeout(60)
      assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),(role,path,theme,width,page.evaluate('document.documentElement.scrollWidth'))
      cases.append([role,path,theme,width])
+   if '/workspace/bots/' in path and not path.endswith('/new'):
+    expect(page.get_by_role('heading',name='گفتگوی ربات')).to_be_visible();page.screenshot(path='qa/sync-bot-editor-dark.png',full_page=False)
    if path=='/workspace/bots/new':
     assert page.locator('input').count()>0
    if role=='owner' and path=='/workspace/analyzers/casio-ss':
