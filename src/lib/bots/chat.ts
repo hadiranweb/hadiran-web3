@@ -6,6 +6,7 @@ import {
   liveConsentAttempt,
   livePack,
   liveReadAttempt,
+  liveRetakeAttempt,
   liveSaveAnswer,
   liveSubmitAttempt,
 } from "@/lib/analyzers/live-attempts";
@@ -29,7 +30,7 @@ import { privacyPolicyVersion } from "@/lib/privacy/version";
 import { accountIdByTelegramUserId, linkTelegramContact } from "@/lib/bots/identity";
 import { markBotLastError } from "@/lib/bots/store";
 import { botConsent } from "@/lib/bots/copy";
-import { botVars, line, parseBotScript, type BotScript } from "@/lib/bots/script";
+import { botVars, interpolateBotText, line, matchBotKey, parseBotScript, type BotKey, type BotScript } from "@/lib/bots/script";
 import { telegramAnswerCallback, telegramSendMessage } from "@/lib/bots/telegram";
 import { absoluteUrl } from "@/lib/site";
 
@@ -157,6 +158,16 @@ function phoneKeyboard(script: BotScript) {
   };
 }
 
+function keysMarkup(script: BotScript) {
+  const buttons = script.keys.filter((key) => key.inKeyboard && key.labelFa);
+  if (!buttons.length) return undefined;
+  const rows: { text: string }[][] = [];
+  for (let i = 0; i < buttons.length; i += 2) {
+    rows.push(buttons.slice(i, i + 2).map((key) => ({ text: key.labelFa.slice(0, 64) })));
+  }
+  return { keyboard: rows, resize_keyboard: true, is_persistent: true };
+}
+
 function rangeKeyboard(itemIndex: number) {
   const btn = (value: number) => ({ text: faNum(value), callback_data: `q:${itemIndex}:${value}` });
   return { inline_keyboard: [[10, 9, 8, 7, 6].map(btn), [5, 4, 3, 2, 1, 0].map(btn)] };
@@ -218,7 +229,7 @@ async function promptExamList(
     (item) => item.status === "open" && (!boundSlug || item.slug === boundSlug),
   );
   if (!open.length) {
-    await say(token, botId, chatId, line(script, "noExams", varsOf(titleFa)));
+    await say(token, botId, chatId, line(script, "noExams", varsOf(titleFa)), keysMarkup(script));
     return;
   }
   await say(token, botId, chatId, line(script, "examPick", varsOf(titleFa)), {
@@ -232,10 +243,11 @@ async function promptQuestion(
   chatId: number,
   pack: AnalyzerPack,
   attempt: AttemptView,
+  script: BotScript,
 ) {
   const items = itemsOf(pack);
   if (attempt.status === "submitted" || isComplete(pack, attempt.answers)) {
-    await say(token, botId, chatId, doneText(pack, attempt), { remove_keyboard: true });
+    await say(token, botId, chatId, doneText(pack, attempt), keysMarkup(script));
     return;
   }
   const index = firstUnansweredIndex(pack, attempt.answers);
@@ -270,17 +282,17 @@ async function continueQuiz(
     return;
   }
   if (attempt.status === "submitted") {
-    await say(token, botId, chatId, doneText(pack, attempt), { remove_keyboard: true });
+    await say(token, botId, chatId, doneText(pack, attempt), keysMarkup(script));
     return;
   }
   if (isComplete(pack, attempt.answers)) {
     const submitted = await liveSubmitAttempt(accountId, pack.slug);
     if (submitted.ok) {
-      await say(token, botId, chatId, doneText(pack, submitted.attempt), { remove_keyboard: true });
+      await say(token, botId, chatId, doneText(pack, submitted.attempt), keysMarkup(script));
       return;
     }
   }
-  await promptQuestion(token, botId, chatId, pack, attempt);
+  await promptQuestion(token, botId, chatId, pack, attempt, script);
 }
 
 async function afterAccount(
@@ -342,7 +354,7 @@ async function afterAccount(
   }
   if (script.service !== "analyzers") {
     await patchSession(botId, telegramUserId, String(chatId), { step: "idle", awaitingReferral: false });
-    await say(token, botId, chatId, line(script, "ready", v), { remove_keyboard: true });
+    await say(token, botId, chatId, line(script, "ready", v), keysMarkup(script));
     return;
   }
   await patchSession(botId, telegramUserId, String(chatId), { step: "pick", awaitingReferral: false });
@@ -372,6 +384,18 @@ async function startPack(
     await say(token, botId, chatId, line(script, "examClosed", varsOf(titleFa, { exam: pack?.nameFa ?? slug })));
     return;
   }
+  const accountId = await accountIdByTelegramUserId(telegramUserId);
+  const existing = accountId ? await liveReadAttempt(accountId, slug) : null;
+  if (existing?.status === "submitted") {
+    await patchSession(botId, telegramUserId, String(chatId), { step: "quiz", analyzerSlug: slug });
+    await say(token, botId, chatId, doneText(pack, existing), keysMarkup(script));
+    return;
+  }
+  if (accountId && existing?.consentAt && existing.status === "in_progress") {
+    await patchSession(botId, telegramUserId, String(chatId), { step: "quiz", analyzerSlug: slug, awaitingDiscount: false });
+    await continueQuiz(token, botId, chatId, accountId, pack, script, titleFa);
+    return;
+  }
   await patchSession(botId, telegramUserId, String(chatId), {
     step: "pack_consent",
     analyzerSlug: slug,
@@ -380,6 +404,73 @@ async function startPack(
   await say(token, botId, chatId, botConsent(pack), {
     inline_keyboard: [[{ text: pack.consent.acceptLabelFa, callback_data: "packok" }]],
   });
+}
+
+async function runBotKey(input: {
+  token: string;
+  botId: string;
+  chatId: number;
+  telegramUserId: string;
+  script: BotScript;
+  titleFa: string;
+  boundSlug: string | null;
+  key: BotKey;
+}): Promise<void> {
+  const { token, botId, chatId, telegramUserId, script, titleFa, boundSlug, key } = input;
+  const v = varsOf(titleFa);
+  if (key.action === "help") {
+    await say(token, botId, chatId, line(script, "help", v), keysMarkup(script));
+    return;
+  }
+  if (key.action === "reply") {
+    await say(token, botId, chatId, interpolateOrReady(script, key, titleFa), keysMarkup(script));
+    return;
+  }
+  if (key.action === "exams") {
+    const accountId = await accountIdByTelegramUserId(telegramUserId);
+    if (!accountId) {
+      await promptPhone(token, botId, chatId, script, titleFa);
+      return;
+    }
+    if (script.service !== "analyzers") {
+      await afterAccount(token, botId, chatId, telegramUserId, accountId, script, titleFa, boundSlug);
+      return;
+    }
+    await patchSession(botId, telegramUserId, String(chatId), { step: "pick" });
+    await promptExamList(token, botId, chatId, script, titleFa, boundSlug);
+    return;
+  }
+  if (key.action === "restart") {
+    const accountId = await accountIdByTelegramUserId(telegramUserId);
+    if (!accountId) {
+      await promptPhone(token, botId, chatId, script, titleFa);
+      return;
+    }
+    const session = await readSession(botId, telegramUserId);
+    const slug = session?.analyzerSlug || boundSlug;
+    if (!slug || script.service !== "analyzers") {
+      await promptExamList(token, botId, chatId, script, titleFa, boundSlug);
+      return;
+    }
+    await liveRetakeAttempt(accountId, slug);
+    await startPack(token, botId, chatId, telegramUserId, slug, script, titleFa, boundSlug);
+    return;
+  }
+  await patchSession(botId, telegramUserId, String(chatId), { step: "start" });
+  await say(token, botId, chatId, line(script, "welcome", v), keysMarkup(script));
+  const accountId = await accountIdByTelegramUserId(telegramUserId);
+  if (!accountId) {
+    await patchSession(botId, telegramUserId, String(chatId), { step: "phone" });
+    await promptPhone(token, botId, chatId, script, titleFa);
+    return;
+  }
+  await afterAccount(token, botId, chatId, telegramUserId, accountId, script, titleFa, boundSlug);
+}
+
+function interpolateOrReady(script: BotScript, key: BotKey, titleFa: string) {
+  const text = key.replyFa.trim();
+  if (!text) return line(script, "idleReply", varsOf(titleFa));
+  return interpolateBotText(text, varsOf(titleFa)).slice(0, 4096);
 }
 
 export async function handleTelegramUpdate(input: {
@@ -411,21 +502,34 @@ export async function handleTelegramUpdate(input: {
   const boundSlug = input.analyzerSlug?.trim() || null;
   const v = varsOf(titleFa);
 
-  if (command === "help") {
-    await say(token, botId, chatId, line(script, "help", v));
+  if (callback?.data === "retake" || callback?.data === "exams") {
+    const action = callback.data === "retake" ? "restart" : "exams";
+    const fallback: BotKey = {
+      id: action,
+      labelFa: action,
+      action,
+      command: action,
+      descriptionFa: "",
+      replyFa: "",
+      inMenu: false,
+      inKeyboard: false,
+    };
+    await runBotKey({
+      token,
+      botId,
+      chatId,
+      telegramUserId,
+      script,
+      titleFa,
+      boundSlug,
+      key: matchBotKey(script, "", action) ?? fallback,
+    });
     return;
   }
 
-  if (command === "start") {
-    await patchSession(botId, telegramUserId, String(chatId), { step: "start" });
-    await say(token, botId, chatId, line(script, "welcome", v));
-    const accountId = await accountIdByTelegramUserId(telegramUserId);
-    if (!accountId) {
-      await patchSession(botId, telegramUserId, String(chatId), { step: "phone" });
-      await promptPhone(token, botId, chatId, script, titleFa);
-      return;
-    }
-    await afterAccount(token, botId, chatId, telegramUserId, accountId, script, titleFa, boundSlug);
+  const hit = matchBotKey(script, text, command);
+  if (hit && (command || text === hit.labelFa)) {
+    await runBotKey({ token, botId, chatId, telegramUserId, script, titleFa, boundSlug, key: hit });
     return;
   }
 
@@ -586,7 +690,7 @@ export async function handleTelegramUpdate(input: {
       pendingPhone: null,
       step: "policy",
     });
-    await say(token, botId, chatId, line(script, "phoneSaved", v), { remove_keyboard: true });
+    await say(token, botId, chatId, line(script, "phoneSaved", v), keysMarkup(script));
     await afterAccount(token, botId, chatId, telegramUserId, linked.accountId, script, titleFa, boundSlug);
     return;
   }
@@ -740,7 +844,7 @@ export async function handleTelegramUpdate(input: {
       return;
     }
     if (attempt.status === "submitted") {
-      await say(token, botId, chatId, doneText(pack, attempt), { remove_keyboard: true });
+      await say(token, botId, chatId, doneText(pack, attempt), keysMarkup(script));
       return;
     }
     const items = itemsOf(pack);
@@ -751,7 +855,7 @@ export async function handleTelegramUpdate(input: {
       return;
     }
     if (item.kind !== "text") {
-      await promptQuestion(token, botId, chatId, pack, attempt);
+      await promptQuestion(token, botId, chatId, pack, attempt, script);
       return;
     }
     const saved = await liveSaveAnswer(accountId, pack.slug, item.id, text);

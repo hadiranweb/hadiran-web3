@@ -193,6 +193,21 @@ export function AnalyzerRun({ pack }: { pack: AnalyzerPack }) {
     setSubmitted(true);
   }
 
+  async function retake() {
+    setBusy(true);
+    const attempt = await post({ action: "retake" });
+    setBusy(false);
+    if (!attempt) return;
+    clearDraft(draftKey);
+    setSubmitted(false);
+    setConsent(false);
+    setAnswers({});
+    setIndex(0);
+    setReferralCode("");
+    setDiscountCode("");
+    persist({ consent: false, answers: {}, index: 0 });
+  }
+
   if (!ready) {
     return <p className="text-sm text-muted">در حال بارگذاری ارزیابی…</p>;
   }
@@ -208,6 +223,16 @@ export function AnalyzerRun({ pack }: { pack: AnalyzerPack }) {
         <Link href={reportHref} className="mt-6 inline-flex text-sm font-medium text-accent hover:text-ink">
           مشاهده جمع‌بندی
         </Link>
+        <div className="mt-4">
+          <button
+            type="button"
+            onClick={() => void retake()}
+            disabled={busy}
+            className="text-sm font-medium text-muted hover:text-ink disabled:opacity-60"
+          >
+            نوبت تازه
+          </button>
+        </div>
       </section>
     );
   }
@@ -276,10 +301,20 @@ export function AnalyzerRun({ pack }: { pack: AnalyzerPack }) {
             style={{ width: `${Math.round((progress / allItems.length) * 100)}%` }}
           />
         </div>
-        <p className="mt-2 text-xs text-muted">
-          سؤال {faNum(index + 1)} از {faNum(allItems.length)}
-          {sectionItems.length > 1 ? ` · این بخش ${faNum(sectionPos)} از ${faNum(sectionItems.length)}` : null}
-        </p>
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs text-muted">
+            سؤال {faNum(index + 1)} از {faNum(allItems.length)}
+            {sectionItems.length > 1 ? ` · این بخش ${faNum(sectionPos)} از ${faNum(sectionItems.length)}` : null}
+          </p>
+          <button
+            type="button"
+            onClick={() => void retake()}
+            disabled={busy}
+            className="text-xs font-medium text-muted hover:text-ink disabled:opacity-60"
+          >
+            شروع مجدد
+          </button>
+        </div>
       </div>
 
       <div key={item.id} className="px-6 py-6 sm:px-8 sm:py-8">

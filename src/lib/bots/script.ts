@@ -66,10 +66,80 @@ export type BotTexts = {
   helpDescription: string;
 };
 
+export const BOT_KEY_ACTIONS = ["start", "help", "exams", "restart", "reply"] as const;
+export type BotKeyAction = (typeof BOT_KEY_ACTIONS)[number];
+
+export type BotKey = {
+  id: string;
+  labelFa: string;
+  action: BotKeyAction;
+  command: string;
+  descriptionFa: string;
+  replyFa: string;
+  inMenu: boolean;
+  inKeyboard: boolean;
+};
+
+export const BOT_KEY_ACTION_OPTIONS: { id: BotKeyAction; labelFa: string }[] = [
+  { id: "start", labelFa: "شروع گفتگو" },
+  { id: "help", labelFa: "راهنما" },
+  { id: "exams", labelFa: "فهرست آزمون‌ها" },
+  { id: "restart", labelFa: "شروع مجدد آزمون جاری" },
+  { id: "reply", labelFa: "ارسال متن ثابت" },
+];
+
+export const DEFAULT_ANALYZER_KEYS: BotKey[] = [
+  {
+    id: "start",
+    labelFa: "شروع",
+    action: "start",
+    command: "start",
+    descriptionFa: "شروع یا ادامه",
+    replyFa: "",
+    inMenu: true,
+    inKeyboard: true,
+  },
+  {
+    id: "help",
+    labelFa: "راهنما",
+    action: "help",
+    command: "help",
+    descriptionFa: "راهنمای ربات",
+    replyFa: "",
+    inMenu: true,
+    inKeyboard: true,
+  },
+  {
+    id: "exams",
+    labelFa: "آزمون‌ها",
+    action: "exams",
+    command: "exams",
+    descriptionFa: "فهرست آزمون‌ها",
+    replyFa: "",
+    inMenu: true,
+    inKeyboard: true,
+  },
+  {
+    id: "restart",
+    labelFa: "شروع مجدد",
+    action: "restart",
+    command: "restart",
+    descriptionFa: "نوبت تازه همین آزمون",
+    replyFa: "",
+    inMenu: true,
+    inKeyboard: true,
+  },
+];
+
+export const DEFAULT_CUSTOM_KEYS: BotKey[] = DEFAULT_ANALYZER_KEYS.filter(
+  (key) => key.action === "start" || key.action === "help",
+);
+
 export type BotScript = {
   service: BotService;
   flow: BotFlow;
   texts: BotTexts;
+  keys: BotKey[];
 };
 
 const POLICY_DEFAULT = [privacySummary, "", ...privacyUseTerms, "", "جزئیات: {privacy}"].join("\n");
@@ -188,6 +258,60 @@ const CUSTOM_WELCOME =
 const CUSTOM_HELP = "راهنما — {service}\n\n/start شروع یا ادامه\n/help همین راهنما\n\nورود سایت با همین شماره و رمز لینک است، نه با این چت.";
 const CUSTOM_READY = "ثبت شد. اگر پیامی دارید همین‌جا بنویسید.";
 
+function asCommand(value: unknown): string {
+  if (typeof value !== "string") return "";
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/^\/+/, "")
+    .replace(/[^a-z0-9_]/g, "")
+    .slice(0, 32);
+}
+
+function parseBotKey(raw: unknown, fallbackId: string): BotKey | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const row = raw as Record<string, unknown>;
+  const labelFa = asMultiline(row.labelFa, 64, "");
+  if (!labelFa) return null;
+  const action = BOT_KEY_ACTIONS.includes(row.action as BotKeyAction) ? (row.action as BotKeyAction) : "reply";
+  const id = asCommand(row.id) || asCommand(row.command) || fallbackId;
+  return {
+    id: id || fallbackId,
+    labelFa,
+    action,
+    command: asCommand(row.command),
+    descriptionFa: asMultiline(row.descriptionFa, 256, labelFa),
+    replyFa: asMultiline(row.replyFa, 500, ""),
+    inMenu: row.inMenu !== false,
+    inKeyboard: row.inKeyboard !== false,
+  };
+}
+
+export function telegramCommandsOf(script: BotScript): { command: string; description: string }[] {
+  const seen = new Set<string>();
+  const out: { command: string; description: string }[] = [];
+  for (const key of script.keys) {
+    if (!key.inMenu || !key.command || seen.has(key.command)) continue;
+    seen.add(key.command);
+    const description = (key.descriptionFa || key.labelFa).slice(0, 256);
+    out.push({ command: key.command, description: description.length >= 3 ? description : `${description}…` });
+  }
+  if (!out.length) {
+    out.push({ command: "start", description: "شروع یا ادامه" }, { command: "help", description: "راهنمای ربات" });
+  }
+  return out.slice(0, 100);
+}
+
+export function matchBotKey(script: BotScript, text: string, command: string | null): BotKey | null {
+  if (command) {
+    const byCommand = script.keys.find((key) => key.command && key.command === command);
+    if (byCommand) return byCommand;
+  }
+  const label = text.replace(/\s+/g, " ").trim();
+  if (!label) return null;
+  return script.keys.find((key) => key.labelFa === label) ?? null;
+}
+
 function asMultiline(value: unknown, max: number, fallback: string): string {
   if (typeof value !== "string") return fallback;
   const text = value.replace(/\r\n/g, "\n").replace(/[^\S\n]+/g, " ").trim();
@@ -211,7 +335,12 @@ export function defaultScript(service: BotService = "analyzers"): BotScript {
     texts.ready = CUSTOM_READY;
     flow.askDiscount = false;
   }
-  return { service, flow, texts };
+  return {
+    service,
+    flow,
+    texts,
+    keys: service === "custom" ? DEFAULT_CUSTOM_KEYS.map((key) => ({ ...key })) : DEFAULT_ANALYZER_KEYS.map((key) => ({ ...key })),
+  };
 }
 
 export function parseBotScript(raw: unknown): BotScript {
@@ -230,7 +359,13 @@ export function parseBotScript(raw: unknown): BotScript {
   for (const key of Object.keys(DEFAULT_BOT_TEXTS) as (keyof BotTexts)[]) {
     texts[key] = asMultiline(textRaw[key], key === "policy" || key === "welcome" || key === "help" ? 3500 : 500, base.texts[key]);
   }
-  return { service, flow, texts };
+  const parsedKeys = Array.isArray(row.keys)
+    ? row.keys
+        .map((item, index) => parseBotKey(item, `key${index + 1}`))
+        .filter((item): item is BotKey => Boolean(item))
+        .slice(0, 20)
+    : [];
+  return { service, flow, texts, keys: parsedKeys.length ? parsedKeys : base.keys };
 }
 
 export function botVars(input: {

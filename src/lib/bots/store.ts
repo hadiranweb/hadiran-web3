@@ -21,7 +21,7 @@ import {
   webhookUrlFor,
   webhookUrlIsPublicHttps,
 } from "@/lib/bots/telegram";
-import { defaultScript, parseBotScript, parseBotService, type BotService } from "@/lib/bots/script";
+import { defaultScript, parseBotScript, parseBotService, telegramCommandsOf, type BotService } from "@/lib/bots/script";
 import type { BotStatus, BotView } from "@/lib/bots/types";
 
 export type { BotStatus, BotView };
@@ -158,6 +158,13 @@ export async function updateBot(
     .set({ titleFa, analyzerSlug, script, service, updatedAt: new Date() })
     .where(eq(bots.id, id))
     .returning();
+  if (row.tokenCipher) {
+    try {
+      await telegramSetMyCommands(openSecret(row.tokenCipher), telegramCommandsOf(parseBotScript({ ...script, service })));
+    } catch {
+      // menu is optional
+    }
+  }
   return viewOf(row);
 }
 
@@ -204,11 +211,13 @@ export async function connectBot(
     const webhookSecret = newWebhookSecret();
     await telegramSetWebhook(token, { url, secretToken: webhookSecret });
     try {
-      const script = parseBotScript(existing.script);
-      await telegramSetMyCommands(token, [
-        { command: "start", description: script.texts.startDescription.slice(0, 32) },
-        { command: "help", description: script.texts.helpDescription.slice(0, 32) },
-      ]);
+      const script = parseBotScript({
+        ...(existing.script && typeof existing.script === "object" && !Array.isArray(existing.script)
+          ? existing.script
+          : {}),
+        service: existing.service,
+      });
+      await telegramSetMyCommands(token, telegramCommandsOf(script));
     } catch {
       // menu is optional; webhook still counts as connected
     }

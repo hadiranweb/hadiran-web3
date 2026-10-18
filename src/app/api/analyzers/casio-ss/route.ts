@@ -3,6 +3,7 @@ import { requireAccount } from "@/lib/auth/guard";
 import {
   consentAttempt,
   readAttempt,
+  retakeAttempt,
   saveAnswer,
   submitAttempt,
 } from "@/lib/analyzers/casio-ss/attempts";
@@ -25,6 +26,11 @@ export async function POST(request: Request) {
     body = (await request.json()) as { action?: unknown; id?: unknown; value?: unknown };
   } catch {
     return NextResponse.json({ error: "invalid_body" }, { status: 400 });
+  }
+
+  if (body.action === "retake") {
+    const attempt = await retakeAttempt(auth.account.id);
+    return NextResponse.json({ attempt });
   }
 
   if (body.action === "consent") {

@@ -5,11 +5,14 @@ import { useState } from "react";
 import {
   ANALYZER_TEXT_IDS,
   BOT_FLOW_FIELDS,
+  BOT_KEY_ACTION_OPTIONS,
   BOT_SERVICE_OPTIONS,
   BOT_TEXT_FIELDS,
   parseBotScript,
   parseBotService,
   type BotFlow,
+  type BotKey,
+  type BotKeyAction,
   type BotScript,
   type BotService,
   type BotTexts,
@@ -63,6 +66,32 @@ export function BotEditor({
 
   function setText(id: keyof BotTexts, value: string) {
     setScript((current) => ({ ...current, texts: { ...current.texts, [id]: value } }));
+  }
+
+  function patchKey(id: string, patch: Partial<BotKey>) {
+    setScript((current) => ({
+      ...current,
+      keys: current.keys.map((key) => (key.id === id ? { ...key, ...patch } : key)),
+    }));
+  }
+
+  function addKey() {
+    const id = `key${Date.now().toString(36)}`;
+    const next: BotKey = {
+      id,
+      labelFa: "کلید تازه",
+      action: "reply",
+      command: "",
+      descriptionFa: "کلید تازه",
+      replyFa: "",
+      inMenu: false,
+      inKeyboard: true,
+    };
+    setScript((current) => ({ ...current, keys: [...current.keys, next].slice(0, 20) }));
+  }
+
+  function removeKey(id: string) {
+    setScript((current) => ({ ...current, keys: current.keys.filter((key) => key.id !== id) }));
   }
 
   async function parse(res: Response) {
@@ -321,6 +350,99 @@ export function BotEditor({
               {service === "analyzers" ? " رضایت و خلاصهٔ هر آزمون از pack همان آزمون می‌ماند." : ""}
             </p>
           </div>
+          <fieldset className="space-y-3">
+            <legend className="text-sm font-medium text-slate-800">کلیدهای ربات</legend>
+            <p className="text-xs leading-6 text-slate-500">
+              منوی اسلش تلگرام و دکمه‌های پایین چت. شروع مجدد نوبت تازه می‌سازد؛ نوبت قبلی در پاسخ‌ها می‌ماند.
+            </p>
+            <ul className="space-y-3">
+              {script.keys.map((key) => (
+                <li key={key.id} className="space-y-2 rounded-xl border border-slate-200 p-3">
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <label className="block text-sm">
+                      <span className="mb-1 block text-slate-600">عنوان دکمه</span>
+                      <input
+                        className={fieldClass}
+                        value={key.labelFa}
+                        onChange={(event) => patchKey(key.id, { labelFa: event.target.value })}
+                      />
+                    </label>
+                    <label className="block text-sm">
+                      <span className="mb-1 block text-slate-600">کار</span>
+                      <select
+                        className={fieldClass}
+                        value={key.action}
+                        onChange={(event) => patchKey(key.id, { action: event.target.value as BotKeyAction })}
+                      >
+                        {BOT_KEY_ACTION_OPTIONS.map((item) => (
+                          <option key={item.id} value={item.id}>
+                            {item.labelFa}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="block text-sm">
+                      <span className="mb-1 block text-slate-600">دستور منو (بدون /)</span>
+                      <input
+                        className={fieldClass}
+                        dir="ltr"
+                        value={key.command}
+                        onChange={(event) => patchKey(key.id, { command: event.target.value })}
+                        placeholder="restart"
+                      />
+                    </label>
+                    <label className="block text-sm">
+                      <span className="mb-1 block text-slate-600">شرح منو</span>
+                      <input
+                        className={fieldClass}
+                        value={key.descriptionFa}
+                        onChange={(event) => patchKey(key.id, { descriptionFa: event.target.value })}
+                      />
+                    </label>
+                  </div>
+                  {key.action === "reply" ? (
+                    <label className="block text-sm">
+                      <span className="mb-1 block text-slate-600">متن پاسخ</span>
+                      <textarea
+                        className={`${fieldClass} min-h-20`}
+                        value={key.replyFa}
+                        onChange={(event) => patchKey(key.id, { replyFa: event.target.value })}
+                      />
+                    </label>
+                  ) : null}
+                  <div className="flex flex-wrap items-center gap-4 text-sm text-slate-700">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={key.inKeyboard}
+                        onChange={(event) => patchKey(key.id, { inKeyboard: event.target.checked })}
+                      />
+                      دکمه پایین چت
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={key.inMenu}
+                        onChange={(event) => patchKey(key.id, { inMenu: event.target.checked })}
+                      />
+                      منوی /
+                    </label>
+                    <button type="button" className="text-red-700" onClick={() => removeKey(key.id)}>
+                      حذف
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              onClick={addKey}
+              disabled={script.keys.length >= 20}
+              className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm text-slate-700 disabled:opacity-60"
+            >
+              کلید تازه
+            </button>
+          </fieldset>
           <fieldset className="space-y-2">
             <legend className="text-sm font-medium text-slate-800">جریان</legend>
             {BOT_FLOW_FIELDS.filter((field) => !field.services || field.services.includes(service)).map((field) => (

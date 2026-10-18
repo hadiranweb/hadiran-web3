@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAccount } from "@/lib/auth/guard";
-import { consentAttempt, readAttempt, saveAnswer, submitAttempt } from "@/lib/analyzers/attempts";
+import { consentAttempt, readAttempt, retakeAttempt, saveAnswer, submitAttempt } from "@/lib/analyzers/attempts";
 import { getCodePack, loadPack } from "@/lib/analyzers/registry";
 
 export const dynamic = "force-dynamic";
@@ -41,6 +41,11 @@ export async function POST(request: Request, { params }: Ctx) {
     body = (await request.json()) as { action?: unknown; id?: unknown; value?: unknown };
   } catch {
     return NextResponse.json({ error: "invalid_body" }, { status: 400 });
+  }
+
+  if (body.action === "retake") {
+    const attempt = await retakeAttempt(auth.account.id, pack);
+    return NextResponse.json({ attempt });
   }
 
   if (body.action === "consent") {

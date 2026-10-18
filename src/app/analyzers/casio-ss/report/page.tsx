@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { RetakeButton } from "@/components/analyzers/RetakeButton";
 import { UserSummaryView } from "@/components/analyzers/UserSummary";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PageShell } from "@/components/ui/PageShell";
@@ -37,6 +38,7 @@ export default async function CasioSsReportPage() {
       </p>
       <PageHeader kicker="جمع‌بندی" title={pack.nameFa} lede="خلاصهٔ این نوبت. تفسیر تفصیلی نزد آزمون‌ساز است." />
       <UserSummaryView text={summary} />
+      <RetakeButton api="/api/analyzers/casio-ss" href="/analyzers/casio-ss" />
     </PageShell>
   );
 }
