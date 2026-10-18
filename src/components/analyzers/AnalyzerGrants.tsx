@@ -54,7 +54,8 @@ export function AnalyzerGrants({ slug }: { slug: string }) {
   return (
     <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6">
       <p className="text-sm leading-7 text-slate-500">
-        شناسهٔ ۸رقمی آزمون‌ساز را بگذارید. اگر عضو باشد، نقشش آزمون‌ساز می‌شود و این آزمون را می‌بیند.
+        فقط سازندهٔ این آزمون می‌تواند شناسهٔ ۸رقمی همکار را بگذارد. نقش او عوض نمی‌شود؛ به پاسخ‌ها، تفسیر اولیه و پشتهٔ
+        همین آزمون دسترسی پیدا می‌کند و میز آزمون را در منوی حساب می‌بیند.
       </p>
       <div className="flex flex-wrap gap-2">
         <input
@@ -83,6 +84,7 @@ export function AnalyzerGrants({ slug }: { slug: string }) {
             <li key={item.publicCode} className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2 text-sm">
               <span>
                 {item.nameFa} · <span dir="ltr">{item.publicCode}</span>
+                {item.canReadResponses ? " · پاسخ و تفسیر" : ""}
               </span>
               <button type="button" className="text-red-700" onClick={() => void remove(item.publicCode)} disabled={busy}>
                 برداشتن

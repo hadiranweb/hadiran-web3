@@ -17,42 +17,48 @@ const ownerLinks = [
 ];
 
 const authorLinks = [
-  { href: "/workspace/analyzers", label: "تحلیلگر‌ها", exact: false },
+  { href: "/workspace/analyzers", label: "میز آزمون‌ساز", exact: false },
   { href: "/workspace/referrals", label: "معرف‌های من", exact: false },
 ];
 
+const grantedLinks = [{ href: "/workspace/analyzers", label: "میز آزمون", exact: false }];
+
 export function WorkspaceChrome() {
   const pathname = usePathname();
-  const [role, setRole] = useState<string | null>(null);
+  const [account, setAccount] = useState<{ role?: string; analyzerDesk?: boolean } | null>(null);
 
   useEffect(() => {
     fetch("/api/auth/me", { cache: "no-store" })
-      .then(async (res) => (res.ok ? ((await res.json()) as { account?: { role?: string } | null }) : null))
-      .then((data) => setRole(data?.account?.role ?? null))
-      .catch(() => setRole(null));
+      .then(async (res) => (res.ok ? ((await res.json()) as { account?: { role?: string; analyzerDesk?: boolean } | null }) : null))
+      .then((data) => setAccount(data?.account ?? null))
+      .catch(() => setAccount(null));
   }, [pathname]);
 
-  const links = role === "author" ? authorLinks : ownerLinks;
-  const home = role === "author" ? "/workspace/analyzers" : "/workspace";
+  const role = account?.role ?? null;
+  const links = role === "author" ? authorLinks : role === "member" ? grantedLinks : ownerLinks;
+  const home = role === "owner" || role == null ? "/workspace" : "/workspace/analyzers";
+  const showCreate = role === "author" || role === "owner" || role == null;
 
   return (
     <header className="border-b border-slate-200 bg-white">
       <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 px-4 py-4">
         <div>
           <p className="text-xs text-slate-500">
-            {role === "author" ? "آزمون‌ساز · ایندکس نمی‌شود" : "میز کار · ایندکس نمی‌شود"}
+            {role === "owner" ? "میز کار · ایندکس نمی‌شود" : "میز آزمون‌ساز · ایندکس نمی‌شود"}
           </p>
           <Link href={home} className="inline-flex items-center gap-2 text-xl font-bold text-slate-900">
             <HadiranMark className="h-7 w-7" />
-            میز کار
+            {role === "owner" ? "میز کار" : "میز آزمون‌ساز"}
           </Link>
         </div>
-        <Link
-          href={role === "author" ? "/workspace/analyzers/new" : "/workspace/capture"}
-          className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white"
-        >
-          {role === "author" ? "آزمون تازه" : "ثبت جدید"}
-        </Link>
+        {showCreate ? (
+          <Link
+            href={role === "author" ? "/workspace/analyzers/new" : "/workspace/capture"}
+            className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white"
+          >
+            {role === "author" ? "آزمون تازه" : "ثبت جدید"}
+          </Link>
+        ) : null}
       </div>
       <nav className="mx-auto flex max-w-3xl flex-wrap gap-4 px-4 pb-3 text-sm">
         {links.map((link) => {

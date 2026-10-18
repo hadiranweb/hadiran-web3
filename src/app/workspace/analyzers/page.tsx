@@ -1,12 +1,13 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { requirePageStaff } from "@/lib/auth/guard";
+import { requirePageAnalyzerDesk } from "@/lib/auth/guard";
+import { isStaff } from "@/lib/auth/roles";
 import { listAccessiblePacks } from "@/lib/analyzers/access";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "تألیف تحلیلگر‌ها",
+  title: "میز آزمون‌ساز",
   robots: { index: false, follow: false },
 };
 
@@ -17,29 +18,36 @@ const statusFa: Record<string, string> = {
 };
 
 export default async function WorkspaceAnalyzersPage() {
-  const account = await requirePageStaff("/workspace/analyzers");
+  const account = await requirePageAnalyzerDesk("/workspace/analyzers");
   const authored = await listAccessiblePacks(account);
+  const canCreate = isStaff(account.role);
 
   return (
     <main className="mx-auto max-w-3xl space-y-8 px-4 py-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">تحلیلگر‌ها</h1>
+          <h1 className="text-2xl font-bold text-slate-900">میز آزمون‌ساز</h1>
           <p className="mt-2 text-sm leading-7 text-slate-500">
-            همهٔ آزمون‌ها از همین میز ویرایش می‌شوند؛ سؤال، نمره، رضایت و متن گزارش داخل pack است.
+            {canCreate
+              ? "آزمون بسازید، پاسخ‌ها و تفسیر را ببینید، و با شناسهٔ ۸رقمی به همکار دسترسی همین آزمون را بدهید."
+              : "آزمون‌هایی که به شما سپرده شده. پاسخ‌ها و تفسیر اولیه روی همان صفحه است."}
           </p>
         </div>
-        <Link
-          href="/workspace/analyzers/new"
-          className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white"
-        >
-          آزمون تازه
-        </Link>
+        {canCreate ? (
+          <Link
+            href="/workspace/analyzers/new"
+            className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white"
+          >
+            آزمون تازه
+          </Link>
+        ) : null}
       </div>
 
       <section>
         {authored.length === 0 ? (
-          <p className="text-sm text-slate-500">آزمونی نیست.</p>
+          <p className="text-sm text-slate-500">
+            {canCreate ? "آزمونی نیست. از «آزمون تازه» شروع کنید." : "هنوز آزمونی به شما سپرده نشده."}
+          </p>
         ) : (
           <ul className="space-y-2">
             {authored.map(({ pack, access }) => (
@@ -51,7 +59,8 @@ export default async function WorkspaceAnalyzersPage() {
                   <p className="font-medium text-slate-900">{pack.nameFa}</p>
                   <p className="mt-1 text-xs text-slate-500">
                     {pack.slug} · {statusFa[pack.status] ?? pack.status} · {pack.version}
-                    {access.edit ? "" : " · خواندنی"}
+                    {access.edit ? "" : " · پاسخ و تفسیر"}
+                    {access.grant ? " · اعطا" : ""}
                   </p>
                 </Link>
               </li>

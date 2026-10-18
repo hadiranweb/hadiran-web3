@@ -4,6 +4,7 @@ import { botServiceLabel } from "@/lib/bots/script";
 import { listBots } from "@/lib/bots/store";
 import { loadWorkspaceDesk, recordStatusFa } from "@/lib/workspace/pulse";
 import { PulseTile } from "@/components/workspace/PulseTile";
+import { RoleAssignForm } from "@/components/workspace/RoleAssignForm";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -31,6 +32,8 @@ export default async function WorkspacePage() {
           لایهٔ دانش در این محیط آماده نیست. ثبت و ارتقا بعد از migrate در دسترس است.
         </p>
       ) : null}
+
+      <RoleAssignForm />
 
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <PulseTile

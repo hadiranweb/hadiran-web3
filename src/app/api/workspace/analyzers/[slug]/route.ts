@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireStaff } from "@/lib/auth/guard";
+import { requireAccount } from "@/lib/auth/guard";
 import { analyzerAccess } from "@/lib/analyzers/access";
 import { readAuthoredPack, updateAuthoredPack } from "@/lib/analyzers/authored";
 import { sanitizePack } from "@/lib/analyzers/sanitize";
@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 type Ctx = { params: Promise<{ slug: string }> };
 
 export async function GET(_request: Request, { params }: Ctx) {
-  const auth = await requireStaff();
+  const auth = await requireAccount();
   if (auth.error) return auth.error;
   const { slug } = await params;
   const pack = await readAuthoredPack(slug);
@@ -25,7 +25,7 @@ export async function GET(_request: Request, { params }: Ctx) {
 }
 
 export async function PUT(request: Request, { params }: Ctx) {
-  const auth = await requireStaff();
+  const auth = await requireAccount();
   if (auth.error) return auth.error;
   const { slug } = await params;
   const access = await analyzerAccess(auth.account, slug);

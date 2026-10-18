@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireStaff } from "@/lib/auth/guard";
+import { requireAnalyzerDesk, requireStaff } from "@/lib/auth/guard";
 import { listAccessiblePacks } from "@/lib/analyzers/access";
 import { insertAuthoredPack, readAuthoredPack } from "@/lib/analyzers/authored";
 import { blankPack, isPackSlug, sanitizePack } from "@/lib/analyzers/sanitize";
@@ -7,7 +7,7 @@ import { blankPack, isPackSlug, sanitizePack } from "@/lib/analyzers/sanitize";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const auth = await requireStaff();
+  const auth = await requireAnalyzerDesk();
   if (auth.error) return auth.error;
   const items = await listAccessiblePacks(auth.account);
   return NextResponse.json({

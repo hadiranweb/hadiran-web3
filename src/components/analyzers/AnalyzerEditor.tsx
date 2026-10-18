@@ -68,7 +68,7 @@ export function AnalyzerEditor({
   canGrant?: boolean;
 }) {
   const [pack, setPack] = useState<AnalyzerPack>(() => clonePack(initial));
-  const [tab, setTab] = useState<Tab>("meta");
+  const [tab, setTab] = useState<Tab>(canEdit ? "meta" : "responses");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -151,10 +151,14 @@ export function AnalyzerEditor({
       <div className="flex flex-wrap gap-2">
         {(
           [
-            ["meta", "مشخصات"],
-            ["items", `سؤال‌ها (${itemCount})`],
-            ["score", "نمره"],
-            ["report", "گزارش"],
+            ...(canEdit
+              ? ([
+                  ["meta", "مشخصات"],
+                  ["items", `سؤال‌ها (${itemCount})`],
+                  ["score", "نمره"],
+                  ["report", "گزارش"],
+                ] as [Tab, string][])
+              : []),
             ...(canReadResponses
               ? ([
                   ["responses", "پاسخ‌ها"],

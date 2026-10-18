@@ -26,7 +26,6 @@ export async function analyzerAccess(
   if (isOwner(account.role)) {
     return { view: true, edit: true, responses: true, grant: true };
   }
-  if (!isStaff(account.role)) return none;
   const [pack] = await db
     .select({ createdBy: analyzerPacks.createdBy })
     .from(analyzerPacks)
@@ -34,7 +33,7 @@ export async function analyzerAccess(
     .limit(1);
   if (!pack) return none;
   if (pack.createdBy === account.id) {
-    return { view: true, edit: true, responses: true, grant: false };
+    return { view: true, edit: true, responses: true, grant: true };
   }
   const [grant] = await db
     .select()
@@ -63,7 +62,6 @@ export async function listAccessiblePacks(account: {
       access: { view: true, edit: true, responses: true, grant: true },
     }));
   }
-  if (!isStaff(account.role)) return [];
   const rows = await db.select().from(analyzerPacks);
   const grants = await db.select().from(analyzerGrants).where(eq(analyzerGrants.accountId, account.id));
   const grantBySlug = new Map(grants.map((row) => [row.slug, row]));
@@ -76,7 +74,7 @@ export async function listAccessiblePacks(account: {
     out.push({
       pack: row.pack,
       access: mine
-        ? { view: true, edit: true, responses: true, grant: false }
+        ? { view: true, edit: true, responses: true, grant: true }
         : {
             view: true,
             edit: Boolean(grant?.canEdit),
@@ -88,9 +86,27 @@ export async function listAccessiblePacks(account: {
   return out;
 }
 
+export async function hasAnalyzerDesk(account: { id: number; role: AccountRole | string }): Promise<boolean> {
+  if (isStaff(account.role)) return true;
+  await ensureAccessSchema();
+  const [grant] = await db
+    .select({ slug: analyzerGrants.slug })
+    .from(analyzerGrants)
+    .where(eq(analyzerGrants.accountId, account.id))
+    .limit(1);
+  if (grant) return true;
+  const [owned] = await db
+    .select({ slug: analyzerPacks.slug })
+    .from(analyzerPacks)
+    .where(eq(analyzerPacks.createdBy, account.id))
+    .limit(1);
+  return Boolean(owned);
+}
+
 export async function grantAnalyzer(input: {
   slug: string;
   publicCode: string;
+  actorId: number;
   canEdit?: boolean;
   canReadResponses?: boolean;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
@@ -99,26 +115,21 @@ export async function grantAnalyzer(input: {
   if (!pack) return { ok: false, error: "not_found" };
   const accountId = await accountIdByPublicCode(input.publicCode);
   if (!accountId) return { ok: false, error: "unknown_code" };
+  if (accountId === input.actorId) return { ok: false, error: "self_grant" };
   const [target] = await db.select().from(accounts).where(eq(accounts.id, accountId)).limit(1);
   if (!target || !target.isActive) return { ok: false, error: "unknown_code" };
-  if (target.role !== "owner") {
-    await db
-      .update(accounts)
-      .set({ role: "author", updatedAt: new Date() })
-      .where(eq(accounts.id, accountId));
-  }
   await db
     .insert(analyzerGrants)
     .values({
       slug: input.slug,
       accountId,
-      canEdit: input.canEdit !== false,
+      canEdit: input.canEdit === true,
       canReadResponses: input.canReadResponses !== false,
     })
     .onConflictDoUpdate({
       target: [analyzerGrants.slug, analyzerGrants.accountId],
       set: {
-        canEdit: input.canEdit !== false,
+        canEdit: input.canEdit === true,
         canReadResponses: input.canReadResponses !== false,
       },
     });

@@ -14,6 +14,7 @@ type Account = {
   phone: string;
   role: string;
   needsPassword?: boolean;
+  analyzerDesk?: boolean;
 };
 
 const itemClass =
@@ -155,15 +156,15 @@ export function SessionMenu() {
               تنظیم رمز ثابت
             </Link>
           ) : null}
-          {account.role === "owner" || account.role === "author" ? (
+          {account.role === "owner" || account.role === "author" || account.analyzerDesk ? (
             <Link
-              href={account.role === "author" ? "/workspace/analyzers" : "/workspace"}
+              href={account.role === "owner" ? "/workspace" : "/workspace/analyzers"}
               role="menuitem"
               className={itemClass}
               onClick={() => setOpen(false)}
             >
               <PenLine className="h-4 w-4" strokeWidth={1.5} />
-              میز کار
+              {account.role === "owner" ? "میز کار" : "میز آزمون‌ساز"}
             </Link>
           ) : null}
           <button type="button" role="menuitem" onClick={() => void logout()} className={itemClass}>
