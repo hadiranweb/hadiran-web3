@@ -171,6 +171,10 @@ export function BotEditor({
           <li>در تلگرام به @BotFather بروید و /newbot بزنید.</li>
           <li>توکن را فقط در این کادر بگذارید؛ در گیت و چت نگذارید.</li>
           <li>اتصال، getMe و setWebhook با secret_token را می‌زند. polling استفاده نمی‌شود.</li>
+          <li>
+            سرور لیارا داخل ایران به api.telegram.org نمی‌رسد؛ خروجی از Worker کلودفلر می‌رود
+            (متغیر TELEGRAM_API_BASE روی لیارا، نه گیت). وب‌هوک ورودی مستقیم به هادیران است.
+          </li>
         </ol>
         <label className="block text-sm">
           <span className="mb-1 block text-slate-600">

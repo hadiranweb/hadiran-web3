@@ -2,7 +2,24 @@
 
 import { absoluteUrl } from "@/lib/site";
 
-const TELEGRAM_API = "https://api.telegram.org";
+const TELEGRAM_API_DEFAULT = "https://api.telegram.org";
+
+/** Outbound base. On Iranian Liara set TELEGRAM_API_BASE to the Cloudflare Worker (docs/telegram-proxy.md). */
+export function telegramApiBase(): string {
+  const raw = (process.env.TELEGRAM_API_BASE || "").trim().replace(/\/+$/, "");
+  if (!raw) return TELEGRAM_API_DEFAULT;
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== "https:") return TELEGRAM_API_DEFAULT;
+    return `${url.origin}${url.pathname.replace(/\/+$/, "")}`;
+  } catch {
+    return TELEGRAM_API_DEFAULT;
+  }
+}
+
+export function telegramApiBaseIsProxy(): boolean {
+  return telegramApiBase() !== TELEGRAM_API_DEFAULT;
+}
 
 export type TelegramUser = {
   id: number;
@@ -22,11 +39,17 @@ export type TelegramWebhookInfo = {
 type TelegramResponse<T> = { ok: boolean; result?: T; description?: string; error_code?: number };
 
 async function call<T>(token: string, method: string, body?: Record<string, unknown>): Promise<T> {
-  const res = await fetch(`${TELEGRAM_API}/bot${token}/${method}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: body ? JSON.stringify(body) : "{}",
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${telegramApiBase()}/bot${token}/${method}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: body ? JSON.stringify(body) : "{}",
+      signal: AbortSignal.timeout(12_000),
+    });
+  } catch {
+    throw new Error("telegram_unreachable");
+  }
   let data: TelegramResponse<T>;
   try {
     data = (await res.json()) as TelegramResponse<T>;

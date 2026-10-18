@@ -12,6 +12,7 @@ import {
 } from "@/lib/bots/secret";
 import {
   isTelegramBotToken,
+  telegramApiBaseIsProxy,
   telegramDeleteWebhook,
   telegramGetMe,
   telegramGetWebhookInfo,
@@ -52,7 +53,11 @@ function viewOf(row: BotRow, extra?: { pendingUpdateCount?: number | null }): Bo
 
 function persianTelegramError(code: string): string {
   if (code === "telegram_unauthorized") return "توکن نامعتبر است.";
-  if (code === "telegram_unreachable") return "تلگرام در دسترس نبود.";
+  if (code === "telegram_unreachable") {
+    return telegramApiBaseIsProxy()
+      ? "پروکسی تلگرام پاسخ نداد — TELEGRAM_API_BASE را روی لیارا بررسی کنید."
+      : "سرور لیارا به api.telegram.org دسترسی ندارد — Worker کلودفلر طبق docs/telegram-proxy.md و متغیر TELEGRAM_API_BASE روی لیارا.";
+  }
   if (code === "missing_secret") return "رمز سرور برای نگهداری توکن آماده نیست.";
   if (code === "webhook_not_https") return "وب‌هوک تلگرام فقط روی HTTPS عمومی ثبت می‌شود.";
   if (code === "invalid_token") return "شکل توکن BotFather درست نیست.";
