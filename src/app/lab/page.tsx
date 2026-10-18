@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { projects, projectTopics, topics } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import Link from "next/link";
+import Link from "@/components/workspace/WorkspaceLink";
 import type { Metadata } from "next";
 import { PageShell } from "@/components/ui/PageShell";
 import { PageHeader } from "@/components/ui/PageHeader";

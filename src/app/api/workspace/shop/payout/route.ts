@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const auth = await requireOwner();
   if (auth.error) return auth.error;
+  if (auth.account.id === 0) return NextResponse.json({ error: "فروشگاه واقعی به دیتابیس نیاز دارد؛ در پیش‌نمایش تراکنش یا کالای جعلی ایجاد نمی‌شود." }, { status: 503 });
   const [row] = await db.select().from(shopPayoutDestinations).where(eq(shopPayoutDestinations.id, 1));
   return NextResponse.json({ payout: row ?? null });
 }
@@ -16,6 +17,7 @@ export async function GET() {
 export async function PUT(request: Request) {
   const auth = await requireOwner();
   if (auth.error) return auth.error;
+  if (auth.account.id === 0) return NextResponse.json({ error: "فروشگاه واقعی به دیتابیس نیاز دارد؛ در پیش‌نمایش تراکنش یا کالای جعلی ایجاد نمی‌شود." }, { status: 503 });
   const body = (await request.json()) as Record<string, unknown>;
   const accountHandle = typeof body.accountHandle === "string" ? body.accountHandle.trim() : "";
   if (accountHandle.length < 4) {

@@ -1,0 +1,17 @@
+{
+  "status": "PASS",
+  "checks": [
+    "Homepage keeps portrait/chat, analyzer discovery and privacy navigation",
+    "Canonical editor: private save, saved-before-promote guard, private-by-default review, honest demo result",
+    "Canonical record list refresh, search and saved state",
+    "Complete real commerce UI remains present; no fake demo commerce writes",
+    "80 route/locale/viewport cases; RTL/LTR sidebar, dark persistence, collapse and mobile Escape",
+    "New public/account/privacy/analyzer mobile screens; profile changes persist for the preview session",
+    "Cookie-free HTTPS iframe: Persian/Arabic OTP, modules, account, capture save/reload, isolated session and revocation",
+    "Zero browser runtime errors and zero HTTP 5xx in tested UI flows"
+  ],
+  "responsive_cases": 80,
+  "browser_errors": [],
+  "http_5xx": [],
+  "iframe": "simulated HTTPS proxy; not an external preview-host test"
+}

@@ -10,7 +10,7 @@ import {
 } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { ExternalLink } from "lucide-react";
-import Link from "next/link";
+import Link from "@/components/workspace/WorkspaceLink";
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/JsonLd";
 import { absoluteUrl } from "@/lib/site";

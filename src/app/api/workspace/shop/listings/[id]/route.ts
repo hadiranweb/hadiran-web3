@@ -15,6 +15,7 @@ interface Ctx {
 export async function PATCH(request: Request, { params }: Ctx) {
   const auth = await requireOwner();
   if (auth.error) return auth.error;
+  if (auth.account.id === 0) return NextResponse.json({ error: "فروشگاه واقعی به دیتابیس نیاز دارد؛ در پیش‌نمایش تراکنش یا کالای جعلی ایجاد نمی‌شود." }, { status: 503 });
   const { id } = await params;
   const [existing] = await db.select().from(shopListings).where(eq(shopListings.id, id));
   if (!existing) return NextResponse.json({ error: "not_found" }, { status: 404 });

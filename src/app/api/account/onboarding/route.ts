@@ -13,6 +13,7 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   const auth = await requireAccount();
   if (auth.error) return auth.error;
+  if (auth.account.id === 0) return NextResponse.json({ ok: true, policiesAccepted: true, needsProfile: false, onboardingComplete: true, preview: true });
 
   let body: { step?: unknown; givenName?: unknown; familyName?: unknown; accept?: unknown };
   try {

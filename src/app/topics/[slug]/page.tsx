@@ -9,7 +9,7 @@ import {
   courseTopics,
 } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import Link from "next/link";
+import Link from "@/components/workspace/WorkspaceLink";
 import { notFound } from "next/navigation";
 import { ArrowLeft, BookOpen, FlaskConical, GraduationCap, Hash } from "lucide-react";
 import type { Metadata } from "next";

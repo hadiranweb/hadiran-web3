@@ -3,7 +3,7 @@ import { knowledge, knowledgeTopics, memoryItems, topics } from "@/db/schema";
 import { and, eq, like, or } from "drizzle-orm";
 import { publicKnowledgeFilter } from "@/lib/knowledge/public";
 import { getCurrentAccount } from "@/lib/auth/session";
-import Link from "next/link";
+import Link from "@/components/workspace/WorkspaceLink";
 import { Search, PenLine } from "lucide-react";
 import type { Metadata } from "next";
 import { PageShell } from "@/components/ui/PageShell";

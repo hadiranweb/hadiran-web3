@@ -1,10 +1,12 @@
 "use client";
 
+import { previewFetch as fetch } from "@/lib/auth/preview-fetch";
+
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
-import { Send, BookOpen, FlaskConical, GraduationCap, Hash } from "lucide-react";
+import Link from "@/components/workspace/WorkspaceLink";
+import { Check, Copy, Loader2, ArrowUp, ArrowUpLeft, RotateCcw, Sparkles, ScanLine, GitBranch, Workflow, BookOpen, FlaskConical, GraduationCap, Hash } from "lucide-react";
 import type { ChatReferences } from "@/lib/ai";
-import { clearDraft, readDraft, writeDraft } from "@/lib/ui/draft";
+import { MarkdownReadonly } from "@/components/MarkdownReadonly";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -13,12 +15,33 @@ interface ChatMessage {
 }
 
 const STORAGE_KEY = "hw3-conversation-id";
-const COMPOSER_KEY = "home-composer";
 
 const GREETING: ChatMessage = {
   role: "assistant",
-  content: "سلام. مسئله‌ات را بگو تا با هم شفافش کنیم — از بازنمایی ایده تا معماری سیستم، هوش مصنوعی و وب۳.",
+  content:
+    "سلام. مسئله‌ات را بگو تا با هم شفافش کنیم — از بازنمایی ایده تا معماری سیستم، هوش مصنوعی و وب۳.",
 };
+
+const STARTERS = [
+  {
+    label: "ایده‌ام را روشن کنیم",
+    note: "از یک ایدهٔ خام تا محدوده و اولویت‌ها",
+    icon: ScanLine,
+    prompt: "در حال شروع یک پروژه جدید هستم و نیاز دارم محدوده و اولویت‌ها را روشن کنم.",
+  },
+  {
+    label: "یک تصمیم بهتر بگیریم",
+    note: "مقایسهٔ مسیرها، فرض‌ها و هزینه‌ها",
+    icon: GitBranch,
+    prompt: "بین دو رویکرد فنی مردد هستم و می‌خواهم فرض‌ها و هزینه هر کدام را بررسی کنم.",
+  },
+  {
+    label: "گره کار را پیدا کنیم",
+    note: "دیدن مسئلهٔ اصلی در یک فرایند",
+    icon: Workflow,
+    prompt: "فرایند کاری ما یک گلوگاه دارد و نمی‌دانم مسئله اصلی دقیقاً کجاست.",
+  },
+];
 
 function hasAny(refs?: ChatReferences | null) {
   if (!refs) return false;
@@ -30,16 +53,17 @@ export function HomeChat() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState<number | null>(null);
+  const [copiedMessageId, setCopiedMessageId] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const areaRef = useRef<HTMLTextAreaElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const hasConversation = messages.length > 1;
 
   useEffect(() => {
-    const draft = readDraft<string>(COMPOSER_KEY);
-    if (typeof draft === "string" && draft) {
-      setInput(draft);
-      requestAnimationFrame(() => fitArea());
-    }
-  }, []);
+    const element = inputRef.current;
+    if (!element) return;
+    element.style.height = "auto";
+    element.style.height = `${Math.min(element.scrollHeight, 200)}px`;
+  }, [input]);
 
   useEffect(() => {
     const raw = sessionStorage.getItem(STORAGE_KEY);
@@ -69,20 +93,27 @@ export function HomeChat() {
   }, []);
 
   useEffect(() => {
-    fitArea();
-  }, [input]);
-
-  useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, isLoading]);
 
-  function fitArea() {
-    const el = areaRef.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 96)}px`;
+  function resetConversation() {
+    sessionStorage.removeItem(STORAGE_KEY);
+    setConversationId(null);
+    setMessages([GREETING]);
+    setInput("");
+    inputRef.current?.focus();
+  }
+
+  async function copyMessage(content: string, index: number) {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedMessageId(index);
+      window.setTimeout(() => setCopiedMessageId(null), 1800);
+    } catch {
+      setCopiedMessageId(null);
+    }
   }
 
   async function handleSend(e: React.FormEvent) {
@@ -91,12 +122,6 @@ export function HomeChat() {
     if (!userMessage || isLoading) return;
 
     setInput("");
-    clearDraft(COMPOSER_KEY);
-    requestAnimationFrame(() => {
-      if (areaRef.current) {
-        areaRef.current.style.height = "auto";
-      }
-    });
     setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
     setIsLoading(true);
 
@@ -137,100 +162,141 @@ export function HomeChat() {
   }
 
   return (
-    <div className="flex min-h-[24rem] flex-1 flex-col">
-      <div ref={scrollRef} className="relative mb-3 flex-1 space-y-4 overflow-y-auto px-1 py-2">
-        {messages.map((msg, idx) => (
-          <div key={idx} className={`flex ${msg.role === "user" ? "justify-start" : "justify-end"}`}>
-            <div
-              className={`chat-in max-w-[85%] p-4 text-sm leading-[1.85] whitespace-pre-wrap ${
-                msg.role === "user"
-                  ? "rounded-[var(--radius-md)] rounded-ss-sm bg-accent-soft text-ink"
-                  : "rounded-[var(--radius-md)] rounded-se-sm border border-line bg-elev text-ink"
-              }`}
-            >
-              <p>{msg.content}</p>
+    <section className="home-chat" aria-label="گفتگو با هادیران">
+      {hasConversation ? (
+        <div className="home-chat-conversation">
+          <div className="home-chat-toolbar">
+            <span className="home-chat-identity"><Sparkles size={16} aria-hidden="true" /> گفت‌وگو با هادیران</span>
+            <button type="button" className="home-chat-reset" onClick={resetConversation} disabled={isLoading}>
+              <RotateCcw size={14} aria-hidden="true" /> گفت‌وگوی تازه
+            </button>
+          </div>
+          <div
+            ref={scrollRef}
+            className="home-chat-thread"
+            role="log"
+            aria-live="polite"
+            aria-relevant="additions text"
+            aria-busy={isLoading}
+            aria-label="پیام‌های گفتگو"
+          >
+            {messages.map((msg, idx) => {
+              if (idx === 0 && msg.content === GREETING.content) return null;
+              return (
+                <article key={idx} className={`home-chat-message home-chat-message--${msg.role}`} aria-label={msg.role === "user" ? "پیام شما" : "پاسخ هادیران"}>
+                  {msg.role === "assistant" ? (
+                    <span className="home-chat-answer-label"><Sparkles size={14} aria-hidden="true" /> هادیران</span>
+                  ) : null}
+                  {msg.role === "assistant" ? (
+                    <MarkdownReadonly source={msg.content} className="home-chat-answer" dir="auto" />
+                  ) : (
+                    <p className="home-chat-user-text" dir="auto">{msg.content}</p>
+                  )}
               {hasAny(msg.references) && msg.references && (
-                <div className="mt-4 space-y-3 border-t border-line pt-3">
+                <div className="chat-references mt-4 space-y-3 pt-3">
                   <ReferenceGroup
                     label="منابع دانشی"
                     href={(slug) => `/knowledge/${slug}`}
                     items={msg.references.knowledge.map((k) => ({ slug: k.slug, label: k.title }))}
+                    className="reference-chip reference-chip-knowledge"
                     icon={BookOpen}
                   />
                   <ReferenceGroup
                     label="پروژه‌های مرتبط"
                     href={(slug) => `/lab/${slug}`}
                     items={msg.references.projects.map((p) => ({ slug: p.slug, label: p.name }))}
+                    className="reference-chip reference-chip-project"
                     icon={FlaskConical}
                   />
                   <ReferenceGroup
                     label="دوره‌های پیشنهادی"
                     href={(slug) => `/courses/${slug}`}
                     items={msg.references.courses.map((c) => ({ slug: c.slug, label: c.title }))}
+                    className="reference-chip reference-chip-course"
                     icon={GraduationCap}
                   />
                   <ReferenceGroup
                     label="موضوعات"
                     href={(slug) => `/topics/${slug}`}
                     items={msg.references.topics.map((t) => ({ slug: t.slug, label: t.name }))}
+                    className="reference-chip reference-chip-topic"
                     icon={Hash}
                   />
                 </div>
               )}
-            </div>
+                  {msg.role === "assistant" ? (
+                    <button type="button" className="home-chat-copy" onClick={() => void copyMessage(msg.content, idx)} aria-label={copiedMessageId === idx ? "پاسخ کپی شد" : "کپی پاسخ"}>
+                      {copiedMessageId === idx ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
+                      <span>{copiedMessageId === idx ? "کپی شد" : "کپی پاسخ"}</span>
+                    </button>
+                  ) : null}
+                </article>
+              );
+            })}
+            {isLoading ? (
+              <div className="home-chat-thinking" role="status">
+                <Loader2 size={16} className="animate-spin" aria-hidden="true" />
+                <span>دارم مسئله‌ات را بررسی می‌کنم…</span>
+              </div>
+            ) : null}
           </div>
-        ))}
-        {isLoading ? (
-          <div className="flex justify-end">
-            <div className="chat-in rounded-[var(--radius-md)] rounded-se-sm border border-line bg-elev px-4 py-3">
-              <span className="thinking-dots" role="status" aria-label="در حال فکر کردن">
-                <i />
-                <i />
-                <i />
-              </span>
-            </div>
-          </div>
-        ) : null}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none sticky bottom-0 h-8 bg-gradient-to-t from-paper to-transparent"
-        />
-      </div>
+        </div>
+      ) : (
+        <div className="home-chat-intro">
+          <span className="home-chat-identity"><Sparkles size={16} aria-hidden="true" /> فضای هم‌فکری تو</span>
+          <h2>از کجا شروع کنیم؟</h2>
+        </div>
+      )}
 
-      <form
-        onSubmit={handleSend}
-        className={`composer-shell relative ${isLoading ? "is-loading" : ""}`}
-      >
+      <form onSubmit={handleSend} className="home-chat-composer" aria-label="ارسال مسئله به هادیران">
+        <label htmlFor="home-chat-input" className="sr-only">مسئله یا پرسش</label>
         <textarea
-          ref={areaRef}
-          rows={1}
+          ref={inputRef}
+          id="home-chat-input"
+          rows={2}
+          maxLength={12000}
           value={input}
-          onChange={(e) => {
-            const next = e.target.value;
-            setInput(next);
-            if (next.trim()) writeDraft(COMPOSER_KEY, next);
-            else clearDraft(COMPOSER_KEY);
-            fitArea();
-          }}
+          onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
+            if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
               e.preventDefault();
               e.currentTarget.form?.requestSubmit();
             }
           }}
-          placeholder="مسئله، ایده یا سؤالت را بنویس..."
-          className="w-full resize-none bg-transparent p-4 ps-4 pe-28 text-sm leading-7 text-ink outline-none placeholder:text-muted"
+          placeholder="هر چیزی که ذهنت را مشغول کرده، اینجا بنویس…"
+          className="home-chat-textarea"
+          aria-describedby="home-chat-keyboard-hint"
         />
-        <button
-          type="submit"
-          disabled={isLoading || !input.trim()}
-          className="absolute top-2 bottom-2 left-2 inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] bg-accent px-4 text-sm font-medium text-accent-fg transition hover:opacity-90 disabled:bg-line disabled:text-muted"
-        >
-          <Send className="h-4 w-4" strokeWidth={1.5} />
-          ارسال
-        </button>
+        <div className="home-chat-composer-footer">
+          <button type="submit" disabled={isLoading || !input.trim()} className="home-chat-send" aria-label={isLoading ? "در حال دریافت پاسخ" : "ارسال پیام"}>
+            {isLoading ? <Loader2 size={19} className="animate-spin" aria-hidden="true" /> : <ArrowUp size={20} aria-hidden="true" />}
+          </button>
+        </div>
       </form>
-    </div>
+      <div className="home-chat-under-composer">
+        <p>از ابهام شروع کن؛ لازم نیست سؤال کاملی داشته باشی.</p>
+        <p id="home-chat-keyboard-hint" className="home-chat-keyboard-hint"><kbd>Enter</kbd> ارسال <span aria-hidden="true">·</span> <kbd>Shift + Enter</kbd> خط جدید</p>
+      </div>
+
+      {!hasConversation ? (
+        <div className="home-chat-suggestions">
+          <p className="home-chat-suggestions-label">یا با یکی از این مسیرها شروع کن</p>
+          <div className="home-chat-suggestion-grid">
+            {STARTERS.map((starter) => (
+              <button key={starter.label} type="button" className="home-chat-suggestion" onClick={() => {
+                setInput(starter.prompt);
+                inputRef.current?.focus();
+              }}>
+                <span className="home-chat-suggestion-top"><starter.icon size={18} strokeWidth={1.6} aria-hidden="true" /><ArrowUpLeft size={15} className="home-chat-suggestion-arrow" aria-hidden="true" /></span>
+                <span className="home-chat-suggestion-title">{starter.label}</span>
+                <span className="home-chat-suggestion-note">{starter.note}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      <p className="home-chat-disclaimer">پاسخ‌ها می‌توانند خطا داشته باشند؛ تصمیم‌های مهم را بررسی کن.</p>
+    </section>
   );
 }
 
@@ -238,25 +304,27 @@ function ReferenceGroup({
   label,
   items,
   href,
+  className,
   icon: Icon,
 }: {
   label: string;
   items: { slug: string; label: string }[];
   href: (slug: string) => string;
+  className: string;
   icon: typeof BookOpen;
 }) {
   if (items.length === 0) return null;
   return (
     <div>
-      <p className="mb-2 text-xs font-medium text-muted">{label}</p>
+      <p className="mb-2 text-xs font-bold text-slate-400 dark:text-slate-500">{label}</p>
       <div className="flex flex-wrap gap-2">
         {items.map((item) => (
           <Link
             key={`${label}-${item.slug}`}
             href={href(item.slug)}
-            className="inline-flex items-center gap-1 rounded-full border border-line bg-paper px-2.5 py-1 text-xs font-medium text-ink hover:border-accent"
+            className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${className}`}
           >
-            <Icon className="h-3 w-3 text-muted" strokeWidth={1.5} />
+            <Icon className="h-3 w-3" />
             {item.label}
           </Link>
         ))}

@@ -8,7 +8,7 @@ import { sendSmsIrVerificationCode, SmsProviderError } from "@/lib/auth/smsir";
 import { enforceRateLimit, RateLimitExceededError, rateLimitHeaders } from "@/lib/auth/rate-limit";
 import { recordAuthEvent } from "@/lib/auth/audit";
 import { requestId, requestIp } from "@/lib/auth/request";
-import { OTP_TTL_SECONDS, isProduction, smsIrConfig } from "@/lib/auth/config";
+import { OTP_TTL_SECONDS, developmentTestLogin, isProduction, smsIrConfig } from "@/lib/auth/config";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +18,9 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json()) as { phone?: string };
     phone = normalizePhone(typeof body.phone === "string" ? body.phone : "");
+
+    const preview = developmentTestLogin();
+    if (preview && phone === preview.phone) return NextResponse.json({ ok: true, expires_in_seconds: OTP_TTL_SECONDS, delivery: "dev-test", masked_phone: maskPhone(phone), dev_code: preview.code }, { headers: { "Cache-Control": "no-store" } });
 
     try {
       await enforceRateLimit({

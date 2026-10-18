@@ -8,17 +8,32 @@ function isProtectedPath(pathname: string) {
   return /^\/knowledge\/[^/]+\/edit\/?$/.test(pathname);
 }
 
+// Keep production clickjacking protection. Only explicit, DB-free internal previews may embed.
+function framePolicy(response: NextResponse) {
+  if (process.env.HADIRAN_TEST_MODE !== "1" || process.env.DATABASE_URL) response.headers.set("X-Frame-Options", "DENY");
+  return response;
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  if (!isProtectedPath(pathname)) return NextResponse.next();
+  const ticket = request.nextUrl.searchParams.get("preview_access");
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.delete("x-hadiran-preview-ticket");
+  if (ticket) requestHeaders.set("x-hadiran-preview-ticket", ticket);
+  const forwarded = () => {
+    const response = NextResponse.next({ request: { headers: requestHeaders } });
+    if (ticket) { response.headers.set("Referrer-Policy", "no-referrer"); response.headers.set("Cache-Control", "private, no-store"); }
+    return framePolicy(response);
+  };
+  if (ticket || !isProtectedPath(pathname)) return forwarded();
   const token = request.cookies.get(SESSION_COOKIE)?.value;
-  if (token) return NextResponse.next();
+  if (token || request.cookies.has("hadiran_preview_owner")) return forwarded();
   const url = request.nextUrl.clone();
   url.pathname = "/signin";
   url.searchParams.set("next", pathname);
-  return NextResponse.redirect(url);
+  return framePolicy(NextResponse.redirect(url));
 }
 
 export const config = {
-  matcher: ["/knowledge/new", "/knowledge/:slug/edit", "/workspace", "/workspace/:path*"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };

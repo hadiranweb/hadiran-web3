@@ -1,7 +1,9 @@
 "use client";
 
+import { previewFetch as fetch } from "@/lib/auth/preview-fetch";
+
 import { useEffect, useState, type FormEvent } from "react";
-import Link from "next/link";
+import Link from "@/components/workspace/WorkspaceLink";
 import { usePathname, useRouter } from "next/navigation";
 import { privacySummary } from "@/lib/privacy/content";
 import { clearDraft, publishAccount, readDraft, writeDraft } from "@/lib/ui/draft";
@@ -34,9 +36,9 @@ export function OnboardingDialog() {
 
   useEffect(() => {
     if (pathname === "/signin" || pathname === "/privacy") {
-      setOpen(false);
-      setReady(true);
-      return;
+      let cancelled = false;
+      queueMicrotask(() => { if (!cancelled) { setOpen(false); setReady(true); } });
+      return () => { cancelled = true; };
     }
     let cancelled = false;
     fetch("/api/auth/me", { cache: "no-store" })

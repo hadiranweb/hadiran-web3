@@ -1,5 +1,9 @@
 "use client";
 
+import { previewFetch as fetch } from "@/lib/auth/preview-fetch";
+
+import { withPreviewAccess } from "@/lib/auth/preview-url";
+import { PREVIEW_SESSION_KEY } from "@/lib/auth/preview-client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { shopKindFa, type ShopKind } from "@/lib/shop/kinds";
@@ -34,6 +38,7 @@ export function ListingEditor({
   initial?: Initial;
 }) {
   const router = useRouter();
+  const previewPath = (href: string) => { try { return withPreviewAccess(href, sessionStorage.getItem(PREVIEW_SESSION_KEY) || new URL(location.href).searchParams.get("preview_access") || ""); } catch { return href; } };
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [kind, setKind] = useState<ShopKind>(
@@ -78,7 +83,7 @@ export function ListingEditor({
       setError(data.error ?? "ذخیره نشد.");
       return;
     }
-    router.push("/workspace/shop");
+    router.push(previewPath("/workspace/shop"));
     router.refresh();
   }
 
@@ -87,18 +92,18 @@ export function ListingEditor({
       {error ? <p className="rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-800">{error}</p> : null}
       <label className="block text-sm">
         عنوان فارسی
-        <input name="titleFa" required defaultValue={initial?.titleFa} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" />
+        <input name="titleFa" required defaultValue={initial?.titleFa} className="mt-1 w-full rounded-xl border border-line px-3 py-2" />
       </label>
       <label className="block text-sm">
         عنوان لاتین (برای اسلاگ)
-        <input name="titleEn" defaultValue={initial?.titleEn ?? ""} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" dir="ltr" />
+        <input name="titleEn" defaultValue={initial?.titleEn ?? ""} className="mt-1 w-full rounded-xl border border-line px-3 py-2" dir="ltr" />
       </label>
       <label className="block text-sm">
         اسلاگ
-        <input name="slug" defaultValue={initial?.slug} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" dir="ltr" />
+        <input name="slug" defaultValue={initial?.slug} className="mt-1 w-full rounded-xl border border-line px-3 py-2" dir="ltr" />
       </label>
-      <fieldset className="rounded-2xl border border-slate-200 p-3">
-        <legend className="px-1 text-sm font-medium text-slate-700">نوع کالا</legend>
+      <fieldset className="rounded-2xl border border-line p-3">
+        <legend className="px-1 text-sm font-medium text-ink">نوع کالا</legend>
         <div className="flex flex-wrap gap-3 text-sm">
           {(["digital_entitlement", "physical_good", "course_access"] as const).map((value) => (
             <label key={value} className="flex items-center gap-2">
@@ -110,31 +115,31 @@ export function ListingEditor({
       </fieldset>
       <label className="block text-sm">
         خلاصه
-        <textarea name="summaryFa" rows={3} defaultValue={initial?.summaryFa ?? ""} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" />
+        <textarea name="summaryFa" rows={3} defaultValue={initial?.summaryFa ?? ""} className="mt-1 w-full rounded-xl border border-line px-3 py-2" />
       </label>
       <label className="block text-sm">
         توضیح
-        <textarea name="bodyFa" rows={8} defaultValue={initial?.bodyFa ?? ""} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" />
+        <textarea name="bodyFa" rows={8} defaultValue={initial?.bodyFa ?? ""} className="mt-1 w-full rounded-xl border border-line px-3 py-2" />
       </label>
       <label className="block text-sm">
         متن پس از تأیید پرداخت {kind === "physical_good" ? "(برای فیزیکی: هماهنگی ارسال)" : "(لینک یا دستور دسترسی)"}
-        <textarea name="accessBodyFa" rows={5} defaultValue={initial?.accessBodyFa ?? ""} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" />
+        <textarea name="accessBodyFa" rows={5} defaultValue={initial?.accessBodyFa ?? ""} className="mt-1 w-full rounded-xl border border-line px-3 py-2" />
       </label>
       <div className="grid gap-3 sm:grid-cols-3">
         <label className="block text-sm">
           مبلغ (ریال)
-          <input name="amount" type="number" min={1} required defaultValue={initial?.amount ?? 0} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" dir="ltr" />
+          <input name="amount" type="number" min={1} required defaultValue={initial?.amount ?? 0} className="mt-1 w-full rounded-xl border border-line px-3 py-2" dir="ltr" />
         </label>
         <label className="block text-sm">
           نسبت دلاری (اختیاری)
-          <input name="usdRatio" type="number" step="0.0001" min={0} defaultValue={initial?.usdRatio ?? ""} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" dir="ltr" />
+          <input name="usdRatio" type="number" step="0.0001" min={0} defaultValue={initial?.usdRatio ?? ""} className="mt-1 w-full rounded-xl border border-line px-3 py-2" dir="ltr" />
         </label>
         <label className="block text-sm">
           قیمت مقایسه (ریال)
-          <input name="comparePrice" type="number" min={0} defaultValue={initial?.comparePrice ?? ""} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" dir="ltr" />
+          <input name="comparePrice" type="number" min={0} defaultValue={initial?.comparePrice ?? ""} className="mt-1 w-full rounded-xl border border-line px-3 py-2" dir="ltr" />
         </label>
       </div>
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-muted">
         اگر نسبت دلاری و نرخ هفته ثبت شده باشد، مبلغ نهایی = گرد روان‌شناختی(نسبت × نرخ) است، نه همان ضرب خام. پرداخت همچنان خارج از سایت است.
       </p>
       <input type="hidden" name="currency" defaultValue={initial?.currency ?? "IRR"} />
@@ -144,13 +149,13 @@ export function ListingEditor({
           rows={4}
           value={imageUrls}
           onChange={(e) => setImageUrls(e.target.value)}
-          className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+          className="mt-1 w-full rounded-xl border border-line px-3 py-2"
           dir="ltr"
           placeholder="https://…"
         />
       </label>
       <div className="space-y-2">
-        <p className="text-sm font-medium text-slate-700">مشخصات</p>
+        <p className="text-sm font-medium text-ink">مشخصات</p>
         {specs.map((row, index) => (
           <div key={index} className="grid grid-cols-2 gap-2">
             <input
@@ -161,7 +166,7 @@ export function ListingEditor({
                 setSpecs(next);
               }}
               placeholder="ویژگی"
-              className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              className="rounded-xl border border-line px-3 py-2 text-sm"
             />
             <input
               value={row.value}
@@ -171,13 +176,13 @@ export function ListingEditor({
                 setSpecs(next);
               }}
               placeholder="مقدار"
-              className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              className="rounded-xl border border-line px-3 py-2 text-sm"
             />
           </div>
         ))}
         <button
           type="button"
-          className="text-sm text-indigo-700"
+          className="text-sm text-mark"
           onClick={() => setSpecs((rows) => (rows.length >= 15 ? rows : [...rows, { key: "", value: "" }]))}
         >
           + ردیف مشخصات
@@ -185,7 +190,7 @@ export function ListingEditor({
       </div>
       <label className="block text-sm">
         دورهٔ مرتبط (برای دسترسی آموزشی)
-        <select name="courseId" defaultValue={initial?.courseId ?? ""} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2">
+        <select name="courseId" defaultValue={initial?.courseId ?? ""} className="mt-1 w-full rounded-xl border border-line px-3 py-2">
           <option value="">بدون دوره</option>
           {courses.map((course) => (
             <option key={course.id} value={course.id}>
@@ -198,7 +203,7 @@ export function ListingEditor({
         <input type="checkbox" name="published" defaultChecked={initial?.published} />
         منتشر شود
       </label>
-      <button disabled={busy} className="rounded-full bg-indigo-700 px-5 py-2 text-sm font-medium text-white disabled:opacity-60">
+      <button disabled={busy} className="rounded-full bg-indigo-700 px-5 py-2 text-sm font-medium text-accent-fg disabled:opacity-60">
         {busy ? "در حال ذخیره…" : "ذخیره"}
       </button>
     </form>

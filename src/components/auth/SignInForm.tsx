@@ -2,6 +2,8 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { PreviewSignInForm } from "./PreviewSignInForm";
+import { normalizeDigits } from "@/lib/auth/phone";
 import { Loader2, Phone, Lock, RefreshCw, KeyRound } from "lucide-react";
 
 type Step = "phone" | "password" | "code" | "setPassword";
@@ -48,7 +50,11 @@ async function readJson(res: Response) {
   };
 }
 
-export function SignInForm() {
+export function SignInForm({ previewLogin = false }: { previewLogin?: boolean }) {
+  return previewLogin ? <PreviewSignInForm previewLogin /> : <LiveSignInForm />;
+}
+
+function LiveSignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawNext = searchParams.get("next") || "";
@@ -230,7 +236,7 @@ export function SignInForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       <label className="block space-y-1.5">
-        <span className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
+        <span className="flex items-center gap-1.5 text-sm font-medium text-ink">
           <Phone className="h-3.5 w-3.5" />
           شمارهٔ موبایل
         </span>
@@ -242,13 +248,13 @@ export function SignInForm() {
           inputMode="tel"
           autoComplete="tel"
           disabled={step !== "phone" || submitting}
-          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 disabled:bg-slate-50"
+          className="w-full rounded-2xl border border-line bg-elev px-4 py-3 text-left text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent-soft disabled:bg-paper"
         />
       </label>
 
       {step === "password" && (
         <label className="block space-y-1.5">
-          <span className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
+          <span className="flex items-center gap-1.5 text-sm font-medium text-ink">
             <Lock className="h-3.5 w-3.5" />
             رمز عبور
           </span>
@@ -258,28 +264,28 @@ export function SignInForm() {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="رمز حساب"
             autoComplete="current-password"
-            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+            className="w-full rounded-2xl border border-line bg-elev px-4 py-3 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent-soft"
           />
-          {masked && <span className="block text-xs text-slate-400">ورود برای {masked}</span>}
+          {masked && <span className="block text-xs text-muted">ورود برای {masked}</span>}
         </label>
       )}
 
       {step === "code" && (
         <label className="block space-y-1.5">
-          <span className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
+          <span className="flex items-center gap-1.5 text-sm font-medium text-ink">
             <Lock className="h-3.5 w-3.5" />
             کد پیامک‌شده
           </span>
           <input
             value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+            onChange={(e) => setCode(normalizeDigits(e.target.value).replace(/\D/g, "").slice(0, 6))}
             placeholder="••••••"
             dir="ltr"
             inputMode="numeric"
             autoComplete="one-time-code"
-            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-center font-mono text-lg tracking-[0.4em] outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+            className="w-full rounded-2xl border border-line bg-elev px-4 py-3 text-center font-mono text-lg tracking-[0.4em] outline-none focus:border-accent focus:ring-2 focus:ring-accent-soft"
           />
-          {masked && <span className="block text-xs text-slate-400">ارسال به {masked}</span>}
+          {masked && <span className="block text-xs text-muted">ارسال به {masked}</span>}
           {devCode && (
             <span className="block rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
               حالت توسعه: پنل SMS.ir تنظیم نیست. کد: <strong dir="ltr">{devCode}</strong>
@@ -290,11 +296,11 @@ export function SignInForm() {
 
       {step === "setPassword" && (
         <div className="space-y-4">
-          <p className="text-sm leading-7 text-slate-600">
+          <p className="text-sm leading-7 text-muted">
             برای دفعات بعد یک رمز بگذار. رمز در دیتابیس هش می‌شود؛ سشن جداست و منقضی می‌شود.
           </p>
           <label className="block space-y-1.5">
-            <span className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
+            <span className="flex items-center gap-1.5 text-sm font-medium text-ink">
               <KeyRound className="h-3.5 w-3.5" />
               رمز جدید
             </span>
@@ -304,32 +310,32 @@ export function SignInForm() {
               onChange={(e) => setNewPassword(e.target.value)}
               autoComplete="new-password"
               minLength={8}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+              className="w-full rounded-2xl border border-line bg-elev px-4 py-3 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent-soft"
             />
           </label>
           <label className="block space-y-1.5">
-            <span className="text-sm font-medium text-slate-700">تکرار رمز</span>
+            <span className="text-sm font-medium text-ink">تکرار رمز</span>
             <input
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               autoComplete="new-password"
               minLength={8}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+              className="w-full rounded-2xl border border-line bg-elev px-4 py-3 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent-soft"
             />
           </label>
         </div>
       )}
 
       {error && <p className="text-sm text-rose-600">{error}</p>}
-      {hint && <p className="text-xs leading-6 text-slate-500">{hint}</p>}
+      {hint && <p className="text-xs leading-6 text-muted">{hint}</p>}
 
       {step === "password" ? (
         <div className="grid gap-3 sm:grid-cols-2">
           <button
             type="submit"
             disabled={submitting || !password}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-accent px-4 py-3 text-sm font-medium text-accent-fg hover:opacity-90 disabled:opacity-60"
           >
             {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
             ورود
@@ -338,7 +344,7 @@ export function SignInForm() {
             type="button"
             disabled={submitting}
             onClick={() => void sendCode()}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-60"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-accent px-4 py-3 text-sm font-medium text-accent-fg hover:opacity-90 disabled:opacity-60"
           >
             ارسال رمز یکبار مصرف
           </button>
@@ -347,7 +353,7 @@ export function SignInForm() {
         <button
           type="submit"
           disabled={submitting}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-60"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-accent px-4 py-3 text-sm font-medium text-accent-fg hover:opacity-90 disabled:opacity-60"
         >
           {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
           {step === "phone" ? "ادامه" : step === "code" ? "ورود" : "ذخیرهٔ رمز و ادامه"}
@@ -355,7 +361,7 @@ export function SignInForm() {
       )}
 
       {(step === "password" || step === "code") && (
-        <div className="flex items-center justify-between text-xs text-slate-500">
+        <div className="flex items-center justify-between text-xs text-muted">
           <button
             type="button"
             onClick={() => {
@@ -365,7 +371,7 @@ export function SignInForm() {
               setDevCode(null);
               setError(null);
             }}
-            className="hover:text-indigo-600"
+            className="hover:text-mark"
           >
             تغییر شماره
           </button>
@@ -374,7 +380,7 @@ export function SignInForm() {
               type="button"
               disabled={resendSeconds > 0 || submitting}
               onClick={() => void sendCode()}
-              className="inline-flex items-center gap-1 hover:text-indigo-600 disabled:opacity-40"
+              className="inline-flex items-center gap-1 hover:text-mark disabled:opacity-40"
             >
               <RefreshCw className="h-3 w-3" />
               {resendSeconds > 0 ? `ارسال دوباره (${resendSeconds})` : "ارسال دوباره"}

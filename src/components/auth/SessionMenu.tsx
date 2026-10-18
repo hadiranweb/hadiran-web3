@@ -1,9 +1,12 @@
 "use client";
 
+import { previewFetch as fetch } from "@/lib/auth/preview-fetch";
+
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/workspace/WorkspaceLink";
 import { usePathname, useRouter } from "next/navigation";
 import { LogIn, LogOut, PenLine, User } from "lucide-react";
+import { PREVIEW_SESSION_KEY } from "@/lib/auth/preview-client";
 import { clearDraftsByPrefix, subscribeAccount } from "@/lib/ui/draft";
 
 type Account = { id: number; displayName: string | null; phone: string; role: string };
@@ -41,7 +44,9 @@ export function SessionMenu() {
   }, [pathname]);
 
   async function logout() {
-    await fetch("/api/auth/logout", { method: "POST" });
+    const response = await fetch("/api/auth/logout", { method: "POST" });
+    if (!response.ok) return;
+    try { sessionStorage.removeItem(PREVIEW_SESSION_KEY); } catch {}
     clearDraftsByPrefix("account");
     clearDraftsByPrefix("onboarding");
     clearDraftsByPrefix("casio");

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/workspace/WorkspaceLink";
 import { db } from "@/db";
 import { shopListings } from "@/db/schema";
 import { desc, eq, and } from "drizzle-orm";

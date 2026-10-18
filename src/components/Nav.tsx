@@ -1,20 +1,20 @@
 "use client";
 
-import Link from "next/link";
+import { useEffect, useState } from "react";
+import Link from "@/components/workspace/WorkspaceLink";
 import { usePathname } from "next/navigation";
-import { User, BookOpen, FlaskConical, GraduationCap, Layers, Menu, X, ShoppingBag, ScanSearch } from "lucide-react";
-import { useState } from "react";
+import { ChartNoAxesCombined, BookOpen, FlaskConical, GraduationCap, Layers, Menu, ShoppingBag, User, X } from "lucide-react";
+import { HadiranMark } from "@/components/HadiranMark";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { SessionMenu } from "@/components/auth/SessionMenu";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { HadiranWordmark } from "@/components/HadiranMark";
 
 const primaryLinks = [
   { href: "/ecosystem", label: "اکوسیستم", icon: Layers },
   { href: "/hadiran", label: "درباره من", icon: User },
   { href: "/knowledge", label: "دانشنامه", icon: BookOpen },
   { href: "/lab", label: "آزمایشگاه", icon: FlaskConical },
-  { href: "/analyzers", label: "تحلیلگر‌ها", icon: ScanSearch },
   { href: "/courses", label: "دوره‌ها", icon: GraduationCap },
+  { href: "/analyzers", label: "تحلیلگرها", icon: ChartNoAxesCombined },
   { href: "/shop", label: "فروشگاه", icon: ShoppingBag },
 ];
 
@@ -22,72 +22,79 @@ export function Nav() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open]);
+
+  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+
   return (
-    <header className="sticky top-0 z-50 border-b border-line bg-paper/95">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-        <Link href="/" className="flex items-center gap-2">
-          <HadiranWordmark className="text-lg" markClassName="h-8 w-8" />
+    <header className="site-header sticky top-3 z-50 px-3 sm:px-5">
+      <div className="nav-pill mx-auto flex h-14 max-w-7xl items-center justify-between gap-3 px-3 sm:px-4">
+        <Link href="/" className="brand-link flex items-center gap-2.5" onClick={() => setOpen(false)}>
+          <HadiranMark size={28} className="brand-mark" />
+          <span className="brand-name text-[0.95rem] font-black">هادیران</span>
         </Link>
 
-        <nav className="hidden items-center gap-0.5 lg:flex">
+        <nav aria-label="ناوبری اصلی" className="hidden items-center gap-0.5 xl:flex">
           {primaryLinks.map((link) => {
-            const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
+            const Icon = link.icon;
+            const active = isActive(link.href);
             return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`relative px-3 py-2 text-sm transition ${
-                  active ? "font-semibold text-ink" : "font-medium text-muted hover:text-ink"
-                }`}
-              >
+              <Link key={link.href} href={link.href} className="nav-link" aria-current={active ? "page" : undefined}>
+                <Icon className="h-3.5 w-3.5" aria-hidden="true" />
                 {link.label}
-                {active ? <span className="absolute inset-x-3 bottom-0 h-px bg-mark" /> : null}
               </Link>
             );
           })}
         </nav>
 
-        <div className="flex items-center gap-1">
-          <ThemeToggle />
-          <div className="hidden lg:block">
+        <div className="flex items-center gap-1.5">
+          <ThemeSwitcher />
+          <div className="hidden xl:block">
             <SessionMenu />
           </div>
           <button
-            className="rounded-[var(--radius-sm)] p-2 text-muted hover:bg-elev hover:text-ink lg:hidden"
-            onClick={() => setOpen(!open)}
-            aria-label="منو"
+            type="button"
+            onClick={() => setOpen((value) => !value)}
+            className="nav-menu-toggle inline-flex h-9 w-9 items-center justify-center rounded-full border xl:hidden"
+            aria-label={open ? "بستن منو" : "باز کردن منو"}
             aria-expanded={open}
+            aria-controls="mobile-navigation"
           >
-            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            {open ? <X className="h-4 w-4" aria-hidden="true" /> : <Menu className="h-4 w-4" aria-hidden="true" />}
           </button>
         </div>
       </div>
 
-      {open && (
-        <div className="border-t border-line bg-paper px-4 py-3 lg:hidden">
-          <nav className="flex flex-col gap-1">
-            {primaryLinks.map((link) => {
-              const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setOpen(false)}
-                  className={`flex items-center gap-2 rounded-[var(--radius-sm)] px-3 py-2 text-sm font-medium ${
-                    active ? "bg-accent-soft text-ink" : "text-muted"
-                  }`}
-                >
-                  <link.icon className="h-4 w-4" strokeWidth={1.5} />
-                  {link.label}
-                </Link>
-              );
-            })}
-            <div className="mt-2 border-t border-line pt-2">
-              <SessionMenu />
-            </div>
-          </nav>
+      {open ? (
+        <div id="mobile-navigation" className="nav-pill mx-auto mt-2 max-w-6xl space-y-1 rounded-3xl p-2 xl:hidden">
+          {primaryLinks.map((link) => {
+            const Icon = link.icon;
+            const active = isActive(link.href);
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setOpen(false)}
+                className="nav-link flex items-center gap-3 rounded-2xl py-3"
+                aria-current={active ? "page" : undefined}
+              >
+                <Icon className="h-4 w-4" aria-hidden="true" />
+                {link.label}
+              </Link>
+            );
+          })}
+          <div className="mobile-session-divider border-t px-2 pt-2">
+            <SessionMenu />
+          </div>
         </div>
-      )}
+      ) : null}
     </header>
   );
 }

@@ -14,7 +14,7 @@ import {
   courses,
 } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import Link from "next/link";
+import Link from "@/components/workspace/WorkspaceLink";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,

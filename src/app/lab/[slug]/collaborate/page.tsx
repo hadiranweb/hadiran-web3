@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { projects, projectRequiredRoles, roles } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import Link from "next/link";
+import Link from "@/components/workspace/WorkspaceLink";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Users, Send } from "lucide-react";
 import { CollaborationForm } from "@/components/CollaborationForm";

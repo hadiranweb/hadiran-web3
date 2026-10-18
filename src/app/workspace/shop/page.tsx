@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { ModuleHeading } from "@/components/workspace/ModuleHeading";
+import Link from "@/components/workspace/WorkspaceLink";
 import { db } from "@/db";
 import { accounts, shopListings, shopOrders, shopPayoutDestinations } from "@/db/schema";
 import { desc, eq } from "drizzle-orm";
@@ -20,7 +21,8 @@ export const metadata: Metadata = {
 };
 
 export default async function WorkspaceShopPage() {
-  await requirePageOwner("/workspace/shop");
+  const account = await requirePageOwner("/workspace/shop");
+  let unavailable = false;
   let listings: (typeof shopListings.$inferSelect)[] = [];
   let orders: {
     order: typeof shopOrders.$inferSelect;
@@ -31,6 +33,7 @@ export default async function WorkspaceShopPage() {
   let payout: typeof shopPayoutDestinations.$inferSelect | null = null;
   let usdRate: number | null = null;
   try {
+    if (account.id === 0) throw new Error("preview_without_database");
     listings = await db.select().from(shopListings).orderBy(desc(shopListings.updatedAt));
     const orderRows = await db
       .select({
@@ -49,40 +52,39 @@ export default async function WorkspaceShopPage() {
     payout = row ?? null;
     usdRate = await getShopUsdRate();
   } catch (error) {
-    console.error("[hadiran] workspace shop", error);
+    unavailable = true;
+    if (account.id !== 0) console.error("[hadiran] workspace shop", error);
   }
 
   const pending = orders.filter((row) => row.order.state === "awaiting_confirmation");
 
   return (
-    <main className="mx-auto max-w-3xl space-y-10 px-4 py-8">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-slate-900">فروشگاه</h1>
-        <Link href="/workspace/shop/listings/new" className="rounded-xl bg-slate-900 px-4 py-2 text-sm text-white">
-          کالای جدید
-        </Link>
-      </div>
+    <main className="ws-page repo-module space-y-8">
+      <ModuleHeading title="فروشگاه" en="Shop management" lede="مدیریت کالاها، سفارش‌ها، مقصد دریافت و قیمت‌گذاری دلاری." ledeEn="Manage listings, orders, payout details and USD pricing." action={<Link href="/workspace/shop/listings/new" className="ws-button ws-primary">کالای جدید</Link>} />
+      {unavailable ? <p className="integration-notice">{account.id === 0 ? "در پیش‌نمایش، فروشگاه واقعی به دیتابیس متصل نیست. فرم‌های جدید قابل مشاهده‌اند اما ذخیره، تأیید سفارش و پرداخت نمایشی ساخته نمی‌شود." : "اتصال فروشگاه برقرار نیست؛ فهرست خالی زیر به معنی نبود کالا یا سفارش نیست. اتصال و migrationها را بررسی کنید."}</p> : null}
+
 
       {!payout ? (
         <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           تا مقصد دریافت ذخیره نشود، خریدار نمی‌تواند سفارش بسازد.
         </p>
       ) : null}
-      <UsdRateForm initialRate={usdRate} />
+      <fieldset disabled={unavailable} className="space-y-6 disabled:opacity-60"><UsdRateForm initialRate={usdRate} />
       <PayoutForm
         initial={payout ? { accountHandle: payout.accountHandle, accountAlias: payout.accountAlias } : null}
       />
+      </fieldset>
 
       <section>
-        <h2 className="mb-3 text-lg font-bold text-slate-900">در انتظار تأیید</h2>
+        <h2 className="mb-3 text-lg font-bold text-ink">در انتظار تأیید</h2>
         {pending.length === 0 ? (
-          <p className="text-sm text-slate-500">سفارشی منتظر تأیید نیست.</p>
+          <p className="text-sm text-muted">سفارشی منتظر تأیید نیست.</p>
         ) : (
           <ul className="space-y-4">
             {pending.map(({ order, listingTitle, buyerPhone }) => (
-              <li key={order.id} className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4">
-                <p className="font-medium text-slate-900">{listingTitle}</p>
-                <p className="text-xs text-slate-500">
+              <li key={order.id} className="space-y-3 rounded-2xl border border-line bg-elev p-4">
+                <p className="font-medium text-ink">{listingTitle}</p>
+                <p className="text-xs text-muted">
                   {formatMoney(order.amount, order.currency)} · خریدار {buyerPhone} · پیگیری{" "}
                   <span dir="ltr">{order.paymentReference}</span>
                 </p>
@@ -94,19 +96,19 @@ export default async function WorkspaceShopPage() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-lg font-bold text-slate-900">کالاها</h2>
+        <h2 className="mb-3 text-lg font-bold text-ink">کالاها</h2>
         {listings.length === 0 ? (
-          <p className="text-sm text-slate-500">کالایی نیست.</p>
+          <p className="text-sm text-muted">کالایی نیست.</p>
         ) : (
           <ul className="space-y-2">
             {listings.map((item) => (
               <li key={item.id}>
                 <Link
                   href={`/workspace/shop/listings/${item.id}`}
-                  className="block rounded-2xl border border-slate-200 bg-white p-4 hover:border-indigo-200"
+                  className="block rounded-2xl border border-line bg-elev p-4 hover:border-accent"
                 >
-                  <p className="font-medium text-slate-900">{item.titleFa}</p>
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="font-medium text-ink">{item.titleFa}</p>
+                  <p className="mt-1 text-xs text-muted">
                     {item.published ? "منتشر" : "پیش‌نویس"} · {shopKindFa(item.kind)} ·{" "}
                     {formatMoney(item.amount, item.currency)}
                   </p>
@@ -118,18 +120,18 @@ export default async function WorkspaceShopPage() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-lg font-bold text-slate-900">سفارش‌های اخیر</h2>
+        <h2 className="mb-3 text-lg font-bold text-ink">سفارش‌های اخیر</h2>
         {orders.length === 0 ? (
-          <p className="text-sm text-slate-500">سفارشی نیست.</p>
+          <p className="text-sm text-muted">سفارشی نیست.</p>
         ) : (
           <ul className="space-y-2">
             {orders.map(({ order, listingTitle, listingSlug }) => (
-              <li key={order.id} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm">
-                <p className="font-medium text-slate-900">{listingTitle}</p>
-                <p className="text-xs text-slate-500">
+              <li key={order.id} className="rounded-2xl border border-line bg-elev px-4 py-3 text-sm">
+                <p className="font-medium text-ink">{listingTitle}</p>
+                <p className="text-xs text-muted">
                   {orderStateFa(order.state)} · {formatMoney(order.amount, order.currency)}
                 </p>
-                <Link href={`/shop/${listingSlug}`} className="text-xs text-indigo-600">
+                <Link href={`/shop/${listingSlug}`} className="text-xs text-mark">
                   صفحهٔ عمومی
                 </Link>
               </li>

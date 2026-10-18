@@ -1,5 +1,7 @@
+import { previewStore } from "@/lib/preview/store";
+import { withPreviewAccess } from "@/lib/auth/preview-url";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/workspace/WorkspaceLink";
 import { redirect } from "next/navigation";
 import { CasioSsRun } from "@/components/analyzers/CasioSsRun";
 import { JsonLd } from "@/components/JsonLd";
@@ -38,14 +40,16 @@ export default async function CasioSsPage() {
   const pack = await livePack();
   const account = await getCurrentAccount();
   if (account) {
-    const attempt = await readAttempt(account.id);
+    const preview = await previewStore(account);
+    const attempt = preview ? preview.attempt : await readAttempt(account.id);
     if (attempt?.status === "submitted") {
-      redirect("/analyzers/casio-ss/report");
+      redirect(withPreviewAccess("/analyzers/casio-ss/report", account.previewTicket));
     }
   }
 
   return (
     <PageShell width="narrow">
+      {account?.id === 0 ? <p className="integration-notice mb-6">پیش‌نمایش داخلی؛ پاسخ‌ها موقت و مختص نشست شما هستند. موتور محاسبه و گزارش همان نسخهٔ اصلی ریپو است.</p> : null}
       <JsonLd
         data={{
           "@context": "https://schema.org",

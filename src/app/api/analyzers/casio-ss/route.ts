@@ -1,3 +1,5 @@
+import { previewStore } from "@/lib/preview/store";
+import { previewAnalyzerAction } from "@/lib/preview/analyzer";
 import { NextResponse } from "next/server";
 import { requireAccount } from "@/lib/auth/guard";
 import {
@@ -12,7 +14,8 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const auth = await requireAccount();
   if (auth.error) return auth.error;
-  const attempt = await readAttempt(auth.account.id);
+  const preview = await previewStore(auth.account);
+  const attempt = preview ? preview.attempt : await readAttempt(auth.account.id);
   return NextResponse.json({ attempt });
 }
 
@@ -26,6 +29,9 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "invalid_body" }, { status: 400 });
   }
+
+  const preview = await previewAnalyzerAction(body);
+  if (preview) return NextResponse.json(preview.data, { status: preview.status });
 
   if (body.action === "consent") {
     const attempt = await consentAttempt(auth.account.id);

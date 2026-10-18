@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   const auth = await requireAccount();
   if (auth.error) return auth.error;
+  if (auth.account.id === 0) return NextResponse.json({ error: "commerce_requires_database" }, { status: 503 });
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   const slug = typeof body.slug === "string" ? body.slug.trim() : "";
   if (!slug) return NextResponse.json({ error: "missing_slug" }, { status: 400 });

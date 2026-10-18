@@ -8,7 +8,7 @@ import {
   knowledgeSlides,
 } from "@/db/schema";
 import { eq, asc } from "drizzle-orm";
-import Link from "next/link";
+import Link from "@/components/workspace/WorkspaceLink";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Hash, FlaskConical, Pencil } from "lucide-react";
 import type { Metadata } from "next";

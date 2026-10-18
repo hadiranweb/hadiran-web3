@@ -1,8 +1,10 @@
 "use client";
 
+import { previewFetch as fetch } from "@/lib/auth/preview-fetch";
+
 import { useState, useRef, useEffect } from "react";
 import { Send, Loader2, BookOpen, FlaskConical, GraduationCap, Hash } from "lucide-react";
-import Link from "next/link";
+import Link from "@/components/workspace/WorkspaceLink";
 import type { RetrievedEntity, AIResponse } from "@/lib/ai";
 
 interface Message {

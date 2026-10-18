@@ -5,7 +5,7 @@ import { ensureAccountProfileSchema } from "@/lib/auth/schema-guard";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  await ensureAccountProfileSchema();
+  if (process.env.DATABASE_URL) await ensureAccountProfileSchema();
   const account = await getCurrentAccount();
-  return NextResponse.json({ account });
+  return NextResponse.json({ account }, { headers: { "Cache-Control": "private, no-store" } });
 }

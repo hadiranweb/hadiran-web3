@@ -13,9 +13,12 @@ export function useSyncedDraft<T>(storageKey: string, server: T) {
   const [value, setValue] = useState(server);
   const dirtyRef = useRef(false);
   const serverRef = useRef(server);
-  serverRef.current = server;
+  useEffect(() => { serverRef.current = JSON.parse(serverKey) as T; }, [serverKey]);
 
   useEffect(() => {
+    let cancelled = false;
+    queueMicrotask(() => {
+    if (cancelled) return;
     const draft = readDraft<T>(storageKey);
     if (draft != null && !same(draft, serverRef.current)) {
       dirtyRef.current = true;
@@ -24,11 +27,15 @@ export function useSyncedDraft<T>(storageKey: string, server: T) {
     }
     dirtyRef.current = false;
     setValue(serverRef.current);
+    });
+    return () => { cancelled = true; };
   }, [storageKey]);
 
   useEffect(() => {
     if (dirtyRef.current) return;
-    setValue(serverRef.current);
+    let cancelled = false;
+    queueMicrotask(() => { if (!cancelled && !dirtyRef.current) setValue(serverRef.current); });
+    return () => { cancelled = true; };
   }, [serverKey]);
 
   const set = useCallback(

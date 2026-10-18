@@ -12,6 +12,7 @@ import { completePhoneLogin } from "@/lib/auth/session";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  if (!process.env.DATABASE_URL) return NextResponse.json({ error: "database_not_configured" }, { status: 503 });
   const startedAt = Date.now();
   let phone: string | null = null;
   try {

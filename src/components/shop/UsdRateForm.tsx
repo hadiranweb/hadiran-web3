@@ -1,5 +1,7 @@
 "use client";
 
+import { previewFetch as fetch } from "@/lib/auth/preview-fetch";
+
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -32,9 +34,9 @@ export function UsdRateForm({ initialRate }: { initialRate: number | null }) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="rounded-2xl border border-slate-200 bg-white p-4">
-      <h2 className="text-sm font-bold text-slate-900">نرخ دلار هفته</h2>
-      <p className="mt-1 text-xs text-slate-500">
+    <form onSubmit={onSubmit} className="rounded-2xl border border-line bg-elev p-4">
+      <h2 className="text-sm font-bold text-ink">نرخ دلار هفته</h2>
+      <p className="mt-1 text-xs text-muted">
         کالاهایی که نسبت دلاری دارند: مبلغ خام = نسبت × نرخ، بعد گرد روان‌شناختی (۵۹ / ۵۸۰ و مشابه، حداکثر حدود ۳٫۵٪ فاصله). پرداخت در سایت انجام نمی‌شود.
       </p>
       {error ? <p className="mt-2 text-sm text-rose-700">{error}</p> : null}
@@ -49,11 +51,11 @@ export function UsdRateForm({ initialRate }: { initialRate: number | null }) {
             step="1"
             required
             defaultValue={initialRate ?? ""}
-            className="mt-1 block w-48 rounded-xl border border-slate-200 px-3 py-2"
+            className="mt-1 block w-48 rounded-xl border border-line px-3 py-2"
             dir="ltr"
           />
         </label>
-        <button disabled={busy} className="rounded-full bg-slate-900 px-4 py-2 text-sm text-white disabled:opacity-60">
+        <button disabled={busy} className="rounded-full bg-accent px-4 py-2 text-sm text-accent-fg disabled:opacity-60">
           {busy ? "…" : "اعمال نرخ"}
         </button>
       </div>

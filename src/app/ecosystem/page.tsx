@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { knowledge, memoryItems, projects, courses } from "@/db/schema";
 import { count, eq } from "drizzle-orm";
-import Link from "next/link";
+import Link from "@/components/workspace/WorkspaceLink";
 import { HadiranMark } from "@/components/HadiranMark";
 import { PageShell } from "@/components/ui/PageShell";
 import { PageHeader } from "@/components/ui/PageHeader";

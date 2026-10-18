@@ -1,5 +1,7 @@
 "use client";
 
+import { previewFetch as fetch } from "@/lib/auth/preview-fetch";
+
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { clearDraft, publishAccount, subscribeAccount } from "@/lib/ui/draft";

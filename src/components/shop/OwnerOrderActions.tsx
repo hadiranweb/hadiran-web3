@@ -1,5 +1,7 @@
 "use client";
 
+import { previewFetch as fetch } from "@/lib/auth/preview-fetch";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
@@ -52,7 +54,7 @@ export function OwnerOrderActions({ orderId, state }: { orderId: string; state: 
 
   return (
     <div className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-      <p className="text-sm text-slate-700">
+      <p className="text-sm text-ink">
         سایت نمی‌گوید پول آمده یا نه. اگر در حساب بیرونی‌ات رسید را دیدی، تأیید کن. دسترسی همان لحظه باز می‌شود.
       </p>
       <div className="flex flex-wrap gap-2">
@@ -60,7 +62,7 @@ export function OwnerOrderActions({ orderId, state }: { orderId: string; state: 
           type="button"
           disabled={busy}
           onClick={() => void confirm()}
-          className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+          className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-medium text-accent-fg disabled:opacity-60"
         >
           {busy ? <Loader2 className="inline h-4 w-4 animate-spin" /> : "تأیید دریافت"}
         </button>
@@ -68,7 +70,7 @@ export function OwnerOrderActions({ orderId, state }: { orderId: string; state: 
           type="button"
           disabled={busy}
           onClick={() => void decline()}
-          className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm disabled:opacity-60"
+          className="rounded-xl border border-slate-300 bg-elev px-4 py-2 text-sm disabled:opacity-60"
         >
           دریافت نشد
         </button>
@@ -77,7 +79,7 @@ export function OwnerOrderActions({ orderId, state }: { orderId: string; state: 
         value={reason}
         onChange={(e) => setReason(e.target.value)}
         placeholder="دلیل رد (اختیاری)"
-        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+        className="w-full rounded-xl border border-line px-3 py-2 text-sm"
       />
       {error ? <p className="text-sm text-rose-600">{error}</p> : null}
     </div>

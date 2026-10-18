@@ -2,7 +2,7 @@ import { db } from "@/db";
 import { knowledge, knowledgeSlides, semanticRecords } from "@/db/schema";
 import { eq, asc } from "drizzle-orm";
 import { notFound, redirect } from "next/navigation";
-import Link from "next/link";
+import Link from "@/components/workspace/WorkspaceLink";
 import type { Metadata } from "next";
 import { KnowledgeComposer } from "@/components/knowledge/KnowledgeComposer";
 import { requirePageOwner } from "@/lib/auth/guard";
@@ -49,11 +49,11 @@ export default async function EditKnowledgePage({ params }: Props) {
     <main className="mx-auto max-w-3xl px-4 py-10">
       <Link
         href={`/knowledge/${item.slug}`}
-        className="mb-6 inline-block text-sm text-slate-500 hover:text-indigo-600"
+        className="mb-6 inline-block text-sm text-muted hover:text-mark"
       >
         بازگشت به مطلب
       </Link>
-      <h1 className="mb-8 text-3xl font-bold text-slate-900">ویرایش مطلب</h1>
+      <h1 className="mb-8 text-3xl font-bold text-ink">ویرایش مطلب</h1>
       <KnowledgeComposer
         mode="edit"
         initial={{

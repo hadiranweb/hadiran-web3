@@ -1,13 +1,16 @@
+import { cookies } from "next/headers";
+import { issuePreviewTicket } from "@/lib/auth/preview-ticket";
+import { PREVIEW_OWNER_COOKIE } from "@/lib/auth/session";
 import { NextResponse } from "next/server";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { otpChallenges } from "@/db/schema";
-import { InvalidPhoneError, normalizePhone } from "@/lib/auth/phone";
+import { InvalidPhoneError, normalizePhone, normalizeDigits } from "@/lib/auth/phone";
 import { hashSecret, hashesMatch } from "@/lib/auth/crypto";
 import { enforceRateLimit, RateLimitExceededError, rateLimitHeaders } from "@/lib/auth/rate-limit";
 import { recordAuthEvent } from "@/lib/auth/audit";
 import { requestIp } from "@/lib/auth/request";
-import { OTP_MAX_ATTEMPTS } from "@/lib/auth/config";
+import { OTP_MAX_ATTEMPTS, developmentTestLogin } from "@/lib/auth/config";
 import { completePhoneLogin } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
@@ -18,9 +21,19 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json()) as { phone?: string; code?: string };
     phone = normalizePhone(typeof body.phone === "string" ? body.phone : "");
-    const code = typeof body.code === "string" ? body.code.replace(/\D/g, "").slice(0, 6) : "";
+    const code = typeof body.code === "string" ? normalizeDigits(body.code).replace(/\s/g, "") : "";
     if (!/^\d{6}$/.test(code)) {
       return NextResponse.json({ error: "invalid_code" }, { status: 400 });
+    }
+
+    const preview = developmentTestLogin();
+    if (preview && phone === preview.phone) {
+      if (code !== preview.code) return NextResponse.json({ error: "invalid_or_expired_code" }, { status: 401 });
+      const ticket = issuePreviewTicket();
+      if (!ticket) return NextResponse.json({ error: "preview_unavailable" }, { status: 503 });
+      const jar = await cookies();
+      jar.set(PREVIEW_OWNER_COOKIE, ticket, { httpOnly: true, sameSite: "lax", secure: request.headers.get("x-forwarded-proto") === "https", path: "/", maxAge: 3600 });
+      return NextResponse.json({ ok: true, auth_version: "P3", preview_ticket: ticket, account: { id: 0, phone, role: "owner", displayName: "مالک آزمایشی" } }, { headers: { "Cache-Control": "no-store" } });
     }
 
     try {

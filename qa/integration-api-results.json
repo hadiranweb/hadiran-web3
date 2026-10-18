@@ -1,0 +1,18 @@
+{
+  "status": "PASS",
+  "checks": [
+    "Real password login with Persian phone, DB-backed JWT sessions, no preview grant",
+    "Anonymous and member role boundaries",
+    "Policy version, onboarding, profile save and eight-digit account page",
+    "Canonical capture/PATCH stays private; legacy direct publication remains blocked",
+    "Private promotion hidden; public re-promotion reuses memory and renders canonical projection",
+    "Real listing create/edit, paid-content protection, payout prerequisite and USD repricing",
+    "Order resume, buyer isolation, decline/re-reference/confirm, idempotent entitlement, no PSP",
+    "Buyer cancellation",
+    "38 analyzer answers: consent, validation, incomplete guard, exact scoring, five-layer report, immutable submission",
+    "Preview bypass is disabled against a configured database",
+    "JWT session revocation invalidates replayed cookie"
+  ],
+  "database": "disposable local PostgreSQL 17; not production",
+  "analyzer_answers": 38
+}

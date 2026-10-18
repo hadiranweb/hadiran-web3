@@ -11,6 +11,7 @@ interface Ctx {
 export async function POST(request: Request, { params }: Ctx) {
   const auth = await requireAccount();
   if (auth.error) return auth.error;
+  if (auth.account.id === 0) return NextResponse.json({ error: "commerce_requires_database" }, { status: 503 });
   const { id } = await params;
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   const reference = typeof body.reference === "string" ? body.reference : "";

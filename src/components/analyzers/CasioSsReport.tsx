@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/workspace/WorkspaceLink";
 import type { CasioReport } from "@/lib/analyzers/casio-ss/report";
 
 const FA = "۰۱۲۳۴۵۶۷۸۹";

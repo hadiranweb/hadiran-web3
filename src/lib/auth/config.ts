@@ -45,3 +45,9 @@ export function ownerPasswordConfigured() {
 export function isProduction() {
   return process.env.NODE_ENV === "production";
 }
+
+/** Internal preview only: never allowed against an actual database. */
+export function developmentTestLogin(): { phone: string; code: string } | null {
+  if (process.env.DATABASE_URL || process.env.HADIRAN_TEST_MODE !== "1") return null;
+  return { phone: normalizePhone(process.env.HADIRAN_TEST_PHONE || "09121234567"), code: (process.env.HADIRAN_TEST_OTP || "123456").replace(/\D/g, "").slice(0,6) };
+}

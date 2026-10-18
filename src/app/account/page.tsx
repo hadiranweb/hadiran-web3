@@ -1,3 +1,4 @@
+import { previewStore } from "@/lib/preview/store";
 import type { Metadata } from "next";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
@@ -19,8 +20,9 @@ export const metadata: Metadata = {
 
 export default async function AccountPage() {
   const session = await requirePageAccount("/account");
-  const publicCode = await ensureAccountPublicCode(session.id);
-  const [row] = await db
+  const preview = await previewStore(session);
+  const publicCode = preview ? "پیش‌نمایش" : await ensureAccountPublicCode(session.id);
+  const [row] = preview ? [{ ...preview.profile, phone: session.phone }] : await db
     .select({
       givenName: accounts.givenName,
       familyName: accounts.familyName,
@@ -32,6 +34,7 @@ export default async function AccountPage() {
 
   return (
     <PageShell width="narrow">
+      {preview ? <p className="integration-notice mb-6">حساب نمایشی؛ نام‌ها فقط تا پایان همین نشست نگه داشته می‌شوند و شناسهٔ واقعی ساخته نمی‌شود.</p> : null}
       <PageHeader
         title="حساب من"
         lede="نام برای گزارش‌ها و تحلیلگر‌هاست. شناسهٔ هشت‌رقمی نمایشی است؛ با آن وارد نمی‌شوید."

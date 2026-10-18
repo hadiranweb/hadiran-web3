@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { topics, knowledgeTopics, projectTopics, courseTopics } from "@/db/schema";
 import { count } from "drizzle-orm";
-import Link from "next/link";
+import Link from "@/components/workspace/WorkspaceLink";
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/JsonLd";
 import { absoluteUrl } from "@/lib/site";

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { SignInForm } from "@/components/auth/SignInForm";
+import { developmentTestLogin } from "@/lib/auth/config";
 import { getCurrentAccount } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import { HadiranMark } from "@/components/HadiranMark";
@@ -19,21 +20,23 @@ export default async function SignInPage({
 }: {
   searchParams: Promise<{ next?: string }>;
 }) {
+  const preview = developmentTestLogin();
   const account = await getCurrentAccount();
   const { next } = await searchParams;
   const nextPath = next?.startsWith("/") && !next.startsWith("//") ? next : "/";
-  if (account) redirect(nextPath);
+  if (account) redirect(nextPath === "/" && account.role === "owner" ? "/workspace" : nextPath);
 
   return (
-    <PageShell width="narrow" className="flex min-h-[70vh] flex-col justify-center py-16">
+    <PageShell width="narrow" className="auth-shell flex min-h-[70vh] flex-col justify-center py-16">
       <HadiranMark className="mb-4 h-12 w-12" />
       <p className="hadiran-brand-text mb-2 text-sm font-medium">هادیران</p>
       <h1 className="text-3xl font-extrabold leading-[1.35] text-ink">ورود با موبایل</h1>
       <p className="mt-2 mb-8 text-sm leading-7 text-muted">
         شماره را بگذار. اگر قبلاً وارد شده باشی رمز می‌خواهیم؛ وگرنه یک کد پیامکی می‌آید.
       </p>
+      {preview ? <p className="integration-notice mb-5">ورود تستی داخلی · نسخهٔ P3 بدون نیاز به کوکی<br />شماره: <b dir="ltr">{preview.phone}</b> · کد: <b dir="ltr">{preview.code}</b><br />فقط پیش‌نمایش؛ رمز و JWT واقعی ریپو حفظ شده‌اند.</p> : null}
       <Suspense fallback={<p className="text-sm text-muted">در حال بارگذاری…</p>}>
-        <SignInForm />
+        <SignInForm previewLogin={!!preview} />
       </Suspense>
     </PageShell>
   );

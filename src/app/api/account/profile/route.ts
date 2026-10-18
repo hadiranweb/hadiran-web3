@@ -1,3 +1,4 @@
+import { previewStore } from "@/lib/preview/store";
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
@@ -28,6 +29,8 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "invalid_family_name" }, { status: 400 });
   }
 
+  const preview = await previewStore(auth.account);
+  if (preview) { preview.profile = { givenName: givenName || "", familyName: familyName || "" }; return NextResponse.json({ ok: true, profile: preview.profile, preview: true }); }
   await ensureAccountProfileSchema();
   const [updated] = await db
     .update(accounts)

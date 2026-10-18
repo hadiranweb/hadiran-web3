@@ -1,16 +1,22 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
+import { OnboardingDialog } from "@/components/auth/OnboardingDialog";
+import { SiteChrome } from "@/components/SiteChrome";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
-import { OnboardingDialog } from "@/components/auth/OnboardingDialog";
-import { Vazirmatn } from "next/font/google";
+import localFont from "next/font/local";
 import { siteConfig } from "@/lib/site";
 
-const vazirmatn = Vazirmatn({
-  subsets: ["arabic"],
-  variable: "--font-vazirmatn",
+const iranSharp = localFont({
+  src: [
+    { path: "./fonts/IRANSharp-Light.woff2", weight: "300", style: "normal" },
+    { path: "./fonts/IRANSharp-Regular.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/IRANSharp-Bold.woff2", weight: "700", style: "normal" },
+  ],
+  variable: "--font-iransharp",
   display: "swap",
+  preload: true,
 });
 
 export const metadata: Metadata = {
@@ -20,6 +26,11 @@ export const metadata: Metadata = {
     template: "%s | هادیران",
   },
   description: siteConfig.description,
+  openGraph: {
+    siteName: siteConfig.nameFa,
+    locale: "fa_IR",
+    type: "website",
+  },
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
@@ -28,25 +39,23 @@ export const metadata: Metadata = {
     ],
     apple: [{ url: "/apple-icon.png", sizes: "512x512" }],
   },
-  openGraph: {
-    siteName: siteConfig.nameFa,
-    locale: "fa_IR",
-    type: "website",
-  },
 };
 
-const themeBoot = `(()=>{try{var t=localStorage.getItem("hadiran-theme");var d=t==="dark"||(t!=="light"&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.toggle("dark",d);document.documentElement.style.colorScheme=d?"dark":"light"}catch(e){}})();`;
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#FBF9F5" },
+    { media: "(prefers-color-scheme: dark)", color: "#080B11" },
+  ],
+};
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="fa" dir="rtl" className={vazirmatn.variable} suppressHydrationWarning>
+    <html lang="fa" dir="rtl" className={iranSharp.variable} suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeBoot }} />
+        <script dangerouslySetInnerHTML={{ __html: `(function(){var p='system';try{var s=localStorage.getItem('hadiran-theme');if(s==='light'||s==='dark')p=s;}catch(e){}var r=document.documentElement;r.dataset.themePreference=p;r.dataset.theme=p==='system'?(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):p;r.classList.toggle('dark',r.dataset.theme==='dark');})();` }} />
       </head>
-      <body className="flex min-h-screen flex-col bg-paper text-ink antialiased">
-        <Nav />
-        <div className="flex-1">{children}</div>
-        <Footer />
+      <body className="site-body flex min-h-screen flex-col antialiased">
+        <SiteChrome navigation={<Nav />} footer={<Footer />}>{children}</SiteChrome>
         <OnboardingDialog />
       </body>
     </html>

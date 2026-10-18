@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { courses, lessons, courseTopics, courseSkills, topics, skills, courseProjects, projects } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import Link from "next/link";
+import Link from "@/components/workspace/WorkspaceLink";
 import { notFound } from "next/navigation";
 import { GraduationCap, Clock, Layers, ArrowLeft, BookOpen, FlaskConical, Wrench } from "lucide-react";
 import type { Metadata } from "next";

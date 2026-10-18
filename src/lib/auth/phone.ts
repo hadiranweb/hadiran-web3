@@ -5,13 +5,16 @@ export class InvalidPhoneError extends Error {
   }
 }
 
+/** Convert Persian and Arabic numerals without changing other characters. */
+export function normalizeDigits(input: string): string {
+  return input
+    .replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)))
+    .replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)));
+}
+
 /** Normalize Iranian mobile to `09xxxxxxxxx`. Accepts Persian/Arabic digits, +98, 0098. */
 export function normalizePhone(input: string): string {
-  const persianDigits = "۰۱۲۳۴۵۶۷۸۹";
-  const arabicDigits = "٠١٢٣٤٥٦٧٨٩";
-  const translated = input
-    .replace(/[۰-۹]/g, (digit) => String(persianDigits.indexOf(digit)))
-    .replace(/[٠-٩]/g, (digit) => String(arabicDigits.indexOf(digit)));
+  const translated = normalizeDigits(input);
   const digits = translated.replace(/[^0-9]/g, "");
   const withoutCountry = digits.startsWith("0098")
     ? digits.slice(4)

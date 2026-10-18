@@ -11,6 +11,7 @@ interface Ctx {
 export async function POST(_request: Request, { params }: Ctx) {
   const auth = await requireAccount();
   if (auth.error) return auth.error;
+  if (auth.account.id === 0) return NextResponse.json({ error: "commerce_requires_database" }, { status: 503 });
   const { id } = await params;
   try {
     const order = await abandonOrder({ orderId: id, buyerId: auth.account.id });

@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { projects, projectDocuments } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
-import Link from "next/link";
+import Link from "@/components/workspace/WorkspaceLink";
 import { notFound } from "next/navigation";
 import { ArrowLeft, FileText } from "lucide-react";
 import type { Metadata } from "next";

@@ -1,3 +1,4 @@
+import { previewStore } from "@/lib/preview/store";
 import { NextResponse } from "next/server";
 import { requireOwner } from "@/lib/auth/guard";
 import { promoteSemanticRecord } from "@/lib/knowledge/promote";
@@ -14,6 +15,16 @@ export async function POST(request: Request, { params }: Ctx) {
   const { id } = await params;
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   const visibility = body.visibility === "private" ? "private" : "public";
+  const preview = await previewStore(auth.account);
+  if (preview) {
+    const item = preview.records.find((record) => record.id === id);
+    if (!item) return NextResponse.json({ error: "not_found" }, { status: 404 });
+    item.visibility = visibility;
+    item.status = visibility === "public" ? "published" : "approved";
+    item.promotedMemoryId ||= `MEMORY_DEMO_${id}`;
+    item.updatedAt = new Date();
+    return NextResponse.json({ ok: true, memoryId: item.promotedMemoryId, visibility, preview: true });
+  }
   try {
     const result = await promoteSemanticRecord({
       recordId: id,

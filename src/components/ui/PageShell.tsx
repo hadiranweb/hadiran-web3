@@ -15,5 +15,5 @@ export function PageShell({
   width?: keyof typeof widths;
   className?: string;
 }) {
-  return <main className={`mx-auto ${widths[width]} px-4 py-10 ${className}`}>{children}</main>;
+  return <main className={`module-page mx-auto ${widths[width]} px-4 py-10 ${className}`}>{children}</main>;
 }

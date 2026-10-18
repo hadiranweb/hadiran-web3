@@ -1,10 +1,10 @@
+import { previewStore } from "@/lib/preview/store";
 import { notFound } from "next/navigation";
 import { db } from "@/db";
 import { semanticRecords } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { requirePageOwner } from "@/lib/auth/guard";
-import { CaptureEditor } from "@/components/knowledge/CaptureEditor";
-import { PromoteButton } from "@/components/knowledge/PromoteButton";
+import { RecordWorkbench } from "@/components/workspace/RecordWorkbench";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -20,30 +20,11 @@ export const metadata: Metadata = {
 
 export default async function WorkspaceRecordPage({ params }: Props) {
   const { id } = await params;
-  await requirePageOwner(`/workspace/records/${id}`);
-  const [item] = await db.select().from(semanticRecords).where(eq(semanticRecords.id, id));
+  const account = await requirePageOwner(`/workspace/records/${id}`);
+  const preview = await previewStore(account);
+  const [item] = preview ? preview.records.filter(record => record.id === id) : await db.select().from(semanticRecords).where(eq(semanticRecords.id, id));
   if (!item) notFound();
+  if (item.ownerId && item.ownerId !== account.id) notFound();
 
-  return (
-    <main className="mx-auto max-w-3xl space-y-8 px-4 py-8">
-      <div>
-        <p className="text-xs text-slate-500">
-          {item.status} · {item.visibility} · {item.id}
-        </p>
-        <h1 className="mt-1 text-3xl font-bold text-slate-900">{item.titleFa}</h1>
-      </div>
-      <PromoteButton recordId={item.id} />
-      <CaptureEditor
-        initial={{
-          id: item.id,
-          titleFa: item.titleFa,
-          titleEn: item.titleEn,
-          intent: item.intent,
-          summaryFa: item.summaryFa,
-          bodyFa: item.bodyFa,
-          status: item.status,
-        }}
-      />
-    </main>
-  );
+  return <RecordWorkbench initial={{ id: item.id, titleFa: item.titleFa, titleEn: item.titleEn, intent: item.intent, summaryFa: item.summaryFa, bodyFa: item.bodyFa, status: item.status }} visibility={item.visibility} />;
 }

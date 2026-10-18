@@ -14,7 +14,7 @@ export function PageHeader({
   align?: "start" | "center";
 }) {
   return (
-    <header className={`mb-10 ${align === "center" ? "text-center" : ""}`}>
+    <header className={`module-heading mb-10 ${align === "center" ? "text-center" : ""}`}>
       {kicker ? <p className="mb-2 text-sm font-medium text-mark">{kicker}</p> : null}
       <h1 className="text-3xl font-extrabold leading-[1.35] tracking-tight text-ink sm:text-4xl">{title}</h1>
       {lede ? (

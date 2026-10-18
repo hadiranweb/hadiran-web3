@@ -19,7 +19,8 @@ interface Props {
 
 export default async function EditListingPage({ params }: Props) {
   const { id } = await params;
-  await requirePageOwner(`/workspace/shop/listings/${id}`);
+  const account = await requirePageOwner(`/workspace/shop/listings/${id}`);
+  if (account.id === 0) notFound();
   const [item] = await db.select().from(shopListings).where(eq(shopListings.id, id));
   if (!item) notFound();
   let imageUrls: string[] = [];
@@ -40,8 +41,8 @@ export default async function EditListingPage({ params }: Props) {
     console.error("[hadiran] listing courses", error);
   }
   return (
-    <main className="mx-auto max-w-3xl px-4 py-8">
-      <h1 className="mb-6 text-2xl font-bold text-slate-900">{item.titleFa}</h1>
+    <main className="ws-page repo-module">
+      <h1 className="mb-6 text-2xl font-bold text-ink">{item.titleFa}</h1>
       <ListingEditor
         courses={courseRows}
         initial={{

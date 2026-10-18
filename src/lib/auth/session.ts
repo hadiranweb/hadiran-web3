@@ -1,15 +1,18 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { db } from "@/db";
 import { accounts, sessions } from "@/db/schema";
 import { and, eq, isNull, gt } from "drizzle-orm";
 import { hashSecret, randomSessionToken } from "./crypto";
-import { SESSION_COOKIE, SESSION_DAYS, isProduction, ownerPhones } from "./config";
+import { SESSION_COOKIE, SESSION_DAYS, isProduction, ownerPhones, developmentTestLogin } from "./config";
 import { needsPasswordSetup } from "./password";
 import { requestIp, requestUserAgent } from "./request";
 import { assertJwtReadyForIssue, jwtConfigured, sessionJtiFromCookie, signSessionJwt } from "./jwt";
 import { ensureAccountPasswordColumns, ensureAccountProfileSchema } from "./schema-guard";
 import { ensureAccountPublicCode } from "./public-code";
 import { onboardingFlags } from "./onboarding";
+
+import { validPreviewTicket, revokePreviewTicket, PREVIEW_TICKET_HEADER } from "./preview-ticket";
+export const PREVIEW_OWNER_COOKIE = "hadiran_preview_owner";
 
 export type SessionAccount = {
   id: number;
@@ -21,6 +24,7 @@ export type SessionAccount = {
   policiesAccepted: boolean;
   needsProfile: boolean;
   onboardingComplete: boolean;
+  previewTicket?: string;
 };
 
 function toSessionAccount(row: {
@@ -91,7 +95,19 @@ export async function readSessionToken() {
   return jar.get(SESSION_COOKIE)?.value || null;
 }
 
+export async function getPreviewAccount(): Promise<SessionAccount | null> {
+  const login = developmentTestLogin();
+  if (!login) return null;
+  const requestHeaders = await headers();
+  const jar = await cookies();
+  const ticket = requestHeaders.get(PREVIEW_TICKET_HEADER) || jar.get(PREVIEW_OWNER_COOKIE)?.value || "";
+  if (!validPreviewTicket(ticket)) return null;
+  return { id: 0, phone: login.phone, displayName: "مالک آزمایشی", givenName: "مالک", familyName: "آزمایشی", role: "owner", policiesAccepted: true, needsProfile: false, onboardingComplete: true, previewTicket: ticket };
+}
+
 export async function getCurrentAccount(): Promise<SessionAccount | null> {
+  const preview = await getPreviewAccount();
+  if (preview) return preview;
   const token = await readSessionToken();
   if (!token) return null;
   try {
@@ -138,6 +154,10 @@ export async function getCurrentAccount(): Promise<SessionAccount | null> {
 }
 
 export async function revokeCurrentSession() {
+  const preview = await getPreviewAccount();
+  if (preview?.previewTicket) revokePreviewTicket(preview.previewTicket);
+  const jar = await cookies();
+  jar.set(PREVIEW_OWNER_COOKIE, "", { httpOnly: true, secure: isProduction(), sameSite: "lax", path: "/", maxAge: 0 });
   const token = await readSessionToken();
   if (!token) return;
   try {

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/workspace/WorkspaceLink";
 import { notFound } from "next/navigation";
 import { db } from "@/db";
 import { shopListings, shopOrders } from "@/db/schema";
