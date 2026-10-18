@@ -9,6 +9,7 @@ import { maskPhone } from "@/lib/auth/phone";
 import { AccountReferralForm } from "@/components/auth/AccountReferralForm";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PageShell } from "@/components/ui/PageShell";
+import { AccountPasswordForm } from "@/components/auth/AccountPasswordForm";
 import { AccountProfileForm } from "@/components/auth/AccountProfileForm";
 
 export const dynamic = "force-dynamic";
@@ -56,6 +57,7 @@ export default async function AccountPage() {
       </dl>
       <AccountReferralForm referredBy={referredBy} />
       <AccountProfileForm givenName={row?.givenName ?? ""} familyName={row?.familyName ?? ""} />
+      {session.needsPassword ? <AccountPasswordForm /> : null}
     </PageShell>
   );
 }

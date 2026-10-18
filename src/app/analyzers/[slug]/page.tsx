@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { AnalyzerRun } from "@/components/analyzers/AnalyzerRun";
+import { AnalyzerPublicScreen } from "@/components/analyzers/AnalyzerPublicScreen";
 import { JsonLd } from "@/components/JsonLd";
-import { PageHeader } from "@/components/ui/PageHeader";
 import { PageShell } from "@/components/ui/PageShell";
+import { analyzerPublicPath } from "@/lib/analyzers/paths";
 import { readAttempt } from "@/lib/analyzers/attempts";
 import { getCodePack, loadPack } from "@/lib/analyzers/registry";
 import { getCurrentAccount } from "@/lib/auth/session";
@@ -31,7 +30,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: pack.nameFa,
     description: pack.summaryFa,
-    alternates: { canonical: `/analyzers/${pack.slug}` },
+    alternates: { canonical: analyzerPublicPath(pack.slug) },
   };
 }
 
@@ -41,24 +40,27 @@ export default async function AnalyzerMemberPage({ params }: Props) {
   const pack = await visiblePack(slug, account?.role);
   if (!pack) notFound();
 
+  let resume = false;
   if (account) {
     const attempt = await readAttempt(account.id, pack);
     if (attempt?.status === "submitted") {
-      redirect(`/analyzers/${pack.slug}/report`);
+      redirect(`${analyzerPublicPath(pack.slug)}/report`);
     }
+    resume = attempt?.status === "in_progress";
   }
 
   const indexable = pack.status === "open";
+  const path = analyzerPublicPath(pack.slug);
 
   return (
-    <PageShell width="narrow">
+    <PageShell width="narrow" className="py-6">
       {indexable ? (
         <JsonLd
           data={{
             "@context": "https://schema.org",
             "@type": "WebPage",
             name: pack.nameFa,
-            url: absoluteUrl(`/analyzers/${pack.slug}`),
+            url: absoluteUrl(path),
             inLanguage: "fa",
             description: pack.summaryFa,
             isPartOf: { "@type": "CollectionPage", name: "تحلیلگر‌ها", url: absoluteUrl("/analyzers") },
@@ -66,27 +68,7 @@ export default async function AnalyzerMemberPage({ params }: Props) {
         />
       ) : null}
 
-      <p className="mb-4 text-sm">
-        <Link href="/analyzers" className="text-muted hover:text-ink">
-          تحلیلگر‌ها
-        </Link>
-      </p>
-
-      <PageHeader title={pack.nameFa} lede={pack.summaryFa} />
-
-      {account ? (
-        <AnalyzerRun pack={pack} />
-      ) : (
-        <section className="surface p-6 sm:p-8">
-          <p className="text-sm leading-7 text-muted">برای شروع ارزیابی وارد حساب شوید. سؤال‌ها فرم است، نه گفتگو.</p>
-          <Link
-            href={`/signin?next=/analyzers/${pack.slug}`}
-            className="mt-5 inline-flex rounded-[var(--radius-md)] bg-accent px-5 py-2.5 text-sm font-medium text-accent-fg"
-          >
-            ورود و شروع
-          </Link>
-        </section>
-      )}
+      <AnalyzerPublicScreen pack={pack} signedIn={Boolean(account)} resume={resume} />
     </PageShell>
   );
 }

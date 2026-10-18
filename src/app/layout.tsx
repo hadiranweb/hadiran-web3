@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense, type ReactNode } from "react";
 import "./globals.css";
-import { Nav } from "@/components/Nav";
-import { Footer } from "@/components/Footer";
+import { SiteChrome } from "@/components/SiteChrome";
 import { OnboardingDialog } from "@/components/auth/OnboardingDialog";
 import { ReferralCapture } from "@/components/auth/ReferralCapture";
 import { Vazirmatn } from "next/font/google";
@@ -45,9 +44,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <script dangerouslySetInnerHTML={{ __html: themeBoot }} />
       </head>
       <body className="flex min-h-screen flex-col bg-paper text-ink antialiased">
-        <Nav />
-        <div className="flex-1">{children}</div>
-        <Footer />
+        <SiteChrome>{children}</SiteChrome>
         <Suspense fallback={null}>
           <ReferralCapture />
         </Suspense>

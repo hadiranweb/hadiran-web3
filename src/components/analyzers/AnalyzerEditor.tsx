@@ -180,6 +180,13 @@ export function AnalyzerEditor({
       {tab === "meta" ? (
         <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6">
           <p className="text-xs text-slate-500">شناسه: {pack.slug} — بعد از ساخت عوض نمی‌شود.</p>
+          <p className="text-xs text-slate-500">
+            آدرس عمومی:{" "}
+            <a href={`/analyzers/${pack.slug}`} className="text-indigo-700" dir="ltr">
+              /analyzers/{pack.slug}
+            </a>
+            {pack.status !== "open" ? " — تا وضعیت «باز» باشد برای مهمان دیده نمی‌شود." : null}
+          </p>
           <label className="block text-sm">
             <span className="mb-1 block text-slate-600">نام</span>
             <input

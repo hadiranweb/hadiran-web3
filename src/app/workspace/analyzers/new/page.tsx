@@ -21,7 +21,9 @@ export default async function NewAnalyzerPage() {
       </p>
       <h1 className="text-2xl font-bold text-slate-900">آزمون تازه</h1>
       <p className="text-sm leading-7 text-slate-500">
-        سؤال‌ها ردیف دیتابیس نمی‌شوند؛ یک pack نسخه‌دار ذخیره می‌شود. Typeform نیست.
+        سؤال‌ها ردیف دیتابیس نمی‌شوند؛ یک pack نسخه‌دار ذخیره می‌شود. Typeform نیست. با ساخت، آدرس عمومی
+        <span dir="ltr"> /analyzers/شناسه </span>
+        اختصاص می‌یابد.
       </p>
       <AnalyzerCreateForm />
     </main>

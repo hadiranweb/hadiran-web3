@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { analyzerPublicPath } from "@/lib/analyzers/paths";
 
 const fieldClass =
   "w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-400";
@@ -10,6 +11,7 @@ export function AnalyzerCreateForm() {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [slug, setSlug] = useState("");
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -42,8 +44,21 @@ export function AnalyzerCreateForm() {
       </label>
       <label className="block text-sm">
         <span className="mb-1 block text-slate-600">شناسهٔ لاتین پایدار</span>
-        <input name="slug" required className={fieldClass} placeholder="sales-health" dir="ltr" />
+        <input
+          name="slug"
+          required
+          className={fieldClass}
+          placeholder="sales-health"
+          dir="ltr"
+          value={slug}
+          onChange={(event) => setSlug(event.target.value)}
+        />
         <span className="mt-1 block text-xs text-slate-500">حروف کوچک انگلیسی و خط تیره. بعداً عوض نمی‌شود.</span>
+        {slug.trim() ? (
+          <span className="mt-2 block text-xs text-slate-500" dir="ltr">
+            آدرس عمومی: {analyzerPublicPath(slug.trim().toLowerCase())}
+          </span>
+        ) : null}
       </label>
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
       <button

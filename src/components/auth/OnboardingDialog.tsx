@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { privacySummary } from "@/lib/privacy/content";
-import { clearDraft, publishAccount, readDraft, writeDraft } from "@/lib/ui/draft";
+import { clearDraft, publishAccount, readDraft, subscribeAccount, writeDraft } from "@/lib/ui/draft";
 
 const fieldClass =
   "w-full rounded-[var(--radius-md)] border border-line bg-elev px-4 py-2.5 text-sm text-ink outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]";
@@ -44,47 +44,52 @@ export function OnboardingDialog() {
       return;
     }
     let cancelled = false;
-    fetch("/api/auth/me", { cache: "no-store" })
-      .then(async (res) => {
-        if (!res.ok) return null;
-        return (await res.json()) as {
-          account: {
-            onboardingComplete?: boolean;
-            policiesAccepted?: boolean;
-            needsProfile?: boolean;
-            givenName?: string | null;
-            familyName?: string | null;
-          } | null;
-        };
-      })
-      .then((data) => {
-        if (cancelled) return;
-        const account = data?.account;
-        const needsProfile =
-          account?.needsProfile ?? (!account?.givenName?.trim() || !account?.familyName?.trim());
-        const needsPolicies = account ? account.policiesAccepted !== true : false;
-        if (!account || (!needsPolicies && !needsProfile)) {
-          setOpen(false);
+    function load() {
+      fetch("/api/auth/me", { cache: "no-store" })
+        .then(async (res) => {
+          if (!res.ok) return null;
+          return (await res.json()) as {
+            account: {
+              onboardingComplete?: boolean;
+              policiesAccepted?: boolean;
+              needsProfile?: boolean;
+              givenName?: string | null;
+              familyName?: string | null;
+            } | null;
+          };
+        })
+        .then((data) => {
+          if (cancelled) return;
+          const account = data?.account;
+          const needsProfile =
+            account?.needsProfile ?? (!account?.givenName?.trim() || !account?.familyName?.trim());
+          const needsPolicies = account ? account.policiesAccepted !== true : false;
+          if (!account || (!needsPolicies && !needsProfile)) {
+            setOpen(false);
+            setReady(true);
+            return;
+          }
+          const draft = readDraft<{ givenName?: string; familyName?: string; referralCode?: string }>("onboarding-profile");
+          setGivenName(draft?.givenName || account.givenName || "");
+          setFamilyName(draft?.familyName || account.familyName || "");
+          const storedRef = typeof window !== "undefined" ? sessionStorage.getItem("hadiran-ref") : null;
+          setReferralCode(draft?.referralCode || storedRef || "");
+          setStep(needsPolicies ? "policies" : "profile");
+          setOpen(true);
           setReady(true);
-          return;
-        }
-        const draft = readDraft<{ givenName?: string; familyName?: string; referralCode?: string }>("onboarding-profile");
-        setGivenName(draft?.givenName || account.givenName || "");
-        setFamilyName(draft?.familyName || account.familyName || "");
-        const storedRef = typeof window !== "undefined" ? sessionStorage.getItem("hadiran-ref") : null;
-        setReferralCode(draft?.referralCode || storedRef || "");
-        setStep(needsPolicies ? "policies" : "profile");
-        setOpen(true);
-        setReady(true);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setOpen(false);
-          setReady(true);
-        }
-      });
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setOpen(false);
+            setReady(true);
+          }
+        });
+    }
+    load();
+    const stop = subscribeAccount(() => load());
     return () => {
       cancelled = true;
+      stop();
     };
   }, [pathname]);
 

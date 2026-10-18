@@ -22,6 +22,7 @@ export type SessionAccount = {
   policiesAccepted: boolean;
   needsProfile: boolean;
   onboardingComplete: boolean;
+  needsPassword: boolean;
 };
 
 function asRole(value: string): AccountRole {
@@ -38,6 +39,7 @@ function toSessionAccount(row: {
   role: string;
   policiesAcceptedAt: Date | null;
   policiesVersion: string | null;
+  passwordHash?: string | null;
 }): SessionAccount {
   return {
     id: row.id,
@@ -47,6 +49,7 @@ function toSessionAccount(row: {
     familyName: row.familyName,
     role: asRole(row.role),
     ...onboardingFlags(row),
+    needsPassword: needsPasswordSetup({ phone: row.phone, passwordHash: row.passwordHash ?? null }),
   };
 }
 
@@ -115,6 +118,7 @@ export async function getCurrentAccount(): Promise<SessionAccount | null> {
         policiesAcceptedAt: accounts.policiesAcceptedAt,
         policiesVersion: accounts.policiesVersion,
         onboardingCompletedAt: accounts.onboardingCompletedAt,
+        passwordHash: accounts.passwordHash,
         sessionId: sessions.id,
       })
       .from(sessions)

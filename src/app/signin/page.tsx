@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 import { SignInForm } from "@/components/auth/SignInForm";
 import { getCurrentAccount } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
@@ -30,11 +29,10 @@ export default async function SignInPage({
       <p className="hadiran-brand-text mb-2 text-sm font-medium">هادیران</p>
       <h1 className="text-3xl font-extrabold leading-[1.35] text-ink">ورود با موبایل</h1>
       <p className="mt-2 mb-8 text-sm leading-7 text-muted">
-        شماره را بگذار. اگر قبلاً وارد شده باشی رمز می‌خواهیم؛ وگرنه یک کد پیامکی می‌آید.
+        شماره را بگذار. اگر رمز ثابت دارید همان را می‌خواهیم؛ وگرنه یک کد پیامکی می‌آید. گذاشتن رمز هنگام ثبت‌نام لازم
+        نیست.
       </p>
-      <Suspense fallback={<p className="text-sm text-muted">در حال بارگذاری…</p>}>
-        <SignInForm />
-      </Suspense>
+      <SignInForm nextPath={nextPath} />
     </PageShell>
   );
 }
