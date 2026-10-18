@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireOwner } from "@/lib/auth/guard";
 import { insertAuthoredPack, listAuthoredPacks, readAuthoredPack } from "@/lib/analyzers/authored";
-import { codePacks } from "@/lib/analyzers/registry";
 import { blankPack, isPackSlug, sanitizePack } from "@/lib/analyzers/sanitize";
 
 export const dynamic = "force-dynamic";
@@ -11,13 +10,6 @@ export async function GET() {
   if (auth.error) return auth.error;
   const authored = await listAuthoredPacks();
   return NextResponse.json({
-    code: codePacks().map((pack) => ({
-      slug: pack.slug,
-      nameFa: pack.nameFa,
-      status: pack.status,
-      version: pack.version,
-      readonly: true,
-    })),
     authored: authored.map((pack) => ({
       slug: pack.slug,
       nameFa: pack.nameFa,
@@ -40,7 +32,7 @@ export async function POST(request: Request) {
   const slug = typeof body.slug === "string" ? body.slug.trim().toLowerCase() : "";
   const nameFa = typeof body.nameFa === "string" ? body.nameFa.replace(/\s+/g, " ").trim() : "";
   if (!isPackSlug(slug)) {
-    return NextResponse.json({ error: "شناسه لاتین، یکتا، و غیر از casio-ss باشد." }, { status: 400 });
+    return NextResponse.json({ error: "شناسه لاتین و یکتا باشد." }, { status: 400 });
   }
   if (nameFa.length < 3) {
     return NextResponse.json({ error: "نام فارسی حداقل سه نویسه باشد." }, { status: 400 });

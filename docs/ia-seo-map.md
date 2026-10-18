@@ -612,7 +612,7 @@ Schema.org: `ContactPage` با `mainEntity` از نوع `Person` که به `/had
 
 **صریحاً نه:** میکروسرویس، DB جدا، `eval`/JS کاربر، جنریتور PDF کپی‌شده، جایگزینی دانشنامه با وکتور، تغییر مقیاس casio به لایکرت/اسلایدر، CMS عمومی برای همه.
 
-ترتیب ساخت: (۱) **انجام‌شده** pack تایپی + مهاجرت casio به pack بدون تغییر UI اجرا. (۲) **انجام‌شده** موتور نمرهٔ اعلانی (`src/lib/analyzers/score.ts`) طبق سند ۰۵؛ اسنپ‌شات روی `casio_attempts.results` در submit؛ به کاربر در فرم نشان داده نمی‌شود. (۳) **انجام‌شده** درخت سؤال→عارضه→کلیدواژه از ماتریس تفسیر + گزارش شخصی noindex در `/analyzers/casio-ss/report`؛ گیت سبز/زرد/قرمز در گزارش نیست. (۴) **انجام‌شده** تألیف مالک در `/workspace/analyzers` (noindex؛ تب نمره روی همان `/workspace/analyzers/[slug]`)؛ pack JSON در `analyzer_packs`؛ اجرای آزمون دوم روی `/analyzers/[slug]` با `analyzer_attempts`. casio-ss همچنان از کد و `casio_attempts` است.
+ترتیب ساخت: (۱) **انجام‌شده** pack تایپی + مهاجرت casio به pack بدون تغییر UI اجرا. (۲) **انجام‌شده** موتور نمرهٔ اعلانی (`src/lib/analyzers/score.ts`) طبق سند ۰۵؛ اسنپ‌شات روی `casio_attempts.results` در submit؛ به کاربر در فرم نشان داده نمی‌شود. (۳) **انجام‌شده** درخت سؤال→عارضه→کلیدواژه از ماتریس تفسیر + گزارش شخصی noindex در `/analyzers/casio-ss/report`؛ گیت سبز/زرد/قرمز در گزارش نیست. (۴) **انجام‌شده** تألیف مالک در `/workspace/analyzers` (noindex؛ تب نمره/گزارش روی همان `/workspace/analyzers/[slug]`). casio-ss بذر اولیه است و بعد از استقرار در `analyzer_packs` مثل بقیه از میز ویرایش می‌شود؛ پاسخ‌های casio همچنان `casio_attempts`.
 
 ---
 

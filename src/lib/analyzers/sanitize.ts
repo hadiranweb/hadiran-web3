@@ -15,13 +15,16 @@ import {
   type FormulaOp,
   type Item,
   type Keyword,
+  type LayerBand,
+  type PackReport,
   type RangeItem,
   type ScaleAnchors,
   type Section,
   type TextItem,
 } from "@/lib/analyzers/pack";
 
-export const RESERVED_SLUGS = new Set(["casio-ss", "new", "report"]);
+/** فقط بخش‌های مسیر، نه شناسهٔ آزمون. casio-ss قابل تألیف است. */
+export const RESERVED_SLUGS = new Set(["new", "report"]);
 
 export const DEFAULT_ANCHORS: ScaleAnchors = {
   0: "اصلاً / هرگز",
@@ -174,8 +177,18 @@ function sanitizeFinding(raw: unknown, used: Set<string>): Finding | null {
   const kind = typeof row.kind === "string" && FINDING_KINDS.has(row.kind) ? row.kind : null;
   if (!id || !titleFa || !kind || used.has(id)) return null;
   used.add(id);
+  const finding: Finding = { id, titleFa, kind: kind as Finding["kind"] };
   const parentId = asId(row.parentId) ?? undefined;
-  return parentId ? { id, titleFa, kind: kind as Finding["kind"], parentId } : { id, titleFa, kind: kind as Finding["kind"] };
+  if (parentId) finding.parentId = parentId;
+  const constructFa = asTrimmed(row.constructFa, 400);
+  const asIsFa = asTrimmed(row.asIsFa, 400);
+  const toBeFa = asTrimmed(row.toBeFa, 400);
+  const actionsFa = asTrimmed(row.actionsFa, 400);
+  if (constructFa) finding.constructFa = constructFa;
+  if (asIsFa) finding.asIsFa = asIsFa;
+  if (toBeFa) finding.toBeFa = toBeFa;
+  if (actionsFa) finding.actionsFa = actionsFa;
+  return finding;
 }
 
 function sanitizeKeyword(raw: unknown, used: Set<string>): Keyword | null {
@@ -185,7 +198,85 @@ function sanitizeKeyword(raw: unknown, used: Set<string>): Keyword | null {
   const labelFa = asTrimmed(row.labelFa, 160);
   if (!id || !labelFa || used.has(id)) return null;
   used.add(id);
-  return { id, labelFa };
+  const children = asStringList(row.children, 160, 12);
+  return children.length ? { id, labelFa, children } : { id, labelFa };
+}
+
+function sanitizeLayerBand(raw: unknown): LayerBand | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const row = raw as Record<string, unknown>;
+  const id = asId(row.id);
+  const labelFa = asTrimmed(row.labelFa, 80);
+  if (!id || !labelFa) return null;
+  const min = asNumber(row.min);
+  const max = asNumber(row.max);
+  if (min == null || max == null) return null;
+  return {
+    id,
+    labelFa,
+    meaningFa: asTrimmed(row.meaningFa, 400) ?? "",
+    min,
+    max,
+    maxInclusive: row.maxInclusive === true,
+  };
+}
+
+function sanitizeReport(raw: unknown): PackReport | undefined {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+  const row = raw as Record<string, unknown>;
+  const report: PackReport = {};
+  if (row.hideGateScores === true) report.hideGateScores = true;
+  if (row.hideGateScores === false) report.hideGateScores = false;
+  const interpretationVersion = asTrimmed(row.interpretationVersion, 64);
+  if (interpretationVersion) report.interpretationVersion = interpretationVersion;
+  const closingFa = asTrimmed(row.closingFa, 400);
+  if (closingFa) report.closingFa = closingFa;
+  const businessNameItemId = asId(row.businessNameItemId);
+  if (businessNameItemId) report.businessNameItemId = businessNameItemId;
+  if (Array.isArray(row.contextFields)) {
+    const contextFields: NonNullable<PackReport["contextFields"]> = [];
+    for (const entry of row.contextFields.slice(0, 12)) {
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
+      const field = entry as Record<string, unknown>;
+      const id = asId(field.id);
+      const labelFa = asTrimmed(field.labelFa, 80);
+      if (!id || !labelFa) continue;
+      contextFields.push({ id, labelFa });
+    }
+    if (contextFields.length) report.contextFields = contextFields;
+  }
+  if (Array.isArray(row.layerBands)) {
+    const layerBands = row.layerBands.map(sanitizeLayerBand).filter((entry): entry is LayerBand => Boolean(entry)).slice(0, 8);
+    if (layerBands.length) report.layerBands = layerBands;
+  }
+  if (Array.isArray(row.crossPatterns)) {
+    const crossPatterns: NonNullable<PackReport["crossPatterns"]> = [];
+    for (const entry of row.crossPatterns.slice(0, 12)) {
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
+      const p = entry as Record<string, unknown>;
+      const id = asId(p.id);
+      const meaningFa = asTrimmed(p.meaningFa, 400);
+      const actionFa = asTrimmed(p.actionFa, 400);
+      if (!id || !meaningFa) continue;
+      const whenRaw = p.when && typeof p.when === "object" && !Array.isArray(p.when) ? (p.when as Record<string, unknown>) : {};
+      const weakAny = Array.isArray(whenRaw.weakAny)
+        ? whenRaw.weakAny.map((item) => asId(item)).filter((item): item is string => Boolean(item))
+        : [];
+      crossPatterns.push({
+        id,
+        meaningFa,
+        actionFa: actionFa ?? "",
+        when: {
+          strong: asId(whenRaw.strong),
+          weak: asId(whenRaw.weak),
+          alsoWeak: asId(whenRaw.alsoWeak),
+          weakAny,
+        },
+      });
+    }
+    if (crossPatterns.length) report.crossPatterns = crossPatterns;
+  }
+  return Object.keys(report).length ? report : undefined;
 }
 
 function sanitizeEdge(raw: unknown): Edge | null {
@@ -327,7 +418,7 @@ export function sanitizePack(raw: unknown, slug: string): SanitizeResult {
   const status = typeof row.status === "string" && STATUSES.has(row.status as AnalyzerPackStatus)
     ? (row.status as AnalyzerPackStatus)
     : "draft";
-  const summaryFa = asTrimmed(row.summaryFa, 500) ?? "";
+  const summaryFa = asTrimmed(row.summaryFa, 800) ?? "";
 
   const usedItems = new Set<string>();
   const usedSections = new Set<string>();
@@ -402,6 +493,7 @@ export function sanitizePack(raw: unknown, slug: string): SanitizeResult {
     keywords,
     edges,
     formulas,
+    report: sanitizeReport(row.report),
   };
 
   try {

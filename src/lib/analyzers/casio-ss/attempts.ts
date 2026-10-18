@@ -2,43 +2,40 @@ import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { casioAttempts } from "@/db/schema";
 import { ensureCasioAttemptsSchema } from "@/lib/auth/schema-guard";
+import { resolveLivePack } from "@/lib/analyzers/authored";
+import { findItem, type AnalyzerPack } from "@/lib/analyzers/pack";
 import { scorePack } from "@/lib/analyzers/score";
 import {
-  findItem,
+  filterAnswers,
   isComplete,
   normalizeAnswer,
   type AnswerMap,
   type AttemptView,
-} from "./answers";
-import { INSTRUMENT_VERSION, casioSsPack } from "./instrument";
+} from "@/lib/analyzers/runtime";
+import { buildCasioAuthoredPack } from "./authored-pack";
 
 export type { AttemptView };
 
-function asAnswers(value: unknown): AnswerMap {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  const out: AnswerMap = {};
-  for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
-    const item = findItem(key);
-    if (!item) continue;
-    const normalized = normalizeAnswer(item, raw);
-    if (normalized != null) out[key] = normalized;
-  }
-  return out;
+async function livePack(): Promise<AnalyzerPack> {
+  return (await resolveLivePack("casio-ss")) ?? buildCasioAuthoredPack();
 }
 
-function view(row: {
-  instrumentVersion: string;
-  status: string;
-  consentAt: Date | null;
-  answers: AnswerMap | null;
-  submittedAt: Date | null;
-  results?: AttemptView["results"];
-}): AttemptView {
+function view(
+  row: {
+    instrumentVersion: string;
+    status: string;
+    consentAt: Date | null;
+    answers: AnswerMap | null;
+    submittedAt: Date | null;
+    results?: AttemptView["results"];
+  },
+  pack: AnalyzerPack,
+): AttemptView {
   return {
     instrumentVersion: row.instrumentVersion,
     status: row.status === "submitted" ? "submitted" : "in_progress",
     consentAt: row.consentAt ? row.consentAt.toISOString() : null,
-    answers: asAnswers(row.answers),
+    answers: filterAnswers(pack, row.answers),
     submittedAt: row.submittedAt ? row.submittedAt.toISOString() : null,
     results: row.results ?? null,
   };
@@ -63,13 +60,13 @@ async function latestSubmitted(accountId: number) {
   return row ?? null;
 }
 
-async function createOpen(accountId: number) {
+async function createOpen(accountId: number, pack: AnalyzerPack) {
   try {
     const [row] = await db
       .insert(casioAttempts)
       .values({
         accountId,
-        instrumentVersion: INSTRUMENT_VERSION,
+        instrumentVersion: pack.version,
         answers: {},
         status: "in_progress",
       })
@@ -84,27 +81,29 @@ async function createOpen(accountId: number) {
 
 export async function readAttempt(accountId: number): Promise<AttemptView | null> {
   await ensureCasioAttemptsSchema();
+  const pack = await livePack();
   const open = await openAttempt(accountId);
-  if (open) return view(open);
+  if (open) return view(open, pack);
   const submitted = await latestSubmitted(accountId);
-  return submitted ? view(submitted) : null;
+  return submitted ? view(submitted, pack) : null;
 }
 
 export async function consentAttempt(accountId: number): Promise<AttemptView> {
   await ensureCasioAttemptsSchema();
+  const pack = await livePack();
   const submitted = await latestSubmitted(accountId);
   if (submitted && !(await openAttempt(accountId))) {
-    return view(submitted);
+    return view(submitted, pack);
   }
   let row = await openAttempt(accountId);
-  if (!row) row = await createOpen(accountId);
-  if (row.consentAt) return view(row);
+  if (!row) row = await createOpen(accountId, pack);
+  if (row.consentAt) return view(row, pack);
   const [updated] = await db
     .update(casioAttempts)
-    .set({ consentAt: new Date(), updatedAt: new Date() })
+    .set({ consentAt: new Date(), updatedAt: new Date(), instrumentVersion: pack.version })
     .where(eq(casioAttempts.id, row.id))
     .returning();
-  return view(updated);
+  return view(updated, pack);
 }
 
 export async function saveAnswer(
@@ -113,7 +112,8 @@ export async function saveAnswer(
   value: unknown,
 ): Promise<{ ok: true; attempt: AttemptView } | { ok: false; error: string }> {
   await ensureCasioAttemptsSchema();
-  const item = findItem(id);
+  const pack = await livePack();
+  const item = findItem(pack, id);
   if (!item) return { ok: false, error: "unknown_item" };
   const normalized = normalizeAnswer(item, value);
   if (normalized == null) return { ok: false, error: "invalid_answer" };
@@ -122,33 +122,39 @@ export async function saveAnswer(
   if (!row) {
     const submitted = await latestSubmitted(accountId);
     if (submitted) return { ok: false, error: "already_submitted" };
-    row = await createOpen(accountId);
+    row = await createOpen(accountId, pack);
   }
   if (!row.consentAt) return { ok: false, error: "consent_required" };
 
-  const answers = { ...asAnswers(row.answers), [id]: normalized };
+  const answers = { ...filterAnswers(pack, row.answers), [id]: normalized };
   const [updated] = await db
     .update(casioAttempts)
-    .set({ answers, updatedAt: new Date() })
+    .set({ answers, updatedAt: new Date(), instrumentVersion: pack.version })
     .where(eq(casioAttempts.id, row.id))
     .returning();
-  return { ok: true, attempt: view(updated) };
+  return { ok: true, attempt: view(updated, pack) };
 }
 
 export async function submitAttempt(
   accountId: number,
 ): Promise<{ ok: true; attempt: AttemptView } | { ok: false; error: string }> {
   await ensureCasioAttemptsSchema();
+  const pack = await livePack();
   const row = await openAttempt(accountId);
   if (!row) {
     const submitted = await latestSubmitted(accountId);
-    if (submitted) return { ok: true, attempt: view(submitted) };
+    if (submitted) return { ok: true, attempt: view(submitted, pack) };
     return { ok: false, error: "not_started" };
   }
   if (!row.consentAt) return { ok: false, error: "consent_required" };
-  const answers = asAnswers(row.answers);
-  if (!isComplete(answers)) return { ok: false, error: "incomplete" };
-  const results = scorePack(casioSsPack, answers);
+  const answers = filterAnswers(pack, row.answers);
+  if (!isComplete(pack, answers)) return { ok: false, error: "incomplete" };
+  let results: AttemptView["results"];
+  try {
+    results = scorePack(pack, answers);
+  } catch {
+    return { ok: false, error: "score_failed" };
+  }
   const [updated] = await db
     .update(casioAttempts)
     .set({
@@ -157,8 +163,9 @@ export async function submitAttempt(
       updatedAt: new Date(),
       answers,
       results,
+      instrumentVersion: pack.version,
     })
     .where(eq(casioAttempts.id, row.id))
     .returning();
-  return { ok: true, attempt: view(updated) };
+  return { ok: true, attempt: view(updated, pack) };
 }

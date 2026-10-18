@@ -4,11 +4,14 @@ import { useMemo, useState } from "react";
 import type {
   AnalyzerPack,
   AnalyzerPackStatus,
+  CrossPattern,
   Finding,
   Formula,
   FormulaOp,
   Item,
   Keyword,
+  LayerBand,
+  PackReport,
   Section,
 } from "@/lib/analyzers/pack";
 import { DEFAULT_ANCHORS } from "@/lib/analyzers/sanitize";
@@ -27,7 +30,18 @@ const ops: FormulaOp[] = [
   "matmul",
 ];
 
-type Tab = "meta" | "items" | "score";
+type Tab = "meta" | "items" | "score" | "report";
+
+function emptyReport(): PackReport {
+  return {
+    hideGateScores: true,
+    closingFa: "",
+    businessNameItemId: "",
+    contextFields: [],
+    layerBands: [],
+    crossPatterns: [],
+  };
+}
 
 function uid(prefix: string) {
   return `${prefix}-${Math.random().toString(36).slice(2, 8)}`;
@@ -125,6 +139,7 @@ export function AnalyzerEditor({ initial }: { initial: AnalyzerPack }) {
             ["meta", "مشخصات"],
             ["items", `سؤال‌ها (${itemCount})`],
             ["score", "نمره"],
+            ["report", "گزارش"],
           ] as [Tab, string][]
         ).map(([id, label]) => (
           <button
@@ -142,7 +157,7 @@ export function AnalyzerEditor({ initial }: { initial: AnalyzerPack }) {
 
       {tab === "meta" ? (
         <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6">
-          <p className="text-xs text-slate-500">شناسه: {pack.slug} — از کد casio-ss جداست و عوض نمی‌شود.</p>
+          <p className="text-xs text-slate-500">شناسه: {pack.slug} — بعد از ساخت عوض نمی‌شود.</p>
           <label className="block text-sm">
             <span className="mb-1 block text-slate-600">نام</span>
             <input
@@ -189,6 +204,16 @@ export function AnalyzerEditor({ initial }: { initial: AnalyzerPack }) {
               value={pack.consent.titleFa}
               onChange={(event) =>
                 patch({ ...pack, consent: { ...pack.consent, titleFa: event.target.value } })
+              }
+            />
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1 block text-slate-600">برچسب دکمهٔ رضایت</span>
+            <input
+              className={fieldClass}
+              value={pack.consent.acceptLabelFa}
+              onChange={(event) =>
+                patch({ ...pack, consent: { ...pack.consent, acceptLabelFa: event.target.value } })
               }
             />
           </label>
@@ -265,6 +290,13 @@ export function AnalyzerEditor({ initial }: { initial: AnalyzerPack }) {
           />
           <FormulasEditor formulas={pack.formulas} onChange={(formulas) => patch({ ...pack, formulas })} />
         </section>
+      ) : null}
+
+      {tab === "report" ? (
+        <ReportEditor
+          report={pack.report ?? emptyReport()}
+          onChange={(report) => patch({ ...pack, report })}
+        />
       ) : null}
 
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
@@ -464,48 +496,90 @@ function FindingsEditor({
       <h2 className="text-base font-bold text-slate-900">عارضه‌ها</h2>
       <ul className="mt-3 space-y-3">
         {findings.map((finding, index) => (
-          <li key={index} className="grid gap-2 sm:grid-cols-4">
-            <input
+          <li key={index} className="space-y-2 rounded-xl border border-slate-100 bg-slate-50 p-3">
+            <div className="grid gap-2 sm:grid-cols-4">
+              <input
+                className={fieldClass}
+                dir="ltr"
+                value={finding.id}
+                onChange={(event) => {
+                  const next = [...findings];
+                  next[index] = { ...finding, id: event.target.value };
+                  onChange(next);
+                }}
+              />
+              <input
+                className={fieldClass}
+                value={finding.titleFa}
+                onChange={(event) => {
+                  const next = [...findings];
+                  next[index] = { ...finding, titleFa: event.target.value };
+                  onChange(next);
+                }}
+              />
+              <select
+                className={fieldClass}
+                value={finding.kind}
+                onChange={(event) => {
+                  const next = [...findings];
+                  next[index] = { ...finding, kind: event.target.value as Finding["kind"] };
+                  onChange(next);
+                }}
+              >
+                <option value="layer">لایه</option>
+                <option value="dimension">بُعد</option>
+                <option value="group">گروه</option>
+                <option value="symptom">عارضه</option>
+              </select>
+              <input
+                className={fieldClass}
+                dir="ltr"
+                value={finding.parentId ?? ""}
+                placeholder="والد"
+                onChange={(event) => {
+                  const next = [...findings];
+                  next[index] = { ...finding, parentId: event.target.value || undefined };
+                  onChange(next);
+                }}
+              />
+            </div>
+            <textarea
               className={fieldClass}
-              dir="ltr"
-              value={finding.id}
+              placeholder="سازه / تعریف"
+              value={finding.constructFa ?? ""}
               onChange={(event) => {
                 const next = [...findings];
-                next[index] = { ...finding, id: event.target.value };
+                next[index] = { ...finding, constructFa: event.target.value };
                 onChange(next);
               }}
             />
-            <input
+            <textarea
               className={fieldClass}
-              value={finding.titleFa}
+              placeholder="وضعیت موجود"
+              value={finding.asIsFa ?? ""}
               onChange={(event) => {
                 const next = [...findings];
-                next[index] = { ...finding, titleFa: event.target.value };
+                next[index] = { ...finding, asIsFa: event.target.value };
                 onChange(next);
               }}
             />
-            <select
+            <textarea
               className={fieldClass}
-              value={finding.kind}
+              placeholder="وضعیت مطلوب"
+              value={finding.toBeFa ?? ""}
               onChange={(event) => {
                 const next = [...findings];
-                next[index] = { ...finding, kind: event.target.value as Finding["kind"] };
+                next[index] = { ...finding, toBeFa: event.target.value };
                 onChange(next);
               }}
-            >
-              <option value="layer">لایه</option>
-              <option value="dimension">بُعد</option>
-              <option value="group">گروه</option>
-              <option value="symptom">عارضه</option>
-            </select>
-            <input
+            />
+            <textarea
               className={fieldClass}
-              dir="ltr"
-              value={finding.parentId ?? ""}
-              placeholder="والد"
+              placeholder="اقدام پیشنهادی"
+              value={finding.actionsFa ?? ""}
               onChange={(event) => {
                 const next = [...findings];
-                next[index] = { ...finding, parentId: event.target.value || undefined };
+                next[index] = { ...finding, actionsFa: event.target.value };
                 onChange(next);
               }}
             />
@@ -560,32 +634,47 @@ function KeywordsEditor({
       <p className="mt-1 text-xs text-slate-500">ستون سوم: شناسهٔ سؤال‌ها با ویرگول. وکتور نیست.</p>
       <ul className="mt-3 space-y-3">
         {keywords.map((keyword, index) => (
-          <li key={index} className="grid gap-2 sm:grid-cols-3">
-            <input
+          <li key={index} className="space-y-2 rounded-xl border border-slate-100 bg-slate-50 p-3">
+            <div className="grid gap-2 sm:grid-cols-3">
+              <input
+                className={fieldClass}
+                dir="ltr"
+                value={keyword.id}
+                onChange={(event) => {
+                  const next = [...keywords];
+                  next[index] = { ...keyword, id: event.target.value };
+                  emit(next, { ...fromMap, [event.target.value]: fromMap[keyword.id] ?? "" });
+                }}
+              />
+              <input
+                className={fieldClass}
+                value={keyword.labelFa}
+                onChange={(event) => {
+                  const next = [...keywords];
+                  next[index] = { ...keyword, labelFa: event.target.value };
+                  emit(next, fromMap);
+                }}
+              />
+              <input
+                className={fieldClass}
+                dir="ltr"
+                value={fromMap[keyword.id] ?? ""}
+                placeholder="FL.L1.Q1, …"
+                onChange={(event) => emit(keywords, { ...fromMap, [keyword.id]: event.target.value })}
+              />
+            </div>
+            <textarea
               className={fieldClass}
-              dir="ltr"
-              value={keyword.id}
+              placeholder="زیرکلیدواژه‌ها، هر خط یکی"
+              value={(keyword.children ?? []).join("\n")}
               onChange={(event) => {
                 const next = [...keywords];
-                next[index] = { ...keyword, id: event.target.value };
-                emit(next, { ...fromMap, [event.target.value]: fromMap[keyword.id] ?? "" });
-              }}
-            />
-            <input
-              className={fieldClass}
-              value={keyword.labelFa}
-              onChange={(event) => {
-                const next = [...keywords];
-                next[index] = { ...keyword, labelFa: event.target.value };
+                next[index] = {
+                  ...keyword,
+                  children: event.target.value.split("\n").map((line) => line.trim()).filter(Boolean),
+                };
                 emit(next, fromMap);
               }}
-            />
-            <input
-              className={fieldClass}
-              dir="ltr"
-              value={fromMap[keyword.id] ?? ""}
-              placeholder="FL.L1.Q1, …"
-              onChange={(event) => emit(keywords, { ...fromMap, [keyword.id]: event.target.value })}
             />
           </li>
         ))}
@@ -670,6 +759,23 @@ function FormulasEditor({
                 }}
               />
             ) : null}
+            {formula.op === "weighted_sum" || formula.op === "matmul" ? (
+              <textarea
+                className={`${fieldClass} mt-2 min-h-20`}
+                dir="ltr"
+                value={JSON.stringify(formula.weights ?? [], null, 2)}
+                onChange={(event) => {
+                  try {
+                    const weights = JSON.parse(event.target.value) as Formula["weights"];
+                    const next = [...formulas];
+                    next[index] = { ...formula, weights };
+                    onChange(next);
+                  } catch {
+                    // keep typing
+                  }
+                }}
+              />
+            ) : null}
             {formula.op === "band" ? (
               <textarea
                 className={`${fieldClass} mt-2 min-h-20`}
@@ -705,5 +811,262 @@ function FormulasEditor({
         + فرمول
       </button>
     </div>
+  );
+}
+
+function ReportEditor({ report, onChange }: { report: PackReport; onChange: (report: PackReport) => void }) {
+  const bands = report.layerBands ?? [];
+  const patterns = report.crossPatterns ?? [];
+  const fields = report.contextFields ?? [];
+
+  return (
+    <section className="space-y-6">
+      <p className="text-sm text-slate-500">
+        متن گزارش، باند لایه، و الگوهای بین‌لایه. نمرهٔ گیت اگر مخفی باشد در گزارش عضو نمی‌آید.
+      </p>
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4">
+        <label className="flex items-center gap-2 text-sm text-slate-700">
+          <input
+            type="checkbox"
+            checked={report.hideGateScores !== false}
+            onChange={(event) => onChange({ ...report, hideGateScores: event.target.checked })}
+          />
+          گیت سبز/زرد/قرمز در گزارش نباشد
+        </label>
+        <label className="block text-sm">
+          <span className="mb-1 block text-slate-600">جملهٔ پایانی</span>
+          <textarea
+            className={fieldClass}
+            value={report.closingFa ?? ""}
+            onChange={(event) => onChange({ ...report, closingFa: event.target.value })}
+          />
+        </label>
+        <label className="block text-sm">
+          <span className="mb-1 block text-slate-600">شناسهٔ سؤال نام کسب‌وکار</span>
+          <input
+            className={fieldClass}
+            dir="ltr"
+            value={report.businessNameItemId ?? ""}
+            onChange={(event) => onChange({ ...report, businessNameItemId: event.target.value })}
+          />
+        </label>
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-5">
+        <h2 className="text-base font-bold text-slate-900">زمینه‌های گزارش</h2>
+        <ul className="mt-3 space-y-2">
+          {fields.map((field, index) => (
+            <li key={index} className="grid gap-2 sm:grid-cols-2">
+              <input
+                className={fieldClass}
+                dir="ltr"
+                value={field.id}
+                onChange={(event) => {
+                  const next = [...fields];
+                  next[index] = { ...field, id: event.target.value };
+                  onChange({ ...report, contextFields: next });
+                }}
+              />
+              <input
+                className={fieldClass}
+                value={field.labelFa}
+                onChange={(event) => {
+                  const next = [...fields];
+                  next[index] = { ...field, labelFa: event.target.value };
+                  onChange({ ...report, contextFields: next });
+                }}
+              />
+            </li>
+          ))}
+        </ul>
+        <button
+          type="button"
+          className="mt-3 text-sm text-indigo-700"
+          onClick={() =>
+            onChange({ ...report, contextFields: [...fields, { id: uid("BIZ"), labelFa: "زمینه" }] })
+          }
+        >
+          + زمینه
+        </button>
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-5">
+        <h2 className="text-base font-bold text-slate-900">باند لایه</h2>
+        <ul className="mt-3 space-y-3">
+          {bands.map((band, index) => (
+            <li key={index} className="grid gap-2 sm:grid-cols-2">
+              <input
+                className={fieldClass}
+                dir="ltr"
+                value={band.id}
+                onChange={(event) => {
+                  const next = [...bands];
+                  next[index] = { ...band, id: event.target.value };
+                  onChange({ ...report, layerBands: next });
+                }}
+              />
+              <input
+                className={fieldClass}
+                value={band.labelFa}
+                onChange={(event) => {
+                  const next = [...bands];
+                  next[index] = { ...band, labelFa: event.target.value };
+                  onChange({ ...report, layerBands: next });
+                }}
+              />
+              <textarea
+                className={`${fieldClass} sm:col-span-2`}
+                value={band.meaningFa}
+                onChange={(event) => {
+                  const next = [...bands];
+                  next[index] = { ...band, meaningFa: event.target.value };
+                  onChange({ ...report, layerBands: next });
+                }}
+              />
+              <input
+                className={fieldClass}
+                type="number"
+                value={band.min}
+                onChange={(event) => {
+                  const next = [...bands];
+                  next[index] = { ...band, min: Number(event.target.value) };
+                  onChange({ ...report, layerBands: next });
+                }}
+              />
+              <input
+                className={fieldClass}
+                type="number"
+                value={band.max}
+                onChange={(event) => {
+                  const next = [...bands];
+                  next[index] = { ...band, max: Number(event.target.value) };
+                  onChange({ ...report, layerBands: next });
+                }}
+              />
+            </li>
+          ))}
+        </ul>
+        <button
+          type="button"
+          className="mt-3 text-sm text-indigo-700"
+          onClick={() =>
+            onChange({
+              ...report,
+              layerBands: [
+                ...bands,
+                { id: uid("b"), labelFa: "باند", meaningFa: "", min: 0, max: 10, maxInclusive: false } satisfies LayerBand,
+              ],
+            })
+          }
+        >
+          + باند
+        </button>
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-5">
+        <h2 className="text-base font-bold text-slate-900">الگوی بین‌لایه</h2>
+        <ul className="mt-3 space-y-3">
+          {patterns.map((pattern, index) => (
+            <li key={index} className="space-y-2 rounded-xl border border-slate-100 bg-slate-50 p-3">
+              <input
+                className={fieldClass}
+                dir="ltr"
+                value={pattern.id}
+                onChange={(event) => {
+                  const next = [...patterns];
+                  next[index] = { ...pattern, id: event.target.value };
+                  onChange({ ...report, crossPatterns: next });
+                }}
+              />
+              <textarea
+                className={fieldClass}
+                value={pattern.meaningFa}
+                onChange={(event) => {
+                  const next = [...patterns];
+                  next[index] = { ...pattern, meaningFa: event.target.value };
+                  onChange({ ...report, crossPatterns: next });
+                }}
+              />
+              <textarea
+                className={fieldClass}
+                value={pattern.actionFa}
+                onChange={(event) => {
+                  const next = [...patterns];
+                  next[index] = { ...pattern, actionFa: event.target.value };
+                  onChange({ ...report, crossPatterns: next });
+                }}
+              />
+              <div className="grid gap-2 sm:grid-cols-2">
+                <input
+                  className={fieldClass}
+                  dir="ltr"
+                  placeholder="when.strong"
+                  value={pattern.when.strong ?? ""}
+                  onChange={(event) => {
+                    const next = [...patterns];
+                    next[index] = { ...pattern, when: { ...pattern.when, strong: event.target.value || null } };
+                    onChange({ ...report, crossPatterns: next });
+                  }}
+                />
+                <input
+                  className={fieldClass}
+                  dir="ltr"
+                  placeholder="when.weak"
+                  value={pattern.when.weak ?? ""}
+                  onChange={(event) => {
+                    const next = [...patterns];
+                    next[index] = { ...pattern, when: { ...pattern.when, weak: event.target.value || null } };
+                    onChange({ ...report, crossPatterns: next });
+                  }}
+                />
+                <input
+                  className={fieldClass}
+                  dir="ltr"
+                  placeholder="when.alsoWeak"
+                  value={pattern.when.alsoWeak ?? ""}
+                  onChange={(event) => {
+                    const next = [...patterns];
+                    next[index] = { ...pattern, when: { ...pattern.when, alsoWeak: event.target.value || null } };
+                    onChange({ ...report, crossPatterns: next });
+                  }}
+                />
+                <input
+                  className={fieldClass}
+                  dir="ltr"
+                  placeholder="when.weakAny: id, id"
+                  value={pattern.when.weakAny.join(", ")}
+                  onChange={(event) => {
+                    const next = [...patterns];
+                    next[index] = {
+                      ...pattern,
+                      when: {
+                        ...pattern.when,
+                        weakAny: event.target.value.split(",").map((part) => part.trim()).filter(Boolean),
+                      },
+                    };
+                    onChange({ ...report, crossPatterns: next });
+                  }}
+                />
+              </div>
+            </li>
+          ))}
+        </ul>
+        <button
+          type="button"
+          className="mt-3 text-sm text-indigo-700"
+          onClick={() => {
+            const row: CrossPattern = {
+              id: uid("p"),
+              meaningFa: "",
+              actionFa: "",
+              when: { strong: null, weak: null, alsoWeak: null, weakAny: [] },
+            };
+            onChange({ ...report, crossPatterns: [...patterns, row] });
+          }}
+        >
+          + الگو
+        </button>
+      </div>
+    </section>
   );
 }

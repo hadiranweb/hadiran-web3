@@ -2,7 +2,6 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { requirePageOwner } from "@/lib/auth/guard";
 import { listAuthoredPacks } from "@/lib/analyzers/authored";
-import { codePacks } from "@/lib/analyzers/registry";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +19,6 @@ const statusFa: Record<string, string> = {
 export default async function WorkspaceAnalyzersPage() {
   await requirePageOwner("/workspace/analyzers");
   const authored = await listAuthoredPacks();
-  const code = codePacks();
 
   return (
     <main className="mx-auto max-w-3xl space-y-8 px-4 py-8">
@@ -28,7 +26,7 @@ export default async function WorkspaceAnalyzersPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">تحلیلگر‌ها</h1>
           <p className="mt-2 text-sm leading-7 text-slate-500">
-            تألیف فقط برای مالک است و ایندکس نمی‌شود. casio-ss از کد می‌آید.
+            همهٔ آزمون‌ها از همین میز ویرایش می‌شوند؛ سؤال، نمره، رضایت و متن گزارش داخل pack است.
           </p>
         </div>
         <Link
@@ -40,26 +38,8 @@ export default async function WorkspaceAnalyzersPage() {
       </div>
 
       <section>
-        <h2 className="mb-3 text-lg font-bold text-slate-900">از کد</h2>
-        <ul className="space-y-2">
-          {code.map((pack) => (
-            <li key={pack.slug} className="rounded-2xl border border-slate-200 bg-white p-4">
-              <p className="font-medium text-slate-900">{pack.nameFa}</p>
-              <p className="mt-1 text-xs text-slate-500">
-                {pack.slug} · {statusFa[pack.status] ?? pack.status} · ویرایش از میز نیست
-              </p>
-              <Link href={`/analyzers/${pack.slug}`} className="mt-2 inline-block text-sm text-indigo-700">
-                صفحهٔ اجرا
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section>
-        <h2 className="mb-3 text-lg font-bold text-slate-900">تألیف‌شده</h2>
         {authored.length === 0 ? (
-          <p className="text-sm text-slate-500">هنوز آزمون دومی نیست.</p>
+          <p className="text-sm text-slate-500">آزمونی نیست.</p>
         ) : (
           <ul className="space-y-2">
             {authored.map((pack) => (

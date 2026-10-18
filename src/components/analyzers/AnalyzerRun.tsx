@@ -39,7 +39,7 @@ type DraftState = { consent: boolean; answers: AnswerMap; index: number };
 export function AnalyzerRun({ pack }: { pack: AnalyzerPack }) {
   const router = useRouter();
   const allItems = itemsOf(pack);
-  const draftKey = `analyzer:${pack.slug}`;
+  const draftKey = pack.slug === "casio-ss" ? "casio-ss" : `analyzer:${pack.slug}`;
   const api = `/api/analyzers/${pack.slug}`;
   const reportHref = `/analyzers/${pack.slug}/report`;
 

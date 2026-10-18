@@ -1,5 +1,5 @@
 import { casioSsPack } from "@/lib/analyzers/casio-ss/pack";
-import { listAuthoredPacks, readAuthoredPack } from "@/lib/analyzers/authored";
+import { listAuthoredPacks, resolveLivePack } from "@/lib/analyzers/authored";
 import { assertPack, type AnalyzerPack } from "@/lib/analyzers/pack";
 import { sanitizePack } from "@/lib/analyzers/sanitize";
 
@@ -22,30 +22,26 @@ export async function loadPacks(): Promise<AnalyzerPack[]> {
   } catch {
     authored = [];
   }
-  const seen = new Set(codePacksList.map((pack) => pack.slug));
-  const extra: AnalyzerPack[] = [];
+  const bySlug = new Map<string, AnalyzerPack>();
+  for (const pack of codePacksList) bySlug.set(pack.slug, pack);
   for (const pack of authored) {
-    if (seen.has(pack.slug)) continue;
     const clean = sanitizePack(pack, pack.slug);
-    if (clean.ok) extra.push(clean.pack);
+    if (clean.ok) bySlug.set(pack.slug, clean.pack);
   }
-  return [...codePacksList, ...extra];
+  return [...bySlug.values()];
 }
 
 export async function loadPack(slug: string): Promise<AnalyzerPack | undefined> {
-  const code = getCodePack(slug);
-  if (code) return code;
   try {
-    const raw = await readAuthoredPack(slug);
-    if (!raw) return undefined;
-    const clean = sanitizePack(raw, slug);
-    return clean.ok ? clean.pack : undefined;
+    const live = await resolveLivePack(slug);
+    if (live) return live;
   } catch {
-    return undefined;
+    // fall through to code
   }
+  return getCodePack(slug);
 }
 
-/** Packهای کد. برای casio-ss. فهرست کامل: loadPacks. */
+/** Packهای کد به‌عنوان بذر. فهرست زنده: loadPacks. */
 export function analyzerPacks(): AnalyzerPack[] {
   return codePacksList;
 }

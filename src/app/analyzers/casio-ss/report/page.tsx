@@ -4,7 +4,9 @@ import { redirect } from "next/navigation";
 import { CasioSsReport } from "@/components/analyzers/CasioSsReport";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PageShell } from "@/components/ui/PageShell";
+import { resolveLivePack } from "@/lib/analyzers/authored";
 import { readAttempt } from "@/lib/analyzers/casio-ss/attempts";
+import { buildCasioAuthoredPack } from "@/lib/analyzers/casio-ss/authored-pack";
 import { buildCasioReport } from "@/lib/analyzers/casio-ss/report";
 import { requirePageAccount } from "@/lib/auth/guard";
 
@@ -17,6 +19,7 @@ export const metadata: Metadata = {
 
 export default async function CasioSsReportPage() {
   const account = await requirePageAccount("/analyzers/casio-ss/report");
+  const pack = (await resolveLivePack("casio-ss")) ?? buildCasioAuthoredPack();
   const attempt = await readAttempt(account.id);
   if (!attempt || attempt.status !== "submitted") {
     redirect("/analyzers/casio-ss");
@@ -24,11 +27,11 @@ export default async function CasioSsReportPage() {
 
   let report;
   try {
-    report = buildCasioReport(attempt.answers, attempt.results);
+    report = buildCasioReport(pack, attempt.answers, attempt.results);
   } catch {
     return (
       <PageShell width="narrow">
-        <PageHeader title="گزارش عارضه‌یابی سازمانی" lede="این گزارش از پاسخ‌های ثبت‌شده قابل بازتولید نیست." />
+        <PageHeader title={pack.nameFa} lede="این گزارش از پاسخ‌های ثبت‌شده قابل بازتولید نیست." />
         <Link href="/analyzers/casio-ss" className="text-sm font-medium text-accent hover:text-ink">
           بازگشت به ارزیابی
         </Link>
@@ -36,9 +39,7 @@ export default async function CasioSsReportPage() {
     );
   }
 
-  const title = report.businessName
-    ? `گزارش عارضه‌یابی — ${report.businessName}`
-    : "گزارش عارضه‌یابی سازمانی";
+  const title = report.businessName ? `گزارش عارضه‌یابی — ${report.businessName}` : `گزارش ${pack.nameFa}`;
 
   return (
     <PageShell width="narrow">
@@ -46,7 +47,7 @@ export default async function CasioSsReportPage() {
         <Link href="/analyzers" className="text-muted hover:text-ink">
           تحلیلگر‌ها
         </Link>
-        <span className="text-muted"> / عارضه‌یابی سازمانی</span>
+        <span className="text-muted"> / {pack.nameFa}</span>
       </p>
       <PageHeader kicker="گزارش شخصی" title={title} lede="پنج لایه، گلوگاه، و درخت کلیدواژه بر اساس پاسخ‌های شما." />
       <CasioSsReport report={report} />

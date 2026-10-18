@@ -5,27 +5,37 @@ import { CasioSsRun } from "@/components/analyzers/CasioSsRun";
 import { JsonLd } from "@/components/JsonLd";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PageShell } from "@/components/ui/PageShell";
+import { resolveLivePack } from "@/lib/analyzers/authored";
 import { readAttempt } from "@/lib/analyzers/casio-ss/attempts";
+import { buildCasioAuthoredPack } from "@/lib/analyzers/casio-ss/authored-pack";
 import { INTRO_SUMMARY } from "@/lib/analyzers/casio-ss/instrument";
 import { getCurrentAccount } from "@/lib/auth/session";
 import { absoluteUrl } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "عارضه‌یابی سازمانی",
-  description: INTRO_SUMMARY,
-  alternates: { canonical: "/analyzers/casio-ss" },
-  openGraph: {
-    title: "عارضه‌یابی سازمانی",
-    description: INTRO_SUMMARY,
-    url: "/analyzers/casio-ss",
-    locale: "fa_IR",
-    type: "website",
-  },
-};
+async function livePack() {
+  return (await resolveLivePack("casio-ss")) ?? buildCasioAuthoredPack();
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const pack = await livePack();
+  return {
+    title: pack.nameFa,
+    description: pack.summaryFa || INTRO_SUMMARY,
+    alternates: { canonical: "/analyzers/casio-ss" },
+    openGraph: {
+      title: pack.nameFa,
+      description: pack.summaryFa || INTRO_SUMMARY,
+      url: "/analyzers/casio-ss",
+      locale: "fa_IR",
+      type: "website",
+    },
+  };
+}
 
 export default async function CasioSsPage() {
+  const pack = await livePack();
   const account = await getCurrentAccount();
   if (account) {
     const attempt = await readAttempt(account.id);
@@ -40,10 +50,10 @@ export default async function CasioSsPage() {
         data={{
           "@context": "https://schema.org",
           "@type": "WebPage",
-          name: "عارضه‌یابی سازمانی",
+          name: pack.nameFa,
           url: absoluteUrl("/analyzers/casio-ss"),
           inLanguage: "fa",
-          description: INTRO_SUMMARY,
+          description: pack.summaryFa,
           isPartOf: { "@type": "CollectionPage", name: "تحلیلگر‌ها", url: absoluteUrl("/analyzers") },
         }}
       />
@@ -54,10 +64,10 @@ export default async function CasioSsPage() {
         </Link>
       </p>
 
-      <PageHeader title="عارضه‌یابی سازمانی" lede={INTRO_SUMMARY} />
+      <PageHeader title={pack.nameFa} lede={pack.summaryFa} />
 
       {account ? (
-        <CasioSsRun />
+        <CasioSsRun pack={pack} />
       ) : (
         <section className="surface p-6 sm:p-8">
           <p className="text-sm leading-7 text-muted">

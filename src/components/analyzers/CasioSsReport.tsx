@@ -115,9 +115,7 @@ export function CasioSsReport({ report }: { report: CasioReport }) {
         </section>
       ))}
 
-      <p className="text-sm leading-7 text-muted">
-        نتیجهٔ این ارزیابی یک راهنمای کلی است، نه حکم قطعی دربارهٔ شما یا کسب‌وکارتان.
-      </p>
+      <p className="text-sm leading-7 text-muted">{report.closingFa}</p>
 
       <p>
         <Link href="/analyzers" className="text-sm font-medium text-accent hover:text-ink">

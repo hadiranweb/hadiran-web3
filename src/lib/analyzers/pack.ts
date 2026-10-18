@@ -1,4 +1,4 @@
-/** تعریف نسخه‌دار آزمون. casio-ss از کد؛ آزمون‌های بعدی از تألیف مالک. */
+/** تعریف نسخه‌دار آزمون. منبع اجرا pack ذخیره‌شده است؛ کد فقط بذر اولیه است. */
 
 export type AnalyzerPackStatus = "draft" | "open" | "archived";
 
@@ -32,9 +32,41 @@ export type Finding = {
   titleFa: string;
   kind: FindingKind;
   parentId?: string;
+  constructFa?: string;
+  asIsFa?: string;
+  toBeFa?: string;
+  actionsFa?: string;
 };
 
-export type Keyword = { id: string; labelFa: string };
+export type Keyword = { id: string; labelFa: string; children?: string[] };
+
+export type LayerBand = {
+  id: string;
+  labelFa: string;
+  meaningFa: string;
+  min: number;
+  max: number;
+  maxInclusive: boolean;
+};
+
+export type CrossPattern = {
+  id: string;
+  meaningFa: string;
+  actionFa: string;
+  when: { strong: string | null; weak: string | null; alsoWeak: string | null; weakAny: string[] };
+};
+
+export type ReportContextFieldDef = { id: string; labelFa: string };
+
+export type PackReport = {
+  hideGateScores?: boolean;
+  interpretationVersion?: string;
+  closingFa?: string;
+  businessNameItemId?: string;
+  contextFields?: ReportContextFieldDef[];
+  layerBands?: LayerBand[];
+  crossPatterns?: CrossPattern[];
+};
 
 export type EdgeTransform = "identity" | "reverse";
 
@@ -101,6 +133,7 @@ export type AnalyzerPack = {
   keywords: Keyword[];
   edges: Edge[];
   formulas: Formula[];
+  report?: PackReport;
 };
 
 export function itemsOf(pack: AnalyzerPack): Item[] {
