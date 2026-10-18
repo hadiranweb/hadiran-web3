@@ -717,7 +717,7 @@ Schema.org: `ContactPage` با `mainEntity` از نوع `Person` که به `/had
 
 آدرس وب‌هوک: `https://hadiranweb.ir/api/bots/telegram/[id]/webhook` (از `NEXT_PUBLIC_SITE_URL`). فقط HTTPS عمومی. هدر `X-Telegram-Bot-Api-Secret-Token` با مقایسهٔ زمان‌ثابت.
 
-خروجی سرور ایران به `api.telegram.org` مسدود است. برنامه با `TELEGRAM_API_BASE` (لیارا، نه GitHub) به Cloudflare Worker (`scripts/telegram-proxy-worker.js`) می‌زند؛ Worker فقط مسیر `/bot…` را به Bot API می‌فرستد. وب‌هوک ورودی تلگرام→هادیران پروکسی نمی‌خواهد. `getUpdates` نیست.
+خروجی سرور ایران به `api.telegram.org` مسدود است و ورودی تلگرام→مبدأ ایرانی اغلب `Connection timed out` است. برنامه با `TELEGRAM_API_BASE` (لیارا، نه GitHub) به Cloudflare Worker می‌زند: `/bot…` به Bot API، `/hook/<botId>` به وب‌هوک هادیران. `getUpdates` نیست.
 
 توکن BotFather در گیت/چت/پاسخ API بعد از ذخیره نیست؛ در Postgres به‌صورت AES-GCM با کلید مشتق از `HADIRAN_JWT_SECRET` (لیارا، نه GitHub).
 

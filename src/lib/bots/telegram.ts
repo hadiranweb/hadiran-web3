@@ -123,6 +123,9 @@ export function isTelegramBotToken(value: string): boolean {
 }
 
 export function webhookUrlFor(botId: string): string {
+  if (telegramApiBaseIsProxy()) {
+    return `${telegramApiBase()}/hook/${botId}`;
+  }
   return absoluteUrl(`/api/bots/telegram/${botId}/webhook`);
 }
 

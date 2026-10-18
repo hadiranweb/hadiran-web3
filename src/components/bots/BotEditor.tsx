@@ -200,8 +200,9 @@ export function BotEditor({
           <li>توکن را فقط در این کادر بگذارید؛ در گیت و چت نگذارید.</li>
           <li>اتصال، getMe و setWebhook با secret_token را می‌زند. polling استفاده نمی‌شود.</li>
           <li>
-            سرور لیارا داخل ایران به api.telegram.org نمی‌رسد؛ خروجی از Worker کلودفلر می‌رود
-            (متغیر TELEGRAM_API_BASE روی لیارا، نه گیت). وب‌هوک ورودی مستقیم به هادیران است.
+            سرور لیارا داخل ایران به api.telegram.org نمی‌رسد و تلگرام هم اغلب به مبدأ ایرانی timeout
+            می‌دهد. هم خروجی (/bot) هم ورودی وب‌هوک (/hook) از Worker کلودفلر می‌رود (متغیر
+            TELEGRAM_API_BASE روی لیارا، نه گیت).
           </li>
         </ol>
         <label className="block text-sm">
