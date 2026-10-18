@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "checks": [
+    "Exactly five canonical order states; valid IRR snapshots",
+    "Settled total excludes pending, declined and cancelled orders",
+    "Status, search and date filters compose without changing source",
+    "Referral tree has one root, valid public codes, no cycles or financial fields"
+  ],
+  "data": "sample fixtures only"
+}

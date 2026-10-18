@@ -1,0 +1,26 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "role": "anonymous",
+      "status": 307,
+      "expected_access": false
+    },
+    {
+      "role": "owner",
+      "status": 200,
+      "expected_access": true
+    },
+    {
+      "role": "author",
+      "status": 307,
+      "expected_access": false
+    },
+    {
+      "role": "member",
+      "status": 307,
+      "expected_access": false
+    }
+  ],
+  "database": "disposable local PostgreSQL"
+}

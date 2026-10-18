@@ -1387,7 +1387,9 @@ body:has(.page-hero) > header {
 }
 @media (max-width: 639px) {
   .ws-content { padding: 1.2rem .9rem 2rem; }
-  .ws-topbar { min-height: 3.75rem; padding: .5rem .6rem; gap: .3rem; }
+  .ws-topbar { min-height: 3.75rem; padding: .5rem .6rem; gap: .3rem; flex-wrap: wrap; }
+  .ws-topbar-start { min-width: 0; max-width: 100%; }
+  .ws-topbar-actions { flex-wrap: wrap; max-width: 100%; margin-inline-start: auto; }
   .ws-topbar-start, .ws-topbar-actions { gap: .15rem; }
   .ws-breadcrumb { gap: .25rem; font-size: .65rem; }
   .ws-breadcrumb > a, .ws-breadcrumb > svg { display: none; }
