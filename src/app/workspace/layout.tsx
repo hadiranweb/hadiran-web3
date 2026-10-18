@@ -1,9 +1,11 @@
+import "@/components/workspace/workspace-panels.css";
 import { readAccountAvatar } from "@/lib/account/avatar-store";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getCurrentAccount } from "@/lib/auth/session";
 import { hasAnalyzerDesk } from "@/lib/analyzers/access";
+import { workspacePreferenceKey } from "@/lib/workspace/preferences";
 import { WorkspaceShell } from "@/components/workspace/WorkspaceShell";
 
 export const dynamic = "force-dynamic";
@@ -16,5 +18,5 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
   if (!analyzerDesk) redirect("/");
   const { avatar } = await readAccountAvatar(account);
   const jar = await cookies();
-  return <WorkspaceShell account={{ ...account, avatar, analyzerDesk }} initialLocale={jar.get("hadiran-workspace-locale")?.value === "en" ? "en" : "fa"} demo={!process.env.DATABASE_URL}>{children}</WorkspaceShell>;
+  return <WorkspaceShell account={{ ...account, avatar, analyzerDesk }} initialLocale={jar.get(workspacePreferenceKey(account.id, "locale"))?.value === "en" ? "en" : "fa"} demo={!process.env.DATABASE_URL}>{children}</WorkspaceShell>;
 }

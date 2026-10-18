@@ -5,7 +5,7 @@ import { previewFetch as fetch } from "@/lib/auth/preview-fetch";
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import Link from "./WorkspaceLink";
 import { usePathname, useRouter } from "next/navigation";
-import { UserRound, ChartNoAxesCombined, BookOpen, LayoutDashboard, FlaskConical, Users, ShoppingBag, Bot, Network, TicketPercent, Settings, PanelLeftClose, PanelLeftOpen, Menu, X, Search, ExternalLink, LogOut, Languages, Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { ReceiptText, UserRound, ChartNoAxesCombined, BookOpen, LayoutDashboard, FlaskConical, Users, ShoppingBag, Bot, Network, TicketPercent, Settings, PanelLeftClose, PanelLeftOpen, Menu, X, Search, ExternalLink, LogOut, Languages, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { UserAvatar } from "@/components/auth/UserAvatar";
 import { defaultAvatarVariant } from "@/lib/account/avatar";
 import { HadiranMark } from "@/components/HadiranMark";
@@ -13,6 +13,7 @@ import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { clearDraftsByPrefix } from "@/lib/ui/draft";
 import { PREVIEW_SESSION_KEY } from "@/lib/auth/preview-client";
 import { WorkspaceContext, type Locale } from "./WorkspaceContext";
+import { workspacePreferenceKey } from "@/lib/workspace/preferences";
 import { workspaceHome, workspaceScope } from "@/lib/workspace/access";
 import type { SessionAccount } from "@/lib/auth/session";
 
@@ -28,6 +29,8 @@ const workspaceModules = [
   { href: "/workspace/network", fa: "درخت معرف", en: "Referral tree", icon: Network },
   { href: "/workspace/discounts", fa: "کد تخفیف", en: "Discount codes", icon: TicketPercent },
   { href: "/account", fa: "حساب من", en: "My account", icon: UserRound },
+  { href: "/workspace/actions", fa: "اقدام‌ها", en: "Work queue", icon: ReceiptText },
+  { href: "/workspace/preview", fa: "نمونهٔ بصری", en: "Visual preview", icon: FlaskConical },
   { href: "/workspace/settings", fa: "تنظیمات", en: "Settings", icon: Settings },
 ];
 
@@ -35,7 +38,7 @@ function subscribeSidebar(callback: () => void) {
   window.addEventListener("storage", callback); window.addEventListener("hadiran-sidebar-change", callback);
   return () => { window.removeEventListener("storage", callback); window.removeEventListener("hadiran-sidebar-change", callback); };
 }
-function sidebarSnapshot() { try { return localStorage.getItem("hadiran-sidebar") === "collapsed"; } catch { return false; } }
+function sidebarSnapshot(key: string) { try { return localStorage.getItem(key) === "collapsed"; } catch { return false; } }
 
 export function WorkspaceShell({ children, account, initialLocale, demo }: { children: ReactNode; account: SessionAccount; initialLocale: Locale; demo: boolean }) {
   const scope = workspaceScope(account);
@@ -44,7 +47,8 @@ export function WorkspaceShell({ children, account, initialLocale, demo }: { chi
   const home = workspaceHome(account);
   const modules = delegated ? workspaceModules.filter(item => ["/workspace/analyzers", "/account", "/workspace/settings"].includes(item.href)) : author ? workspaceModules.filter(item => ["/workspace/analyzers", "/workspace/referrals", "/account", "/workspace/settings"].includes(item.href)) : workspaceModules;
   const [locale, setLocaleState] = useState(initialLocale);
-  const collapsed = useSyncExternalStore(subscribeSidebar, sidebarSnapshot, () => false);
+  const sidebarKey = workspacePreferenceKey(account.id, "sidebar");
+  const collapsed = useSyncExternalStore(subscribeSidebar, () => sidebarSnapshot(sidebarKey), () => false);
   const [mobile, setMobile] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [logoutError, setLogoutError] = useState(false);
@@ -95,11 +99,11 @@ export function WorkspaceShell({ children, account, initialLocale, demo }: { chi
 
   function setLocale(value: Locale) {
     setLocaleState(value);
-    document.cookie = `hadiran-workspace-locale=${value}; Path=/; Max-Age=31536000; SameSite=Lax`;
+    document.cookie = `${workspacePreferenceKey(account.id, "locale")}=${value}; Path=/; Max-Age=31536000; SameSite=Lax`;
   }
   function toggleCollapsed() {
     const next = !collapsed;
-    try { localStorage.setItem("hadiran-sidebar", next ? "collapsed" : "expanded"); window.dispatchEvent(new Event("hadiran-sidebar-change")); } catch {}
+    try { localStorage.setItem(sidebarKey, next ? "collapsed" : "expanded"); window.dispatchEvent(new Event("hadiran-sidebar-change")); } catch {}
   }
   async function logout() {
     setLoggingOut(true); setLogoutError(false);

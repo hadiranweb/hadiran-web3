@@ -1,0 +1,16 @@
+{
+  "passed": true,
+  "checks": [
+    "Stage-two prototype is visible in sidebar and connected header, with a working return link",
+    "KPI opens paginated exact source list; order and collaboration deep links open their real records",
+    "Refresh reads persisted record changes rather than sample/localStorage data",
+    "60 live-record layouts across FA/EN, light/dark and 320–1920px",
+    "Connected home reflows at 200% text and 320 CSS pixels",
+    "Account switch cannot inherit another owner’s language or sidebar preference"
+  ],
+  "layout_cases": 60,
+  "browser_errors": [],
+  "http_5xx": [],
+  "environment": "real local DB with simulated HTTPS",
+  "production_database_tested": false
+}

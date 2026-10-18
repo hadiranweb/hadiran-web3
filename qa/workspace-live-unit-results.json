@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "checks": [
+    "Bounded page and action-kind parsing",
+    "Per-account sidebar and locale keys",
+    "Loader rejects non-owner before touching DB",
+    "Missing DB is unknown, not zero or fabricated data",
+    "Injected read failure cannot return a successful timestamp or sample rows"
+  ],
+  "failure_test": "injected DB failure"
+}

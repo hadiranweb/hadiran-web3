@@ -1,0 +1,29 @@
+{
+  "passed": true,
+  "checks": [
+    "Overview API requires owner session and private no-store responses",
+    "Five exact DB counts, private note/bot isolation and no bot secrets in payload",
+    "Counts are not capped at 40; deterministic 20-item pagination has no gaps or duplicates",
+    "Direct source order page, missing-ID/role checks, and count decreases after existing confirm API",
+    "Existing collaboration write updates real queue; visual preview remains linked"
+  ],
+  "database": "disposable local PostgreSQL",
+  "production_database_tested": false,
+  "counts": {
+    "orders": 89,
+    "notes": 2,
+    "collaborations": 1,
+    "analyzers": 3,
+    "bots": 2
+  },
+  "pagination_pages": 5,
+  "fixture": {
+    "orderId": "SO_OPS_1792363223_01",
+    "noteId": "SR_OPS_1792363223_1",
+    "collaborationId": 2,
+    "botId": "ops17923632231",
+    "slug": "ops-draft-1792363223",
+    "ownerId": 1,
+    "otherOwnerId": 6
+  }
+}

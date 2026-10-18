@@ -2,7 +2,7 @@
 
 import { previewFetch as fetch } from "@/lib/auth/preview-fetch";
 
-import { useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import Link from "./WorkspaceLink";
 import { useRouter } from "next/navigation";
 import { Search, Plus, List, LayoutGrid, Columns3, X, FileText, ArrowUpLeft, ArrowUpRight, ChevronLeft, ChevronRight, Pencil, Check, SlidersHorizontal, Package, Inbox } from "lucide-react";
@@ -28,7 +28,7 @@ const descriptions: Record<ModuleKind, [string, string]> = {
 };
 const collaborationStatuses = ["submitted", "reviewed", "shortlisted", "interview", "accepted", "rejected"];
 
-export function RecordManager({ kind, initial, source }: { kind: ModuleKind; initial: WorkspaceItem[]; source: WorkspaceData["source"] }) {
+export function RecordManager({ kind, initial, source, initialRecord }: { kind: ModuleKind; initial: WorkspaceItem[]; source: WorkspaceData["source"]; initialRecord?: string }) {
   const { locale, t, number } = useWorkspace();
   const router = useRouter();
   const demoMode = source === "demo" || kind === "products";
@@ -40,10 +40,11 @@ export function RecordManager({ kind, initial, source }: { kind: ModuleKind; ini
   const [sort, setSort] = useState("newest");
   const [view, setView] = useState<"list" | "grid" | "kanban">("list");
   const [page, setPage] = useState(1);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(initialRecord || null);
   const selected = items.find((item) => item.id === selectedId);
   const detailDialog = useRef<HTMLDialogElement>(null);
   const formDialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => { if (initialRecord && detailDialog.current && !detailDialog.current.open && initial.some((item) => item.id === initialRecord)) detailDialog.current.showModal(); }, [initialRecord, initial]);
   const [editing, setEditing] = useState<WorkspaceItem | null>(null);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");

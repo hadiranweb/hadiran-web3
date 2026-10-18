@@ -1,0 +1,34 @@
+{
+  "passed": true,
+  "checks": {
+    "workspace-live-api-results.json": {
+      "passed": true,
+      "groups": 5,
+      "layout_cases": 0
+    },
+    "workspace-live-browser-results.json": {
+      "passed": true,
+      "groups": 6,
+      "layout_cases": 60
+    },
+    "workspace-live-unit-results.json": {
+      "passed": true,
+      "groups": 5,
+      "layout_cases": 0
+    },
+    "workspace-preview-browser-results.json": {
+      "passed": true,
+      "groups": 7,
+      "layout_cases": 108
+    },
+    "navigation-browser-results.json": {
+      "passed": true,
+      "groups": 11,
+      "layout_cases": 59
+    }
+  },
+  "production_database_tested": false,
+  "Drive_changed": false,
+  "new_dependencies": false,
+  "migrations_added": 0
+}

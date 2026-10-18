@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ArrowUpLeft, ArrowUpRight, Check, ChevronLeft, ChevronRight, CircleAlert, Clock3, FileText, Network, Receipt, RefreshCw, X } from "lucide-react";
+import Link from "../WorkspaceLink";
 import { useWorkspace } from "../WorkspaceContext";
 import { GraphPreview } from "./GraphPreview";
 import { OrdersPreview } from "./OrdersPreview";
@@ -42,7 +43,7 @@ export function DeskPreview() {
   const detailTitle = detail?.kind === "order" ? t("جزئیات سفارش", "Order details") : detail?.kind === "member" ? t(detail.member.name.fa, detail.member.name.en) : t("آزمون مسیر رشد", "Growth path assessment");
 
   return <main className="dp-preview" data-section={section}>
-    <header className="dp-heading"><div><div className="dp-eyebrow"><span className="dp-sample">{t("دادهٔ نمونه", "SAMPLE DATA")}</span><span>{t("پیش‌نمایش طراحی", "Design preview")}</span></div><h1>{title}</h1></div><span className="dp-heading-date">{date(snapshotAt)}</span></header>
+    <header className="dp-heading"><div><div className="dp-eyebrow"><span className="dp-sample">{t("دادهٔ نمونه", "SAMPLE DATA")}</span><span>{t("پیش‌نمایش طراحی", "Design preview")}</span></div><h1>{title}</h1></div><div className="wo-heading-actions"><Link className="ws-button" href="/workspace">{t("میزکار متصل", "Connected overview")}</Link><span className="dp-heading-date">{date(snapshotAt)}</span></div></header>
     <div className="dp-navigation"><nav aria-label={t("نماهای پیش‌نمایش", "Preview views")}>{([
       ["home", t("نمای کلی", "Overview"), Clock3], ["graph", t("روابط", "Relationships"), Network], ["orders", t("سفارش‌ها", "Orders"), Receipt],
     ] as const).map(([key, label, Icon]) => <button key={key} aria-pressed={section === key} onClick={() => { setSection(key); setViewState("ready"); }}><Icon size={16} />{label}</button>)}</nav>
