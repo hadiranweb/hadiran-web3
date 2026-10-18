@@ -8,6 +8,8 @@ export type AttemptView = {
   consentAt: string | null;
   answers: AnswerMap;
   submittedAt: string | null;
+  referrerPublicCode: string | null;
+  discountCode: string | null;
   results: {
     version: string;
     effective: Record<string, number>;

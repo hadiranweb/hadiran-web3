@@ -43,3 +43,35 @@ export async function ensureAccountPublicCode(accountId: number): Promise<string
 
   throw new Error("public_code_alloc_failed");
 }
+
+export function normalizePublicCode(input: unknown): string | null {
+  if (typeof input !== "string") return null;
+  const persian = "۰۱۲۳۴۵۶۷۸۹";
+  const arabic = "٠١٢٣٤٥٦٧٨٩";
+  const translated = input
+    .replace(/[۰-۹]/g, (digit) => String(persian.indexOf(digit)))
+    .replace(/[٠-٩]/g, (digit) => String(arabic.indexOf(digit)));
+  const digits = translated.replace(/\s+/g, "");
+  if (!/^\d{8}$/.test(digits)) return null;
+  return digits;
+}
+
+export async function accountIdByPublicCode(code: string): Promise<number | null> {
+  await ensureAccountProfileSchema();
+  const [row] = await db
+    .select({ accountId: accountPublicCodes.accountId })
+    .from(accountPublicCodes)
+    .where(eq(accountPublicCodes.code, code))
+    .limit(1);
+  return row?.accountId ?? null;
+}
+
+export async function publicCodeByAccountId(accountId: number): Promise<string | null> {
+  await ensureAccountProfileSchema();
+  const [row] = await db
+    .select({ code: accountPublicCodes.code })
+    .from(accountPublicCodes)
+    .where(eq(accountPublicCodes.accountId, accountId))
+    .limit(1);
+  return row?.code ?? null;
+}

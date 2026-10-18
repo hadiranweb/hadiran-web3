@@ -10,6 +10,7 @@ import { assertJwtReadyForIssue, jwtConfigured, sessionJtiFromCookie, signSessio
 import { ensureAccountPasswordColumns, ensureAccountProfileSchema } from "./schema-guard";
 import { ensureAccountPublicCode } from "./public-code";
 import { onboardingFlags } from "./onboarding";
+import type { AccountRole } from "./roles";
 
 export type SessionAccount = {
   id: number;
@@ -17,11 +18,16 @@ export type SessionAccount = {
   displayName: string | null;
   givenName: string | null;
   familyName: string | null;
-  role: "owner" | "member";
+  role: AccountRole;
   policiesAccepted: boolean;
   needsProfile: boolean;
   onboardingComplete: boolean;
 };
+
+function asRole(value: string): AccountRole {
+  if (value === "owner" || value === "author") return value;
+  return "member";
+}
 
 function toSessionAccount(row: {
   id: number;
@@ -29,7 +35,7 @@ function toSessionAccount(row: {
   displayName: string | null;
   givenName: string | null;
   familyName: string | null;
-  role: "owner" | "member";
+  role: string;
   policiesAcceptedAt: Date | null;
   policiesVersion: string | null;
 }): SessionAccount {
@@ -39,7 +45,7 @@ function toSessionAccount(row: {
     displayName: row.displayName,
     givenName: row.givenName,
     familyName: row.familyName,
-    role: row.role,
+    role: asRole(row.role),
     ...onboardingFlags(row),
   };
 }
@@ -153,7 +159,7 @@ export async function revokeCurrentSession() {
   await clearSessionCookie();
 }
 
-export function roleForPhone(phone: string): "owner" | "member" {
+export function roleForPhone(phone: string): AccountRole {
   return ownerPhones().has(phone) ? "owner" : "member";
 }
 
@@ -191,7 +197,7 @@ export async function completePhoneLogin(input: {
       .set({
         phoneVerifiedAt: account.phoneVerifiedAt ?? new Date(),
         lastLoginAt: new Date(),
-        role: account.role === "owner" ? "owner" : role,
+        role: account.role === "owner" || role === "owner" ? "owner" : asRole(account.role),
         updatedAt: new Date(),
       })
       .where(eq(accounts.id, account.id))

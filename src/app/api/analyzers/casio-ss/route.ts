@@ -20,7 +20,7 @@ export async function POST(request: Request) {
   const auth = await requireAccount();
   if (auth.error) return auth.error;
 
-  let body: { action?: unknown; id?: unknown; value?: unknown };
+  let body: { action?: unknown; id?: unknown; value?: unknown; referralCode?: unknown; discountCode?: unknown };
   try {
     body = (await request.json()) as { action?: unknown; id?: unknown; value?: unknown };
   } catch {
@@ -28,7 +28,13 @@ export async function POST(request: Request) {
   }
 
   if (body.action === "consent") {
-    const attempt = await consentAttempt(auth.account.id);
+    const attempt = await consentAttempt(auth.account.id, {
+      referralCode: body.referralCode,
+      discountCode: body.discountCode,
+    });
+    if (attempt && "error" in attempt) {
+      return NextResponse.json({ error: attempt.error }, { status: 400 });
+    }
     return NextResponse.json({ attempt });
   }
 

@@ -25,11 +25,15 @@ export async function liveReadAttempt(accountId: number, slug: string): Promise<
   return readGeneric(accountId, pack);
 }
 
-export async function liveConsentAttempt(accountId: number, slug: string): Promise<AttemptView | null> {
-  if (slug === "casio-ss") return consentCasio(accountId);
+export async function liveConsentAttempt(
+  accountId: number,
+  slug: string,
+  codes?: { referralCode?: unknown; discountCode?: unknown },
+): Promise<AttemptView | null | { error: string }> {
+  if (slug === "casio-ss") return consentCasio(accountId, codes);
   const pack = await resolveLivePack(slug);
   if (!pack) return null;
-  return consentGeneric(accountId, pack);
+  return consentGeneric(accountId, pack, codes);
 }
 
 export async function liveSaveAnswer(

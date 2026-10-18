@@ -75,6 +75,7 @@ async function touchSession(
   telegramUserId: string,
   chatId: string,
   consented: boolean,
+  awaitingReferral?: boolean,
 ) {
   await ensureBotsSchema();
   const existing = await readSession(botId, telegramUserId);
@@ -85,6 +86,7 @@ async function touchSession(
       .set({
         chatId,
         consentedAt: consented ? existing.consentedAt ?? now : existing.consentedAt,
+        awaitingReferral: awaitingReferral ?? existing.awaitingReferral,
         updatedAt: now,
       })
       .where(and(eq(botChatSessions.botId, botId), eq(botChatSessions.telegramUserId, telegramUserId)))
@@ -99,6 +101,7 @@ async function touchSession(
         telegramUserId,
         chatId,
         consentedAt: consented ? now : null,
+        awaitingReferral: awaitingReferral ?? false,
       })
       .returning();
     return row;
@@ -231,7 +234,12 @@ async function continueQuiz(
 ) {
   let attempt = await liveReadAttempt(accountId, pack.slug);
   if (!attempt?.consentAt) {
-    attempt = await liveConsentAttempt(accountId, pack.slug);
+    const next = await liveConsentAttempt(accountId, pack.slug);
+    if (next && "error" in next) {
+      await say(token, botId, chatId, "رضایت ثبت نشد.");
+      return;
+    }
+    attempt = next;
   }
   if (!attempt) {
     await say(token, botId, chatId, "آزمون در دسترس نیست.");
@@ -292,6 +300,13 @@ export async function handleTelegramUpdate(input: {
 
   const telegramUserId = String(from.id);
 
+  if (callback?.data === "skipref") {
+    await touchSession(input.botId, telegramUserId, String(chat.id), true, false);
+    const accountId = await accountIdByTelegramUserId(telegramUserId);
+    if (accountId) await continueQuiz(input.token, input.botId, chat.id, accountId, pack);
+    return;
+  }
+
   if (callback?.data === "ok") {
     await touchSession(input.botId, telegramUserId, String(chat.id), true);
     const accountId = await accountIdByTelegramUserId(telegramUserId);
@@ -346,6 +361,33 @@ export async function handleTelegramUpdate(input: {
 
   if (!message) return;
   const text = message.text?.trim() ?? "";
+  const session = await readSession(input.botId, telegramUserId);
+  if (session?.awaitingReferral && text && text !== "/start" && !text.startsWith("/start ")) {
+    const accountId = await accountIdByTelegramUserId(telegramUserId);
+    if (accountId && (text === "رد" || text === "/skip")) {
+      await touchSession(input.botId, telegramUserId, String(chat.id), true, false);
+      await continueQuiz(input.token, input.botId, chat.id, accountId, pack);
+      return;
+    }
+    if (accountId) {
+      const { setAccountReferrer } = await import("@/lib/auth/referral");
+      const { applyAttemptCodes } = await import("@/lib/analyzers/attempt-codes");
+      const set = await setAccountReferrer(accountId, text);
+      if (!set.ok && set.error !== "invalid_referral") {
+        await say(input.token, input.botId, chat.id, "این کد معرف پذیرفته نشد. دوباره بفرستید یا بنویسید: رد");
+        return;
+      }
+      if (set.ok && !("skipped" in set)) {
+        await applyAttemptCodes({ slug: pack.slug, accountId, referralCode: text });
+      } else if (!set.ok) {
+        await say(input.token, input.botId, chat.id, "کد معرف هشت رقم است یا «رد».");
+        return;
+      }
+      await touchSession(input.botId, telegramUserId, String(chat.id), true, false);
+      await continueQuiz(input.token, input.botId, chat.id, accountId, pack);
+      return;
+    }
+  }
   if (text === "/start" || text === "/help" || text.startsWith("/start ")) {
     await handleStart(input.token, input.botId, chat.id, telegramUserId, pack);
     return;
@@ -382,6 +424,15 @@ export async function handleTelegramUpdate(input: {
       return;
     }
     await say(input.token, input.botId, chat.id, "شماره ثبت شد.", { remove_keyboard: true });
+    const { referredByPublicCode } = await import("@/lib/auth/referral");
+    const already = await referredByPublicCode(linked.accountId);
+    if (!already) {
+      await touchSession(input.botId, telegramUserId, String(chat.id), true, true);
+      await say(input.token, input.botId, chat.id, "اگر کد معرف دارید بفرستید (۸ رقم). اگر ندارید بنویسید: رد", {
+        inline_keyboard: [[{ text: "رد کردن", callback_data: "skipref" }]],
+      });
+      return;
+    }
     await continueQuiz(input.token, input.botId, chat.id, linked.accountId, pack);
     return;
   }

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { requirePageOwner } from "@/lib/auth/guard";
-import { listAuthoredPacks } from "@/lib/analyzers/authored";
+import { requirePageStaff } from "@/lib/auth/guard";
+import { listAccessiblePacks } from "@/lib/analyzers/access";
 
 export const dynamic = "force-dynamic";
 
@@ -17,8 +17,8 @@ const statusFa: Record<string, string> = {
 };
 
 export default async function WorkspaceAnalyzersPage() {
-  await requirePageOwner("/workspace/analyzers");
-  const authored = await listAuthoredPacks();
+  const account = await requirePageStaff("/workspace/analyzers");
+  const authored = await listAccessiblePacks(account);
 
   return (
     <main className="mx-auto max-w-3xl space-y-8 px-4 py-8">
@@ -42,7 +42,7 @@ export default async function WorkspaceAnalyzersPage() {
           <p className="text-sm text-slate-500">آزمونی نیست.</p>
         ) : (
           <ul className="space-y-2">
-            {authored.map((pack) => (
+            {authored.map(({ pack, access }) => (
               <li key={pack.slug}>
                 <Link
                   href={`/workspace/analyzers/${pack.slug}`}
@@ -51,6 +51,7 @@ export default async function WorkspaceAnalyzersPage() {
                   <p className="font-medium text-slate-900">{pack.nameFa}</p>
                   <p className="mt-1 text-xs text-slate-500">
                     {pack.slug} · {statusFa[pack.status] ?? pack.status} · {pack.version}
+                    {access.edit ? "" : " · خواندنی"}
                   </p>
                 </Link>
               </li>

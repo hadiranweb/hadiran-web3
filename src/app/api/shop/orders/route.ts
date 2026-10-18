@@ -20,6 +20,7 @@ export async function POST(request: Request) {
       buyerId: auth.account.id,
       buyerRole: auth.account.role,
       listingId: listing.id,
+      discountCode: body.discountCode,
     });
     return NextResponse.json({ ok: true, id: order.id, slug: listing.slug });
   } catch (error) {

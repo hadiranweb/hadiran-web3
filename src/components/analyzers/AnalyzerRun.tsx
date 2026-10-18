@@ -28,6 +28,13 @@ function persianError(code: string) {
     invalid_answer: "پاسخ این سؤال کامل نیست.",
     incomplete: "همهٔ سؤال‌ها باید پاسخ داده شوند.",
     already_submitted: "این ارزیابی قبلاً ثبت شده است.",
+    invalid_referral: "کد معرف هشت رقم است.",
+    unknown_referral: "این کد معرف پیدا نشد.",
+    self_referral: "نمی‌توانید کد خودتان را بزنید.",
+    invalid_discount: "کد تخفیف نامعتبر است.",
+    unknown_discount: "کد تخفیف پیدا نشد.",
+    discount_exhausted: "ظرفیت این کد تمام شده.",
+    discount_scope: "این کد برای این آزمون نیست.",
     save_failed: "ذخیره نشد. دوباره تلاش کنید.",
     score_failed: "نمره محاسبه نشد. تعریف آزمون را بررسی کنید.",
   };
@@ -47,6 +54,8 @@ export function AnalyzerRun({ pack }: { pack: AnalyzerPack }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [consent, setConsent] = useState(false);
+  const [referralCode, setReferralCode] = useState("");
+  const [discountCode, setDiscountCode] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [answers, setAnswers] = useState<AnswerMap>({});
   const [index, setIndex] = useState(0);
@@ -161,7 +170,12 @@ export function AnalyzerRun({ pack }: { pack: AnalyzerPack }) {
 
   async function acceptConsent() {
     setBusy(true);
-    const attempt = await post({ action: "consent" });
+    const storedRef = typeof window !== "undefined" ? sessionStorage.getItem("hadiran-ref") : null;
+    const attempt = await post({
+      action: "consent",
+      referralCode: referralCode.trim() || storedRef || undefined,
+      discountCode: discountCode.trim() || undefined,
+    });
     setBusy(false);
     if (!attempt) return;
     setConsent(true);
@@ -206,6 +220,30 @@ export function AnalyzerRun({ pack }: { pack: AnalyzerPack }) {
           {pack.consent.bodyFa.map((para) => (
             <p key={para}>{para}</p>
           ))}
+        </div>
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <label className="block text-sm">
+            <span className="mb-1 block text-muted">کد معرف (اختیاری)</span>
+            <input
+              className={fieldClass}
+              dir="ltr"
+              inputMode="numeric"
+              maxLength={8}
+              value={referralCode}
+              onChange={(event) => setReferralCode(event.target.value)}
+              placeholder="۸ رقم"
+            />
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1 block text-muted">کد تخفیف (اختیاری)</span>
+            <input
+              className={fieldClass}
+              dir="ltr"
+              value={discountCode}
+              onChange={(event) => setDiscountCode(event.target.value)}
+              placeholder="HADI20"
+            />
+          </label>
         </div>
         {error ? <p className="mt-4 text-sm text-mark">{persianError(error)}</p> : null}
         <button

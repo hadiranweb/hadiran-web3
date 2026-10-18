@@ -68,8 +68,8 @@ export function SessionMenu() {
         <User className="h-4 w-4" strokeWidth={1.5} />
         حساب
       </Link>
-      {account.role === "owner" ? (
-        <Link href="/workspace" className={itemClass}>
+      {account.role === "owner" || account.role === "author" ? (
+        <Link href={account.role === "author" ? "/workspace/analyzers" : "/workspace"} className={itemClass}>
           <PenLine className="h-4 w-4" strokeWidth={1.5} />
           میز کار
         </Link>

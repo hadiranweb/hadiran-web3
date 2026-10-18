@@ -1,27 +1,30 @@
 import { NextResponse } from "next/server";
-import { requireOwner } from "@/lib/auth/guard";
-import { insertAuthoredPack, listAuthoredPacks, readAuthoredPack } from "@/lib/analyzers/authored";
+import { requireStaff } from "@/lib/auth/guard";
+import { listAccessiblePacks } from "@/lib/analyzers/access";
+import { insertAuthoredPack, readAuthoredPack } from "@/lib/analyzers/authored";
 import { blankPack, isPackSlug, sanitizePack } from "@/lib/analyzers/sanitize";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const auth = await requireOwner();
+  const auth = await requireStaff();
   if (auth.error) return auth.error;
-  const authored = await listAuthoredPacks();
+  const items = await listAccessiblePacks(auth.account);
   return NextResponse.json({
-    authored: authored.map((pack) => ({
+    authored: items.map(({ pack, access }) => ({
       slug: pack.slug,
       nameFa: pack.nameFa,
       status: pack.status,
       version: pack.version,
-      readonly: false,
+      canEdit: access.edit,
+      canReadResponses: access.responses,
+      canGrant: access.grant,
     })),
   });
 }
 
 export async function POST(request: Request) {
-  const auth = await requireOwner();
+  const auth = await requireStaff();
   if (auth.error) return auth.error;
   let body: { slug?: unknown; nameFa?: unknown };
   try {
@@ -43,6 +46,6 @@ export async function POST(request: Request) {
   }
   const created = sanitizePack(blankPack(slug, nameFa), slug);
   if (!created.ok) return NextResponse.json({ error: created.error }, { status: 400 });
-  await insertAuthoredPack(created.pack);
+  await insertAuthoredPack(created.pack, auth.account.id);
   return NextResponse.json({ ok: true, slug: created.pack.slug });
 }

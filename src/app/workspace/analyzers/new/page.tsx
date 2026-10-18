@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { requirePageOwner } from "@/lib/auth/guard";
+import { requirePageStaff } from "@/lib/auth/guard";
 import { AnalyzerCreateForm } from "@/components/analyzers/AnalyzerCreateForm";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 export default async function NewAnalyzerPage() {
-  await requirePageOwner("/workspace/analyzers/new");
+  await requirePageStaff("/workspace/analyzers/new");
   return (
     <main className="mx-auto max-w-3xl space-y-6 px-4 py-8">
       <p className="text-sm">

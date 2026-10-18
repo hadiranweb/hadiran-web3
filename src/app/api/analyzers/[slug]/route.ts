@@ -7,20 +7,23 @@ export const dynamic = "force-dynamic";
 
 type Ctx = { params: Promise<{ slug: string }> };
 
-async function resolveRunnablePack(slug: string, role: string) {
+async function resolveRunnablePack(slug: string, account: { id: number; role: string }) {
   if (getCodePack(slug)) return null;
   const pack = await loadPack(slug);
   if (!pack) return null;
   if (pack.status === "archived") return null;
-  if (pack.status !== "open" && role !== "owner") return null;
-  return pack;
+  if (pack.status === "open") return pack;
+  if (account.role === "owner") return pack;
+  const { analyzerAccess } = await import("@/lib/analyzers/access");
+  const access = await analyzerAccess(account, slug);
+  return access.edit ? pack : null;
 }
 
 export async function GET(_request: Request, { params }: Ctx) {
   const auth = await requireAccount();
   if (auth.error) return auth.error;
   const { slug } = await params;
-  const pack = await resolveRunnablePack(slug, auth.account.role);
+  const pack = await resolveRunnablePack(slug, auth.account);
   if (!pack) return NextResponse.json({ error: "not_found" }, { status: 404 });
   const attempt = await readAttempt(auth.account.id, pack);
   return NextResponse.json({ attempt, packVersion: pack.version });
@@ -30,10 +33,10 @@ export async function POST(request: Request, { params }: Ctx) {
   const auth = await requireAccount();
   if (auth.error) return auth.error;
   const { slug } = await params;
-  const pack = await resolveRunnablePack(slug, auth.account.role);
+  const pack = await resolveRunnablePack(slug, auth.account);
   if (!pack) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
-  let body: { action?: unknown; id?: unknown; value?: unknown };
+  let body: { action?: unknown; id?: unknown; value?: unknown; referralCode?: unknown; discountCode?: unknown };
   try {
     body = (await request.json()) as { action?: unknown; id?: unknown; value?: unknown };
   } catch {
@@ -41,7 +44,13 @@ export async function POST(request: Request, { params }: Ctx) {
   }
 
   if (body.action === "consent") {
-    const attempt = await consentAttempt(auth.account.id, pack);
+    const attempt = await consentAttempt(auth.account.id, pack, {
+      referralCode: body.referralCode,
+      discountCode: body.discountCode,
+    });
+    if (attempt && "error" in attempt) {
+      return NextResponse.json({ error: attempt.error }, { status: 400 });
+    }
     return NextResponse.json({ attempt });
   }
 

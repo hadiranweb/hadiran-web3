@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { accountPublicCodes, accounts, analyzerAttempts, casioAttempts } from "@/db/schema";
 import { resolveLivePack } from "@/lib/analyzers/authored";
@@ -99,9 +99,11 @@ type Joined = {
   displayName: string | null;
   phone: string;
   publicCode: string | null;
+  referrerAccountId: number | null;
+  discountCode: string | null;
 };
 
-function toRow(pack: AnalyzerPack, row: Joined): WorkspaceAttemptRow {
+function toRow(pack: AnalyzerPack, row: Joined, referrerCode: string | null): WorkspaceAttemptRow {
   return {
     attemptId: row.attemptId,
     publicCode: row.publicCode,
@@ -112,9 +114,24 @@ function toRow(pack: AnalyzerPack, row: Joined): WorkspaceAttemptRow {
     submittedAt: row.submittedAt ? row.submittedAt.toISOString() : null,
     updatedAt: row.updatedAt ? row.updatedAt.toISOString() : null,
     businessName: businessNameOf(pack, row.answers),
+    referrerPublicCode: referrerCode,
+    discountCode: row.discountCode ?? null,
     scores: scoreRows(pack, row.results),
     answers: answerRows(pack, row.answers),
   };
+}
+
+async function withReferrerCodes(pack: AnalyzerPack, rows: Joined[]): Promise<WorkspaceAttemptRow[]> {
+  const ids = [...new Set(rows.map((row) => row.referrerAccountId).filter((id): id is number => Boolean(id)))];
+  const map = new Map<number, string>();
+  if (ids.length) {
+    const codes = await db
+      .select({ accountId: accountPublicCodes.accountId, code: accountPublicCodes.code })
+      .from(accountPublicCodes)
+      .where(inArray(accountPublicCodes.accountId, ids));
+    for (const row of codes) map.set(row.accountId, row.code);
+  }
+  return rows.map((row) => toRow(pack, row, row.referrerAccountId ? map.get(row.referrerAccountId) ?? null : null));
 }
 
 export async function listWorkspaceAttempts(slug: string): Promise<WorkspaceAttemptRow[]> {
@@ -138,13 +155,15 @@ export async function listWorkspaceAttempts(slug: string): Promise<WorkspaceAtte
         displayName: accounts.displayName,
         phone: accounts.phone,
         publicCode: accountPublicCodes.code,
+        referrerAccountId: casioAttempts.referrerAccountId,
+        discountCode: casioAttempts.discountCode,
       })
       .from(casioAttempts)
       .innerJoin(accounts, eq(accounts.id, casioAttempts.accountId))
       .leftJoin(accountPublicCodes, eq(accountPublicCodes.accountId, accounts.id))
       .orderBy(desc(casioAttempts.submittedAt), desc(casioAttempts.updatedAt))
       .limit(300);
-    return rows.map((row) => toRow(pack, row));
+    return withReferrerCodes(pack, rows);
   }
 
   await ensureAnalyzerAuthoringSchema();
@@ -162,6 +181,8 @@ export async function listWorkspaceAttempts(slug: string): Promise<WorkspaceAtte
       displayName: accounts.displayName,
       phone: accounts.phone,
       publicCode: accountPublicCodes.code,
+      referrerAccountId: analyzerAttempts.referrerAccountId,
+      discountCode: analyzerAttempts.discountCode,
     })
     .from(analyzerAttempts)
     .innerJoin(accounts, eq(accounts.id, analyzerAttempts.accountId))
@@ -169,5 +190,5 @@ export async function listWorkspaceAttempts(slug: string): Promise<WorkspaceAtte
     .where(eq(analyzerAttempts.slug, slug))
     .orderBy(desc(analyzerAttempts.submittedAt), desc(analyzerAttempts.updatedAt))
     .limit(300);
-  return rows.map((row) => toRow(pack, row));
+  return withReferrerCodes(pack, rows);
 }

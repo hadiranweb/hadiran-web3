@@ -16,6 +16,7 @@ import type {
 } from "@/lib/analyzers/pack";
 import { DEFAULT_ANCHORS } from "@/lib/analyzers/sanitize";
 import { AnalyzerResponses } from "@/components/analyzers/AnalyzerResponses";
+import { AnalyzerGrants } from "@/components/analyzers/AnalyzerGrants";
 
 const fieldClass =
   "w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-400";
@@ -31,7 +32,7 @@ const ops: FormulaOp[] = [
   "matmul",
 ];
 
-type Tab = "meta" | "items" | "score" | "report" | "responses";
+type Tab = "meta" | "items" | "score" | "report" | "responses" | "access";
 
 function emptyReport(): PackReport {
   return {
@@ -52,7 +53,17 @@ function clonePack(pack: AnalyzerPack): AnalyzerPack {
   return JSON.parse(JSON.stringify(pack)) as AnalyzerPack;
 }
 
-export function AnalyzerEditor({ initial }: { initial: AnalyzerPack }) {
+export function AnalyzerEditor({
+  initial,
+  canEdit = true,
+  canReadResponses = true,
+  canGrant = false,
+}: {
+  initial: AnalyzerPack;
+  canEdit?: boolean;
+  canReadResponses?: boolean;
+  canGrant?: boolean;
+}) {
   const [pack, setPack] = useState<AnalyzerPack>(() => clonePack(initial));
   const [tab, setTab] = useState<Tab>("meta");
   const [busy, setBusy] = useState(false);
@@ -141,7 +152,8 @@ export function AnalyzerEditor({ initial }: { initial: AnalyzerPack }) {
             ["items", `سؤال‌ها (${itemCount})`],
             ["score", "نمره"],
             ["report", "گزارش"],
-            ["responses", "پاسخ‌ها"],
+            ...(canReadResponses ? ([["responses", "پاسخ‌ها"]] as [Tab, string][]) : []),
+            ...(canGrant ? ([["access", "دسترسی"]] as [Tab, string][]) : []),
           ] as [Tab, string][]
         ).map(([id, label]) => (
           <button
@@ -302,17 +314,22 @@ export function AnalyzerEditor({ initial }: { initial: AnalyzerPack }) {
       ) : null}
 
       {tab === "responses" ? <AnalyzerResponses slug={pack.slug} /> : null}
+      {tab === "access" ? <AnalyzerGrants slug={pack.slug} /> : null}
 
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
       {saved ? <p className="text-sm text-teal-800">ذخیره شد.</p> : null}
-      <button
-        type="button"
-        onClick={() => void save()}
-        disabled={busy}
-        className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-medium text-white disabled:opacity-60"
-      >
-        {busy ? "در حال ذخیره…" : "ذخیره"}
-      </button>
+      {canEdit ? (
+        <button
+          type="button"
+          onClick={() => void save()}
+          disabled={busy}
+          className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-medium text-white disabled:opacity-60"
+        >
+          {busy ? "در حال ذخیره…" : "ذخیره"}
+        </button>
+      ) : (
+        <p className="text-sm text-slate-500">این آزمون برای شما فقط خواندنی است.</p>
+      )}
     </div>
   );
 }

@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import "./globals.css";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { OnboardingDialog } from "@/components/auth/OnboardingDialog";
+import { ReferralCapture } from "@/components/auth/ReferralCapture";
 import { Vazirmatn } from "next/font/google";
 import { siteConfig } from "@/lib/site";
 
@@ -47,6 +48,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <Nav />
         <div className="flex-1">{children}</div>
         <Footer />
+        <Suspense fallback={null}>
+          <ReferralCapture />
+        </Suspense>
         <OnboardingDialog />
       </body>
     </html>

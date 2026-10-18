@@ -69,6 +69,8 @@ export function AnalyzerResponses({ slug }: { slug: string }) {
                   <span className="block font-medium text-slate-900">{row.nameFa}</span>
                   <span className="mt-1 block text-xs text-slate-500">
                     {row.publicCode ? `شناسه ${row.publicCode}` : "بدون شناسهٔ نمایشی"}
+                    {row.referrerPublicCode ? ` · معرف ${row.referrerPublicCode}` : ""}
+                    {row.discountCode ? ` · تخفیف ${row.discountCode}` : ""}
                     {row.businessName ? ` · ${row.businessName}` : ""}
                     {` · ${row.phone}`}
                   </span>

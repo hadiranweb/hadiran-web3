@@ -53,7 +53,7 @@ export const collaborationStatusEnum = pgEnum("collaboration_status", [
   "rejected",
 ]);
 
-export const accountRoleEnum = pgEnum("account_role", ["owner", "member"]);
+export const accountRoleEnum = pgEnum("account_role", ["owner", "author", "member"]);
 
 export const otpPurposeEnum = pgEnum("otp_purpose", ["login"]);
 
@@ -270,6 +270,7 @@ export const accounts = pgTable("accounts", {
   policiesAcceptedAt: timestamp("policies_accepted_at", { withTimezone: true }),
   policiesVersion: varchar("policies_version", { length: 64 }),
   onboardingCompletedAt: timestamp("onboarding_completed_at", { withTimezone: true }),
+  referredByAccountId: integer("referred_by_account_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
@@ -289,6 +290,8 @@ export const casioAttempts = pgTable("casio_attempts", {
   }>(),
   status: varchar("status", { length: 16 }).notNull().default("in_progress"),
   submittedAt: timestamp("submitted_at", { withTimezone: true }),
+  referrerAccountId: integer("referrer_account_id").references(() => accounts.id, { onDelete: "set null" }),
+  discountCode: varchar("discount_code", { length: 32 }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
@@ -298,6 +301,7 @@ export const analyzerPacks = pgTable("analyzer_packs", {
   slug: varchar("slug", { length: 64 }).primaryKey(),
   status: varchar("status", { length: 16 }).notNull().default("draft"),
   pack: jsonb("pack").$type<import("@/lib/analyzers/pack").AnalyzerPack>().notNull(),
+  createdBy: integer("created_by").references(() => accounts.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
@@ -318,9 +322,27 @@ export const analyzerAttempts = pgTable("analyzer_attempts", {
   }>(),
   status: varchar("status", { length: 16 }).notNull().default("in_progress"),
   submittedAt: timestamp("submitted_at", { withTimezone: true }),
+  referrerAccountId: integer("referrer_account_id").references(() => accounts.id, { onDelete: "set null" }),
+  discountCode: varchar("discount_code", { length: 32 }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
+
+export const analyzerGrants = pgTable(
+  "analyzer_grants",
+  {
+    slug: varchar("slug", { length: 64 })
+      .notNull()
+      .references(() => analyzerPacks.slug, { onDelete: "cascade" }),
+    accountId: integer("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    canEdit: boolean("can_edit").notNull().default(true),
+    canReadResponses: boolean("can_read_responses").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.slug, t.accountId] })],
+);
 
 /** Owner-connected bots. Telegram first. Not a login channel. */
 export const bots = pgTable("bots", {
@@ -356,6 +378,7 @@ export const botChatSessions = pgTable(
     telegramUserId: varchar("telegram_user_id", { length: 32 }).notNull(),
     chatId: varchar("chat_id", { length: 32 }).notNull(),
     consentedAt: timestamp("consented_at", { withTimezone: true }),
+    awaitingReferral: boolean("awaiting_referral").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
@@ -602,8 +625,43 @@ export const shopOrders = pgTable("shop_orders", {
   payoutHandleSnapshot: text("payout_handle_snapshot"),
   payoutAliasSnapshot: text("payout_alias_snapshot"),
   settledAt: timestamp("settled_at", { withTimezone: true }),
+  discountCode: varchar("discount_code", { length: 32 }),
+  discountAmount: integer("discount_amount").notNull().default(0),
+  originalAmount: integer("original_amount"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+export const discountCodes = pgTable("discount_codes", {
+  id: serial("id").primaryKey(),
+  code: varchar("code", { length: 32 }).notNull().unique(),
+  kind: varchar("kind", { length: 16 }).notNull().default("percent"),
+  value: integer("value").notNull(),
+  scope: varchar("scope", { length: 16 }).notNull().default("any"),
+  analyzerSlug: varchar("analyzer_slug", { length: 64 }),
+  listingId: text("listing_id"),
+  maxUses: integer("max_uses"),
+  usedCount: integer("used_count").notNull().default(0),
+  startsAt: timestamp("starts_at", { withTimezone: true }),
+  endsAt: timestamp("ends_at", { withTimezone: true }),
+  active: boolean("active").notNull().default(true),
+  createdBy: integer("created_by").references(() => accounts.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const discountRedemptions = pgTable("discount_redemptions", {
+  id: serial("id").primaryKey(),
+  discountId: integer("discount_id")
+    .notNull()
+    .references(() => discountCodes.id, { onDelete: "cascade" }),
+  accountId: integer("account_id")
+    .notNull()
+    .references(() => accounts.id, { onDelete: "cascade" }),
+  source: varchar("source", { length: 16 }).notNull(),
+  analyzerSlug: varchar("analyzer_slug", { length: 64 }),
+  orderId: text("order_id"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 export const shopEntitlements = pgTable(

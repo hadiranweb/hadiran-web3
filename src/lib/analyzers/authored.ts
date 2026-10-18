@@ -40,12 +40,13 @@ export async function readAuthoredPack(slug: string): Promise<AnalyzerPack | nul
   return row?.pack ?? null;
 }
 
-export async function insertAuthoredPack(pack: AnalyzerPack): Promise<AnalyzerPack> {
+export async function insertAuthoredPack(pack: AnalyzerPack, createdBy?: number | null): Promise<AnalyzerPack> {
   await ensureAnalyzerAuthoringSchema();
   await db.insert(analyzerPacks).values({
     slug: pack.slug,
     status: pack.status,
     pack,
+    createdBy: createdBy ?? null,
     updatedAt: new Date(),
   });
   return pack;

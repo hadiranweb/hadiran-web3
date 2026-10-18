@@ -6,6 +6,7 @@ let profileSchemaReady = false;
 let casioAttemptsReady = false;
 let analyzerAuthoringReady = false;
 let botsReady = false;
+let accessReady = false;
 
 /** Safety net if pre-start skipped 0007. Idempotent. */
 export async function ensureAccountPasswordColumns() {
@@ -35,6 +36,10 @@ export async function ensureAccountProfileSchema() {
   await db.execute(sql`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS policies_accepted_at TIMESTAMPTZ`);
   await db.execute(sql`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS policies_version VARCHAR(64)`);
   await db.execute(sql`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS onboarding_completed_at TIMESTAMPTZ`);
+  await db.execute(sql`
+    ALTER TABLE accounts
+    ADD COLUMN IF NOT EXISTS referred_by_account_id INTEGER REFERENCES accounts(id) ON DELETE SET NULL
+  `);
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS account_public_codes (
       account_id INTEGER PRIMARY KEY REFERENCES accounts(id) ON DELETE CASCADE,
@@ -68,6 +73,11 @@ export async function ensureCasioAttemptsSchema() {
     WHERE status = 'in_progress'
   `);
   await db.execute(sql`ALTER TABLE casio_attempts ADD COLUMN IF NOT EXISTS results JSONB`);
+  await db.execute(sql`
+    ALTER TABLE casio_attempts
+    ADD COLUMN IF NOT EXISTS referrer_account_id INTEGER REFERENCES accounts(id) ON DELETE SET NULL
+  `);
+  await db.execute(sql`ALTER TABLE casio_attempts ADD COLUMN IF NOT EXISTS discount_code VARCHAR(32)`);
   casioAttemptsReady = true;
 }
 
@@ -82,6 +92,10 @@ export async function ensureAnalyzerAuthoringSchema() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
+  `);
+  await db.execute(sql`
+    ALTER TABLE analyzer_packs
+    ADD COLUMN IF NOT EXISTS created_by INTEGER REFERENCES accounts(id) ON DELETE SET NULL
   `);
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS analyzer_attempts (
@@ -103,6 +117,11 @@ export async function ensureAnalyzerAuthoringSchema() {
     ON analyzer_attempts (account_id, slug)
     WHERE status = 'in_progress'
   `);
+  await db.execute(sql`
+    ALTER TABLE analyzer_attempts
+    ADD COLUMN IF NOT EXISTS referrer_account_id INTEGER REFERENCES accounts(id) ON DELETE SET NULL
+  `);
+  await db.execute(sql`ALTER TABLE analyzer_attempts ADD COLUMN IF NOT EXISTS discount_code VARCHAR(32)`);
   analyzerAuthoringReady = true;
 }
 
@@ -144,5 +163,68 @@ export async function ensureBotsSchema() {
     )
   `);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS bot_chat_sessions_chat_idx ON bot_chat_sessions (bot_id, chat_id)`);
+  await db.execute(sql`
+    ALTER TABLE bot_chat_sessions
+    ADD COLUMN IF NOT EXISTS awaiting_referral BOOLEAN NOT NULL DEFAULT FALSE
+  `);
   botsReady = true;
+}
+
+/** Safety net if pre-start skipped 0017/0018. Idempotent. */
+export async function ensureAccessSchema() {
+  if (accessReady) return;
+  await db.execute(sql`
+    DO $$ BEGIN
+      ALTER TYPE account_role ADD VALUE 'author';
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END $$
+  `);
+  await ensureAccountProfileSchema();
+  await ensureAnalyzerAuthoringSchema();
+  await ensureCasioAttemptsSchema();
+  await ensureBotsSchema();
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS analyzer_grants (
+      slug VARCHAR(64) NOT NULL REFERENCES analyzer_packs(slug) ON DELETE CASCADE,
+      account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+      can_edit BOOLEAN NOT NULL DEFAULT TRUE,
+      can_read_responses BOOLEAN NOT NULL DEFAULT TRUE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (slug, account_id)
+    )
+  `);
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS discount_codes (
+      id SERIAL PRIMARY KEY,
+      code VARCHAR(32) NOT NULL UNIQUE,
+      kind VARCHAR(16) NOT NULL DEFAULT 'percent',
+      value INTEGER NOT NULL,
+      scope VARCHAR(16) NOT NULL DEFAULT 'any',
+      analyzer_slug VARCHAR(64),
+      listing_id TEXT,
+      max_uses INTEGER,
+      used_count INTEGER NOT NULL DEFAULT 0,
+      starts_at TIMESTAMPTZ,
+      ends_at TIMESTAMPTZ,
+      active BOOLEAN NOT NULL DEFAULT TRUE,
+      created_by INTEGER REFERENCES accounts(id) ON DELETE SET NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS discount_redemptions (
+      id SERIAL PRIMARY KEY,
+      discount_id INTEGER NOT NULL REFERENCES discount_codes(id) ON DELETE CASCADE,
+      account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+      source VARCHAR(16) NOT NULL,
+      analyzer_slug VARCHAR(64),
+      order_id TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await db.execute(sql`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS discount_code VARCHAR(32)`);
+  await db.execute(sql`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS discount_amount INTEGER NOT NULL DEFAULT 0`);
+  await db.execute(sql`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS original_amount INTEGER`);
+  accessReady = true;
 }
