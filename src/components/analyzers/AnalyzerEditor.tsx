@@ -894,7 +894,7 @@ function ReportEditor({
             checked={report.hideGateScores !== false}
             onChange={(event) => onChange({ ...report, hideGateScores: event.target.checked })}
           />
-          گیت سبز/زرد/قرمز در تفسیر آزمون‌ساز نباشد
+          گیت سبز/زرد/قرمز در خلاصهٔ عضو نباشد (آزمون‌ساز در تفسیر اولیه می‌بیند)
         </label>
         <label className="block text-sm">
           <span className="mb-1 block text-slate-600">جملهٔ پایانی</span>

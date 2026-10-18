@@ -2,6 +2,7 @@ import { desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { accountPublicCodes, accounts, analyzerAttempts, casioAttempts } from "@/db/schema";
 import { resolveLivePack } from "@/lib/analyzers/authored";
+import { gateOf } from "@/lib/analyzers/gate";
 import { findItem, itemsOf, type AnalyzerPack } from "@/lib/analyzers/pack";
 import {
   ensureAccountProfileSchema,
@@ -16,7 +17,6 @@ import type {
 
 export type { WorkspaceAttemptAnswer, WorkspaceAttemptRow, WorkspaceAttemptScore };
 
-const HIDDEN_SCORE_IDS = new Set(["gate-band"]);
 const HIDDEN_SCORE_VALUES = new Set(["green", "yellow", "red"]);
 
 function nameOf(row: { givenName: string | null; familyName: string | null; displayName: string | null }): string {
@@ -54,11 +54,18 @@ function scoreRows(pack: AnalyzerPack, results: { scores?: Record<string, number
   if (!scores) return [];
   const out: WorkspaceAttemptScore[] = [];
   for (const [id, value] of Object.entries(scores)) {
-    if (HIDDEN_SCORE_IDS.has(id) || id.endsWith(":gate-band")) continue;
-    if (typeof value === "string" && HIDDEN_SCORE_VALUES.has(value)) continue;
+    if (id.endsWith(":gate-band")) continue;
     const finding = pack.findings.find((row) => row.id === id);
     const formula = pack.formulas.find((row) => row.id === id);
     let titleFa = finding?.titleFa ?? formula?.id ?? id;
+    if (id === "gate-band" && typeof value === "string") {
+      const label = formula?.bands?.find((band) => band.id === value)?.labelFa ?? value;
+      out.push({ id, titleFa: "نتیجهٔ ارزیابی", valueFa: label });
+      continue;
+    }
+    if (typeof value === "string" && HIDDEN_SCORE_VALUES.has(value)) continue;
+    if (id === "gate-total") titleFa = "نمرهٔ ارزیابی";
+    if (id === "gate-mean") titleFa = "میانگین ارزیابی";
     if (id === "bottleneck" && typeof value === "string") {
       const target = pack.findings.find((row) => row.id === value);
       out.push({ id, titleFa: "گلوگاه", valueFa: target?.titleFa ?? value });
@@ -116,6 +123,7 @@ function toRow(pack: AnalyzerPack, row: Joined, referrerCode: string | null): Wo
     businessName: businessNameOf(pack, row.answers),
     referrerPublicCode: referrerCode,
     discountCode: row.discountCode ?? null,
+    gate: gateOf(pack, row.results),
     scores: scoreRows(pack, row.results),
     answers: answerRows(pack, row.answers),
     rawAnswers: row.answers ?? {},

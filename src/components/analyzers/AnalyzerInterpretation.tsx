@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { CasioSsReport } from "@/components/analyzers/CasioSsReport";
+import { GateChip, GateStatus } from "@/components/analyzers/GateStatus";
 import { GenericReportView } from "@/components/analyzers/GenericReport";
+import { gateOf } from "@/lib/analyzers/gate";
 import { buildCasioReport } from "@/lib/analyzers/casio-ss/report";
 import { buildGenericReport } from "@/lib/analyzers/generic-report";
 import type { AnalyzerPack } from "@/lib/analyzers/pack";
@@ -73,7 +75,10 @@ export function AnalyzerInterpretation({ slug, pack }: { slug: string; pack: Ana
                     {` · ${row.phone}`}
                   </span>
                 </span>
-                <span className="text-xs text-slate-500">{whenFa(row.submittedAt ?? row.updatedAt)}</span>
+                <span className="flex flex-col items-end gap-1 text-xs text-slate-500">
+                  {row.gate ? <GateChip gate={row.gate} /> : null}
+                  <span>{whenFa(row.submittedAt ?? row.updatedAt)}</span>
+                </span>
               </button>
               {open ? <AttemptInterpretation pack={pack} row={row} /> : null}
             </li>
@@ -85,22 +90,30 @@ export function AnalyzerInterpretation({ slug, pack }: { slug: string; pack: Ana
 }
 
 function AttemptInterpretation({ pack, row }: { pack: AnalyzerPack; row: WorkspaceAttemptRow }) {
+  const gate = row.gate ?? gateOf(pack, row.rawResults);
   try {
     if (pack.slug === "casio-ss") {
       const report = buildCasioReport(pack, row.rawAnswers, row.rawResults);
       return (
-        <div className="border-t border-slate-100 px-4 py-4">
+        <div className="space-y-4 border-t border-slate-100 px-4 py-4">
+          {gate ? <GateStatus gate={gate} /> : null}
           <CasioSsReport report={report} showHubLink={false} />
         </div>
       );
     }
     const report = buildGenericReport(pack, row.rawAnswers, row.rawResults);
     return (
-      <div className="border-t border-slate-100 px-4 py-4">
+      <div className="space-y-4 border-t border-slate-100 px-4 py-4">
+        {gate ? <GateStatus gate={gate} /> : null}
         <GenericReportView report={report} hubHref={null} />
       </div>
     );
   } catch {
-    return <p className="border-t border-slate-100 px-4 py-4 text-sm text-red-700">این تفسیر از پاسخ‌های ثبت‌شده قابل بازتولید نیست.</p>;
+    return (
+      <div className="space-y-4 border-t border-slate-100 px-4 py-4">
+        {gate ? <GateStatus gate={gate} /> : null}
+        <p className="text-sm text-red-700">این تفسیر از پاسخ‌های ثبت‌شده قابل بازتولید نیست.</p>
+      </div>
+    );
   }
 }
