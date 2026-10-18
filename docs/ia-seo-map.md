@@ -688,3 +688,44 @@ Schema.org: `ContactPage` با `mainEntity` از نوع `Person` که به `/had
 
 ممنوع: رمز، OTP، کوکی نشست. چت خانه: پیام‌ها از conversation؛ فقط متن ارسال‌نشدهٔ کادر نگه داشته می‌شود. SWR/TanStack سراسری نیست.
 
+---
+
+## ۲۰. ربات‌ها — میز کار مالک
+
+هدف این برش: **تنظیم و اتصال** رباتی که مالک در کانال ثالث می‌سازد. تارگت اول: **تلگرام**. ورود سایت با تلگرام روشن نمی‌شود (`accounts.telegram_user_id` همچنان رزرو است).
+
+### ۲۰.۱ نیت URL
+
+| URL | نیت | ایندکس |
+|---|---|---|
+| `/workspace/bots` | فهرست ربات‌های مالک | **noindex** |
+| `/workspace/bots/new` | ساخت رکورد | **noindex** |
+| `/workspace/bots/[id]` | تنظیم + اتصال توکن + انتخاب آزمون | **noindex** |
+| `/api/bots/telegram/[id]/webhook` | دریافت Update از تلگرام | API |
+
+عمق میز حداکثر سه. `/admin` ساخته نمی‌شود. نوار اصلی سایت لینک ربات ندارد.
+
+### ۲۰.۲ اتصال تلگرام
+
+از Bot API رسمی، نه کتابخانهٔ polling:
+
+- تأیید توکن: `getMe`
+- ثبت آدرس: `setWebhook` با `secret_token` و `allowed_updates: message, callback_query`
+- تشخیص سلامت: `getWebhookInfo`
+- قطع: `deleteWebhook`
+- **نه** `getUpdates` (با وب‌هوک جمع نمی‌شود)
+
+آدرس وب‌هوک: `https://hadiranweb.ir/api/bots/telegram/[id]/webhook` (از `NEXT_PUBLIC_SITE_URL`). فقط HTTPS عمومی. هدر `X-Telegram-Bot-Api-Secret-Token` با مقایسهٔ زمان‌ثابت.
+
+توکن BotFather در گیت/چت/پاسخ API بعد از ذخیره نیست؛ در Postgres به‌صورت AES-GCM با کلید مشتق از `HADIRAN_JWT_SECRET` (لیارا، نه GitHub).
+
+### ۲۰.۳ منطق این برش / برش بعد
+
+| می‌سازیم | بعداً |
+|---|---|
+| کانال تلگرام، اتصال/قطع وب‌هوک، وضعیت | گفتگوی آزمون داخل ربات |
+| انتخاب آزمون (پیش‌فرض `casio-ss`) | فرایند سؤال‌به‌سؤال و گزارش در تلگرام |
+| ACK وب‌هوک بدون اجرای pack | کانال‌های دیگر |
+
+صریحاً نه: میکروسرویس ربات، ورود تلگرامی، توکن در GitHub Secret، Typeform، نمایش توکن کامل پس از ذخیره.
+

@@ -322,6 +322,30 @@ export const analyzerAttempts = pgTable("analyzer_attempts", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
 
+/** Owner-connected bots. Telegram first. Not a login channel. */
+export const bots = pgTable("bots", {
+  id: varchar("id", { length: 32 }).primaryKey(),
+  ownerId: integer("owner_id")
+    .notNull()
+    .references(() => accounts.id, { onDelete: "cascade" }),
+  channel: varchar("channel", { length: 16 }).notNull().default("telegram"),
+  titleFa: varchar("title_fa", { length: 128 }).notNull(),
+  status: varchar("status", { length: 16 }).notNull().default("disconnected"),
+  analyzerSlug: varchar("analyzer_slug", { length: 64 }),
+  telegramBotId: varchar("telegram_bot_id", { length: 32 }),
+  telegramUsername: varchar("telegram_username", { length: 64 }),
+  telegramFirstName: varchar("telegram_first_name", { length: 128 }),
+  tokenCipher: text("token_cipher"),
+  tokenHint: varchar("token_hint", { length: 8 }),
+  webhookSecretCipher: text("webhook_secret_cipher"),
+  lastError: text("last_error"),
+  lastWebhookAt: timestamp("last_webhook_at", { withTimezone: true }),
+  lastUpdateKind: varchar("last_update_kind", { length: 32 }),
+  connectedAt: timestamp("connected_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const accountPublicCodes = pgTable("account_public_codes", {
   accountId: integer("account_id")
     .primaryKey()
