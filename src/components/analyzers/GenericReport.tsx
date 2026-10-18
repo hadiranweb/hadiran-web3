@@ -15,7 +15,13 @@ function displayValue(value: number | string) {
   return value;
 }
 
-export function GenericReportView({ report, hubHref }: { report: GenericReport; hubHref: string }) {
+export function GenericReportView({
+  report,
+  hubHref,
+}: {
+  report: GenericReport;
+  hubHref: string | null;
+}) {
   return (
     <div className="space-y-8">
       {report.bottleneck ? (
@@ -52,11 +58,13 @@ export function GenericReportView({ report, hubHref }: { report: GenericReport; 
       ) : null}
 
       <p className="text-sm leading-7 text-muted">نتیجهٔ این ارزیابی یک راهنمای کلی است، نه حکم قطعی.</p>
-      <p>
-        <Link href={hubHref} className="text-sm font-medium text-accent hover:text-ink">
-          بازگشت به تحلیلگر‌ها
-        </Link>
-      </p>
+      {hubHref ? (
+        <p>
+          <Link href={hubHref} className="text-sm font-medium text-accent hover:text-ink">
+            بازگشت به تحلیلگر‌ها
+          </Link>
+        </p>
+      ) : null}
     </div>
   );
 }

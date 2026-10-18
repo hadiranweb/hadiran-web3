@@ -9,7 +9,7 @@ import {
   liveSubmitAttempt,
 } from "@/lib/analyzers/live-attempts";
 import { itemsOf, sectionOf, type AnalyzerPack, type Item } from "@/lib/analyzers/pack";
-import { buildCasioReport } from "@/lib/analyzers/casio-ss/report";
+import { renderUserSummary } from "@/lib/analyzers/summary-template";
 import {
   firstUnansweredIndex,
   isComplete,
@@ -165,29 +165,8 @@ function questionText(pack: AnalyzerPack, item: Item, index: number) {
 }
 
 function doneText(pack: AnalyzerPack, attempt: AttemptView): string {
-  const lines = [`${pack.nameFa} ثبت شد.`];
-  if (pack.slug === "casio-ss" && attempt.results) {
-    const report = buildCasioReport(pack, attempt.answers, attempt.results);
-    lines.push(
-      `نمرهٔ کل: ${faNum(report.total)}`,
-      `بلوغ: ${report.maturity.labelFa}`,
-      `گلوگاه: ${report.bottleneck.titleFa}`,
-    );
-    for (const layer of report.layers) {
-      lines.push(`${layer.titleFa}: ${faNum(layer.score)}`);
-    }
-    if (report.closingFa) lines.push("", report.closingFa);
-  } else if (attempt.results) {
-    const total = attempt.results.scores["diagnosis-total"];
-    if (typeof total === "number") lines.push(`نمرهٔ کل: ${faNum(Math.round(total * 10) / 10)}`);
-    const bottleneck = attempt.results.scores.bottleneck;
-    if (typeof bottleneck === "string") {
-      const finding = pack.findings.find((row) => row.id === bottleneck);
-      lines.push(`گلوگاه: ${finding?.titleFa ?? bottleneck}`);
-    }
-  }
-  lines.push("", `گزارش کامل با ورود همین شماره: ${absoluteUrl(`/analyzers/${pack.slug}/report`)}`);
-  return lines.join("\n");
+  const summary = renderUserSummary(pack, attempt.answers, attempt.results);
+  return [summary, "", `بازخوانی همین متن: ${absoluteUrl(`/analyzers/${pack.slug}/report`)}`].join("\n");
 }
 
 function commandName(text: string): string | null {

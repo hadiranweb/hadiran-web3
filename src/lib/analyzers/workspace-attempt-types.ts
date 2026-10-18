@@ -15,4 +15,10 @@ export type WorkspaceAttemptRow = {
   discountCode: string | null;
   scores: WorkspaceAttemptScore[];
   answers: WorkspaceAttemptAnswer[];
+  rawAnswers: Record<string, number | string>;
+  rawResults: {
+    version: string;
+    effective: Record<string, number>;
+    scores: Record<string, number | string>;
+  } | null;
 };

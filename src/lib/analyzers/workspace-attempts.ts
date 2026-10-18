@@ -91,7 +91,7 @@ type Joined = {
   instrumentVersion: string;
   status: string;
   answers: Record<string, number | string> | null;
-  results: { scores?: Record<string, number | string> } | null;
+  results: { version?: string; effective?: Record<string, number>; scores?: Record<string, number | string> } | null;
   submittedAt: Date | null;
   updatedAt: Date | null;
   givenName: string | null;
@@ -118,6 +118,14 @@ function toRow(pack: AnalyzerPack, row: Joined, referrerCode: string | null): Wo
     discountCode: row.discountCode ?? null,
     scores: scoreRows(pack, row.results),
     answers: answerRows(pack, row.answers),
+    rawAnswers: row.answers ?? {},
+    rawResults: row.results
+      ? {
+          version: row.instrumentVersion,
+          effective: row.results.effective ?? {},
+          scores: row.results.scores ?? {},
+        }
+      : null,
   };
 }
 

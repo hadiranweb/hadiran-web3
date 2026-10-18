@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { GenericReportView } from "@/components/analyzers/GenericReport";
+import { UserSummaryView } from "@/components/analyzers/UserSummary";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PageShell } from "@/components/ui/PageShell";
 import { readAttempt } from "@/lib/analyzers/attempts";
-import { buildGenericReport } from "@/lib/analyzers/generic-report";
 import { getCodePack, loadPack } from "@/lib/analyzers/registry";
+import { renderUserSummary } from "@/lib/analyzers/summary-template";
 import { requirePageAccount } from "@/lib/auth/guard";
 
 export const dynamic = "force-dynamic";
@@ -31,19 +31,7 @@ export default async function AnalyzerReportPage({ params }: Props) {
     redirect(`/analyzers/${slug}`);
   }
 
-  let report;
-  try {
-    report = buildGenericReport(pack, attempt.answers, attempt.results);
-  } catch {
-    return (
-      <PageShell width="narrow">
-        <PageHeader title="گزارش" lede="این گزارش از پاسخ‌های ثبت‌شده قابل بازتولید نیست." />
-        <Link href={`/analyzers/${slug}`} className="text-sm font-medium text-accent hover:text-ink">
-          بازگشت به ارزیابی
-        </Link>
-      </PageShell>
-    );
-  }
+  const summary = renderUserSummary(pack, attempt.answers, attempt.results);
 
   return (
     <PageShell width="narrow">
@@ -53,8 +41,8 @@ export default async function AnalyzerReportPage({ params }: Props) {
         </Link>
         <span className="text-muted"> / {pack.nameFa}</span>
       </p>
-      <PageHeader kicker="گزارش شخصی" title={pack.nameFa} lede="نمره و کلیدواژه بر اساس pack همین نسخه." />
-      <GenericReportView report={report} hubHref="/analyzers" />
+      <PageHeader kicker="جمع‌بندی" title={pack.nameFa} lede="خلاصهٔ این نوبت. تفسیر تفصیلی نزد آزمون‌ساز است." />
+      <UserSummaryView text={summary} />
     </PageShell>
   );
 }

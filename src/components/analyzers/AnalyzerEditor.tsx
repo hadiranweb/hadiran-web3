@@ -16,7 +16,9 @@ import type {
 } from "@/lib/analyzers/pack";
 import { DEFAULT_ANCHORS } from "@/lib/analyzers/sanitize";
 import { AnalyzerResponses } from "@/components/analyzers/AnalyzerResponses";
+import { AnalyzerInterpretation } from "@/components/analyzers/AnalyzerInterpretation";
 import { AnalyzerGrants } from "@/components/analyzers/AnalyzerGrants";
+import { summaryPlaceholders } from "@/lib/analyzers/summary-template";
 
 const fieldClass =
   "w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-400";
@@ -32,12 +34,13 @@ const ops: FormulaOp[] = [
   "matmul",
 ];
 
-type Tab = "meta" | "items" | "score" | "report" | "responses" | "access";
+type Tab = "meta" | "items" | "score" | "report" | "responses" | "interpret" | "access";
 
 function emptyReport(): PackReport {
   return {
     hideGateScores: true,
     closingFa: "",
+    userSummaryTemplateFa: "",
     businessNameItemId: "",
     contextFields: [],
     layerBands: [],
@@ -152,7 +155,12 @@ export function AnalyzerEditor({
             ["items", `سؤال‌ها (${itemCount})`],
             ["score", "نمره"],
             ["report", "گزارش"],
-            ...(canReadResponses ? ([["responses", "پاسخ‌ها"]] as [Tab, string][]) : []),
+            ...(canReadResponses
+              ? ([
+                  ["responses", "پاسخ‌ها"],
+                  ["interpret", "تفسیر اولیه"],
+                ] as [Tab, string][])
+              : []),
             ...(canGrant ? ([["access", "دسترسی"]] as [Tab, string][]) : []),
           ] as [Tab, string][]
         ).map(([id, label]) => (
@@ -308,12 +316,14 @@ export function AnalyzerEditor({
 
       {tab === "report" ? (
         <ReportEditor
+          pack={pack}
           report={pack.report ?? emptyReport()}
           onChange={(report) => patch({ ...pack, report })}
         />
       ) : null}
 
       {tab === "responses" ? <AnalyzerResponses slug={pack.slug} /> : null}
+      {tab === "interpret" ? <AnalyzerInterpretation slug={pack.slug} pack={pack} /> : null}
       {tab === "access" ? <AnalyzerGrants slug={pack.slug} /> : null}
 
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
@@ -835,16 +845,48 @@ function FormulasEditor({
   );
 }
 
-function ReportEditor({ report, onChange }: { report: PackReport; onChange: (report: PackReport) => void }) {
+function ReportEditor({
+  pack,
+  report,
+  onChange,
+}: {
+  pack: AnalyzerPack;
+  report: PackReport;
+  onChange: (report: PackReport) => void;
+}) {
   const bands = report.layerBands ?? [];
   const patterns = report.crossPatterns ?? [];
   const fields = report.contextFields ?? [];
+  const placeholders = summaryPlaceholders(pack);
 
   return (
     <section className="space-y-6">
       <p className="text-sm text-slate-500">
-        متن گزارش، باند لایه، و الگوهای بین‌لایه. نمرهٔ گیت اگر مخفی باشد در گزارش عضو نمی‌آید.
+        عضو فقط قالب خلاصه را می‌بیند. تفسیر لایه و گلوگاه در تب «تفسیر اولیه» برای آزمون‌ساز است.
       </p>
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4">
+        <label className="block text-sm">
+          <span className="mb-1 block text-slate-600">خلاصهٔ کاربر (قالب)</span>
+          <textarea
+            className={`${fieldClass} min-h-28`}
+            value={report.userSummaryTemplateFa ?? ""}
+            onChange={(event) => onChange({ ...report, userSummaryTemplateFa: event.target.value })}
+            placeholder="ارزیابی «{name}» ثبت شد. بلوغ سیستم {maturity} است و گلوگاه {bottleneck} دیده می‌شود."
+          />
+        </label>
+        <p className="text-xs leading-6 text-slate-500">
+          پارامتر را داخل آکولاد بگذارید؛ مثل {"{maturity}"} یا {"{layer-foundation.as_is}"}. گیت سبز/زرد/قرمز فراخوانی
+          نمی‌شود.
+        </p>
+        <ul className="grid gap-1 text-xs text-slate-500 sm:grid-cols-2">
+          {placeholders.slice(0, 16).map((row) => (
+            <li key={row.token}>
+              <span dir="ltr">{row.token}</span>
+              <span> — {row.hintFa}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
       <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4">
         <label className="flex items-center gap-2 text-sm text-slate-700">
           <input
@@ -852,7 +894,7 @@ function ReportEditor({ report, onChange }: { report: PackReport; onChange: (rep
             checked={report.hideGateScores !== false}
             onChange={(event) => onChange({ ...report, hideGateScores: event.target.checked })}
           />
-          گیت سبز/زرد/قرمز در گزارش نباشد
+          گیت سبز/زرد/قرمز در تفسیر آزمون‌ساز نباشد
         </label>
         <label className="block text-sm">
           <span className="mb-1 block text-slate-600">جملهٔ پایانی</span>

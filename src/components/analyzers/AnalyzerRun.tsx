@@ -206,7 +206,7 @@ export function AnalyzerRun({ pack }: { pack: AnalyzerPack }) {
       <section className="surface p-6 sm:p-8">
         <h2 className="text-xl font-bold leading-[1.7] text-ink">پاسخ‌ها ثبت شد</h2>
         <Link href={reportHref} className="mt-6 inline-flex text-sm font-medium text-accent hover:text-ink">
-          مشاهده گزارش
+          مشاهده جمع‌بندی
         </Link>
       </section>
     );
