@@ -3,8 +3,10 @@ import Link from "next/link";
 import { JsonLd } from "@/components/JsonLd";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PageShell } from "@/components/ui/PageShell";
-import { analyzerHref, analyzers } from "@/lib/analyzers/catalog";
+import { analyzerHref, loadAnalyzers } from "@/lib/analyzers/catalog";
 import { absoluteUrl } from "@/lib/site";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "تحلیلگر‌ها",
@@ -20,13 +22,15 @@ export const metadata: Metadata = {
   },
 };
 
-const statusFa: Record<(typeof analyzers)[number]["status"], string> = {
+const statusFa: Record<"preparing" | "open" | "archived", string> = {
   preparing: "در آماده‌سازی",
   open: "باز",
   archived: "بایگانی",
 };
 
-export default function AnalyzersPage() {
+export default async function AnalyzersPage() {
+  const analyzers = await loadAnalyzers();
+
   return (
     <PageShell>
       <JsonLd
@@ -36,8 +40,7 @@ export default function AnalyzersPage() {
           name: "تحلیلگر‌ها",
           url: absoluteUrl("/analyzers"),
           inLanguage: "fa",
-          description:
-            "خانهٔ آزمون‌ها و عارضه‌یابی هادیران. هر تحلیلگر یک مسیر جدا دارد.",
+          description: "خانهٔ آزمون‌ها و عارضه‌یابی هادیران. هر تحلیلگر یک مسیر جدا دارد.",
         }}
       />
 

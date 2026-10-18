@@ -105,6 +105,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.6,
       });
     }
+
+    try {
+      const { analyzerPacks } = await import("@/db/schema");
+      const analyzerRows = await db
+        .select({ slug: analyzerPacks.slug, status: analyzerPacks.status, updatedAt: analyzerPacks.updatedAt })
+        .from(analyzerPacks);
+      for (const row of analyzerRows) {
+        if (row.status !== "open" || row.slug === "casio-ss") continue;
+        entries.push({
+          url: absoluteUrl(`/analyzers/${row.slug}`),
+          lastModified: row.updatedAt ?? now,
+          changeFrequency: "monthly",
+          priority: 0.5,
+        });
+      }
+    } catch {
+      // table 0014 may not exist yet
+    }
   } catch (error) {
     console.error("sitemap db error:", error);
   }

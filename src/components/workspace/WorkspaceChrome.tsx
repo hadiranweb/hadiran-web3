@@ -7,6 +7,7 @@ import { HadiranMark } from "@/components/HadiranMark";
 const links = [
   { href: "/workspace", label: "نمای کلی", exact: true },
   { href: "/workspace/capture", label: "ثبت جدید", exact: false },
+  { href: "/workspace/analyzers", label: "تحلیلگر‌ها", exact: false },
   { href: "/workspace/shop", label: "فروشگاه", exact: false },
 ];
 

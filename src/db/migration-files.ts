@@ -54,5 +54,9 @@ export const MIGRATION_FILES: { id: string; sql: string }[] = [
   {
     "id": "0013_casio_results.sql",
     "sql": "-- Snapshot of declarative scores on submit. Report UI is not this cut.\n\nALTER TABLE casio_attempts ADD COLUMN IF NOT EXISTS results JSONB;\n"
+  },
+  {
+    "id": "0014_analyzer_authoring.sql",
+    "sql": "-- Owner-authored analyzer packs (JSON SoT) and per-slug attempts.\n-- casio-ss stays on casio_attempts; questions are not rows.\n\nCREATE TABLE IF NOT EXISTS analyzer_packs (\n  slug VARCHAR(64) PRIMARY KEY,\n  status VARCHAR(16) NOT NULL DEFAULT 'draft',\n  pack JSONB NOT NULL,\n  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),\n  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()\n);\n\nCREATE TABLE IF NOT EXISTS analyzer_attempts (\n  id SERIAL PRIMARY KEY,\n  account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,\n  slug VARCHAR(64) NOT NULL,\n  instrument_version VARCHAR(64) NOT NULL,\n  consent_at TIMESTAMPTZ,\n  answers JSONB NOT NULL DEFAULT '{}'::jsonb,\n  results JSONB,\n  status VARCHAR(16) NOT NULL DEFAULT 'in_progress',\n  submitted_at TIMESTAMPTZ,\n  created_at TIMESTAMPTZ DEFAULT NOW(),\n  updated_at TIMESTAMPTZ DEFAULT NOW()\n);\n\nCREATE UNIQUE INDEX IF NOT EXISTS analyzer_attempts_open_account_slug\n  ON analyzer_attempts (account_id, slug)\n  WHERE status = 'in_progress';\n\nCREATE INDEX IF NOT EXISTS analyzer_attempts_account_idx\n  ON analyzer_attempts (account_id, slug, created_at DESC);\n"
   }
 ];

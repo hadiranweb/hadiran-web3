@@ -1,0 +1,56 @@
+import { NextResponse } from "next/server";
+import { requireOwner } from "@/lib/auth/guard";
+import { insertAuthoredPack, listAuthoredPacks, readAuthoredPack } from "@/lib/analyzers/authored";
+import { codePacks } from "@/lib/analyzers/registry";
+import { blankPack, isPackSlug, sanitizePack } from "@/lib/analyzers/sanitize";
+
+export const dynamic = "force-dynamic";
+
+export async function GET() {
+  const auth = await requireOwner();
+  if (auth.error) return auth.error;
+  const authored = await listAuthoredPacks();
+  return NextResponse.json({
+    code: codePacks().map((pack) => ({
+      slug: pack.slug,
+      nameFa: pack.nameFa,
+      status: pack.status,
+      version: pack.version,
+      readonly: true,
+    })),
+    authored: authored.map((pack) => ({
+      slug: pack.slug,
+      nameFa: pack.nameFa,
+      status: pack.status,
+      version: pack.version,
+      readonly: false,
+    })),
+  });
+}
+
+export async function POST(request: Request) {
+  const auth = await requireOwner();
+  if (auth.error) return auth.error;
+  let body: { slug?: unknown; nameFa?: unknown };
+  try {
+    body = (await request.json()) as { slug?: unknown; nameFa?: unknown };
+  } catch {
+    return NextResponse.json({ error: "بدنه نامعتبر است." }, { status: 400 });
+  }
+  const slug = typeof body.slug === "string" ? body.slug.trim().toLowerCase() : "";
+  const nameFa = typeof body.nameFa === "string" ? body.nameFa.replace(/\s+/g, " ").trim() : "";
+  if (!isPackSlug(slug)) {
+    return NextResponse.json({ error: "شناسه لاتین، یکتا، و غیر از casio-ss باشد." }, { status: 400 });
+  }
+  if (nameFa.length < 3) {
+    return NextResponse.json({ error: "نام فارسی حداقل سه نویسه باشد." }, { status: 400 });
+  }
+  const existing = await readAuthoredPack(slug);
+  if (existing) {
+    return NextResponse.json({ error: "این شناسه قبلاً هست." }, { status: 409 });
+  }
+  const created = sanitizePack(blankPack(slug, nameFa), slug);
+  if (!created.ok) return NextResponse.json({ error: created.error }, { status: 400 });
+  await insertAuthoredPack(created.pack);
+  return NextResponse.json({ ok: true, slug: created.pack.slug });
+}
