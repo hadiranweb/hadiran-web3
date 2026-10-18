@@ -26,13 +26,15 @@ with sync_playwright() as p:
  for _ in range(12):page.locator('.nav-menu-toggle').click();page.wait_for_timeout(18)
  page.wait_for_timeout(420);expect(page.locator('#mobile-navigation')).to_be_hidden();page.locator('.nav-menu-toggle').click();page.wait_for_timeout(380);expect(page.locator('#mobile-navigation')).to_be_visible();page.keyboard.press('Escape');page.wait_for_timeout(260)
  check('Rapid toggles cancel smoothly without stuck panels')
+ page.locator('.nav-menu-toggle').click();page.wait_for_timeout(380);page.evaluate('window.scrollTo(0,200)');page.wait_for_timeout(270);expect(page.locator('#mobile-navigation')).to_be_hidden();page.evaluate('window.scrollTo(0,0)')
+ check('Page scroll dismisses disclosure with the existing WAAPI upward exit')
  for width in [320,360,375,390,640,768,1024,1280,1440,1920]:
   page.set_viewport_size({'width':width,'height':900});page.goto(B+'/');expect(page.locator('.session-login-button')).to_be_visible();no_overflow(page,('home',width));fits(page,'.site-nav-bar')
   if width<1440:
    page.locator('.nav-menu-toggle').click();page.wait_for_timeout(380);fits(page,'.site-nav-dropdown');page.keyboard.press('Escape');page.wait_for_timeout(260)
   else:expect(page.locator('.site-desktop-navigation')).to_be_visible();expect(page.locator('.nav-menu-toggle')).to_be_hidden()
   layouts+=1
- page.set_viewport_size({'width':375,'height':320});page.locator('.nav-menu-toggle').click();page.wait_for_timeout(380);box=page.locator('.site-nav-dropdown').bounding_box();assert box['y']+box['height']<=320;page.locator('.site-nav-dropdown a[href="/privacy"]').focus();assert page.locator('.site-nav-dropdown').evaluate('n=>n.scrollTop')>0;page.keyboard.press('Escape');page.wait_for_timeout(260)
+ page.set_viewport_size({'width':375,'height':320});page.locator('.nav-menu-toggle').click();page.wait_for_timeout(380);box=page.locator('.site-nav-dropdown').bounding_box();assert box['y']+box['height']<=320;page.locator('.site-nav-dropdown a[href="/privacy"]').focus();assert page.locator('.site-nav-dropdown').evaluate('n=>n.scrollTop')>0;expect(page.locator('.nav-menu-toggle')).to_have_attribute('aria-expanded','true');page.keyboard.press('Escape');page.wait_for_timeout(260)
  check('10 widths 320–1920px, desktop switch, short landscape scroll with reachable footer')
  page.set_viewport_size({'width':375,'height':812});page.emulate_media(reduced_motion='reduce');page.locator('.nav-menu-toggle').click();page.wait_for_timeout(30);expect(page.locator('#mobile-navigation')).to_be_visible();assert page.locator('#mobile-navigation').evaluate('n=>n.getAnimations().length')==0;page.keyboard.press('Escape');page.wait_for_timeout(30);expect(page.locator('#mobile-navigation')).to_be_hidden();page.emulate_media(reduced_motion='no-preference')
  check('Reduced motion skips sliding/scaling and completes without lingering animations')

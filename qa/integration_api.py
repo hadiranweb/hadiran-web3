@@ -94,10 +94,11 @@ for key,value in fixture['answers'].items():member.call('/api/analyzers/casio-ss
 submitted=member.call('/api/analyzers/casio-ss','POST',{'action':'submit'})['attempt']
 assert submitted['status']=='submitted' and submitted['results']==fixture['results']
 report=member.call('/analyzers/casio-ss/report')
-assert 'گزارش شخصی' in report and 'درخت' in report
+assert 'جمع‌بندی' in report and 'تفسیر تفصیلی نزد آزمون‌ساز' in report
+assert 'درخت کلیدواژه' not in report
 member.call('/api/analyzers/casio-ss','POST',{'action':'answer','id':'MG.A1','value':6},expected=409)
 assert member.call('/api/analyzers/casio-ss')['attempt']['status']=='submitted'
-check('38 analyzer answers: consent, validation, incomplete guard, exact scoring, five-layer report, immutable submission')
+check('38 analyzer answers: consent, validation, incomplete guard, exact scoring, member-only summary, immutable submission')
 # Latest repository authoring feature, including DB isolation from the code-defined CASIO pack.
 member.call('/api/workspace/analyzers',expected=403)
 owner.call('/api/workspace/analyzers','POST',{'slug':'casio-ss','nameFa':'نام تکراری'},expected=409)
@@ -119,16 +120,20 @@ member.call('/api/analyzers/'+authoredSlug,'POST',{'action':'consent'})
 member.call('/api/analyzers/'+authoredSlug,'POST',{'action':'answer','id':'QA.1','value':7})
 generic=member.call('/api/analyzers/'+authoredSlug,'POST',{'action':'submit'})['attempt']
 assert generic['results']['scores']['qa-mean']==7
-assert 'گزارش شخصی' in member.call('/analyzers/'+authoredSlug+'/report')
+assert 'جمع‌بندی' in member.call('/analyzers/'+authoredSlug+'/report')
 casio=owner.call('/api/workspace/analyzers/casio-ss')
 assert casio['canEdit'] and casio['canReadResponses'] and casio['canGrant']
 casioPack=casio['pack']
 closing=casioPack['report']['closingFa']
+summary_template=casioPack['report'].get('userSummaryTemplateFa')
+casioPack['report']['userSummaryTemplateFa']='{name} — {closing}'
 casioPack['report']['closingFa']='متن گزارش ویرایش‌شدهٔ آزمون'
 owner.call('/api/workspace/analyzers/casio-ss','PUT',casioPack)
 assert owner.call('/api/workspace/analyzers/casio-ss')['pack']['report']['closingFa']=='متن گزارش ویرایش‌شدهٔ آزمون'
 assert 'متن گزارش ویرایش‌شدهٔ آزمون' in member.call('/analyzers/casio-ss/report')
 casioPack['report']['closingFa']=closing
+if summary_template is None:casioPack['report'].pop('userSummaryTemplateFa',None)
+else:casioPack['report']['userSummaryTemplateFa']=summary_template
 owner.call('/api/workspace/analyzers/casio-ss','PUT',casioPack)
 assert member.call('/api/analyzers/casio-ss')['attempt']['results']==fixture['results']
 check('Latest authoring: owner-only create/duplicate and persisted pack, private draft, sanitized publish, generic execution/report; CASIO editable report metadata with unchanged answer scores')

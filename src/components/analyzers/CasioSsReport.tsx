@@ -12,7 +12,13 @@ function faScore(value: number) {
   return faNum(Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1));
 }
 
-export function CasioSsReport({ report }: { report: CasioReport }) {
+export function CasioSsReport({
+  report,
+  showHubLink = true,
+}: {
+  report: CasioReport;
+  showHubLink?: boolean;
+}) {
   const priority = [...report.layers].sort((a, b) => a.score - b.score);
 
   return (
@@ -117,11 +123,13 @@ export function CasioSsReport({ report }: { report: CasioReport }) {
 
       <p className="text-sm leading-7 text-muted">{report.closingFa}</p>
 
-      <p>
-        <Link href="/analyzers" className="text-sm font-medium text-accent hover:text-ink">
-          بازگشت به تحلیلگر‌ها
-        </Link>
-      </p>
+      {showHubLink ? (
+        <p>
+          <Link href="/analyzers" className="text-sm font-medium text-accent hover:text-ink">
+            بازگشت به تحلیلگر‌ها
+          </Link>
+        </p>
+      ) : null}
     </div>
   );
 }

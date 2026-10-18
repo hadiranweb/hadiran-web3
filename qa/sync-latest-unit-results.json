@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "upstream": "1ed9ea7661d766245975654de22377534af53eb4",
+  "checks": [
+    "CASIO member summary renders without full interpretation or gate band",
+    "Summary aliases, unknown/prototype keys, hidden band and nonrecursive interpolation",
+    "Multiline custom summary survives sanitization; generic missing template has honest fallback",
+    "All gate bands/dimensions and missing/invalid snapshots",
+    "Direct/proxied webhook URL and reconnect preserves pending updates",
+    "Inbound Worker forwards exact body/secret and origin denial status",
+    "Outbound Worker destination, invalid paths/method and upstream failure handling"
+  ],
+  "external_http": "fully mocked"
+}

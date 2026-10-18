@@ -1,0 +1,18 @@
+{
+  "passed": true,
+  "upstream": "1ed9ea7661d766245975654de22377534af53eb4",
+  "checks": [
+    "src/components/portrait/ unchanged from 289e3a6",
+    "assets/portrait/ unchanged from 289e3a6",
+    "src/app/fonts/ unchanged from 289e3a6",
+    "public/avatars/ unchanged from 289e3a6",
+    "public/brand/ unchanged from 289e3a6",
+    "public/hadiran-portrait.svg unchanged from 289e3a6",
+    "src/components/navigation/useDisclosure.ts unchanged from 289e3a6",
+    "All 20 existing migrations retained byte-for-byte, including both 0015 filenames",
+    "Only existing Next.js and eslint-config-next upgraded to upstream 16.4.1; native SVG build scripts retained",
+    "Upstream dependency lockfile unchanged and no new direct npm dependency",
+    "No unresolved markers or unintended CJK in changed source/docs"
+  ],
+  "new_npm_dependencies": false
+}

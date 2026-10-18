@@ -243,7 +243,7 @@ export async function refreshBot(ownerId: number, id: string): Promise<BotView> 
       .update(bots)
       .set({
         status: connected ? "connected" : existing.status === "paused" ? "paused" : "disconnected",
-        lastError: info.last_error_message ?? null,
+        lastError: info.last_error_message || existing.lastError,
         updatedAt: new Date(),
       })
       .where(eq(bots.id, id))

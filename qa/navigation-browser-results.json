@@ -4,6 +4,7 @@
     "Overlay opens with zero main displacement; ordinary Tab links, Escape closes and restores focus",
     "Click outside/select closes; upward exit uses WAAPI and disables links during closing",
     "Rapid toggles cancel smoothly without stuck panels",
+    "Page scroll dismisses disclosure with the existing WAAPI upward exit",
     "10 widths 320–1920px, desktop switch, short landscape scroll with reachable footer",
     "Reduced motion skips sliding/scaling and completes without lingering animations",
     "Theme coordinates with navigation, keyboard Escape works, new header targets are at least 44px",

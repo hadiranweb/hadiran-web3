@@ -1,6 +1,7 @@
 /** بذر اولیهٔ casio-ss برای تألیف؛ بعد از اولین ذخیره، DB منبع است. */
 
 import type { AnalyzerPack, Finding, Keyword } from "@/lib/analyzers/pack";
+import { DEFAULT_USER_SUMMARY } from "@/lib/analyzers/summary-template";
 import { casioSsPack } from "./instrument";
 import { INTERPRETATION_VERSION, crossPatterns, layerBands, layerCopy } from "./interpretation";
 
@@ -31,6 +32,7 @@ export function buildCasioAuthoredPack(): AnalyzerPack {
   pack.report = {
     hideGateScores: true,
     interpretationVersion: INTERPRETATION_VERSION,
+    userSummaryTemplateFa: DEFAULT_USER_SUMMARY,
     closingFa: "نتیجهٔ این ارزیابی یک راهنمای کلی است، نه حکم قطعی دربارهٔ شما یا کسب‌وکارتان.",
     businessNameItemId: "BIZ.1",
     contextFields: [

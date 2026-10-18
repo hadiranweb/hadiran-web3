@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "upstream": "1ed9ea7661d766245975654de22377534af53eb4",
+  "checks": [
+    "Granted author receives gate/detailed interpretation snapshots; member/anonymous workspace API denied",
+    "Persisted custom member summary interpolates server-side without detailed tree or gate label",
+    "Webhook missing/wrong-secret diagnostics and authenticated paused ACK with recorded receipt"
+  ],
+  "external_telegram_tested": false
+}

@@ -62,6 +62,8 @@ export type PackReport = {
   hideGateScores?: boolean;
   interpretationVersion?: string;
   closingFa?: string;
+  /** قالب یک‌پاراگرافی برای عضو. پارامترها داخل {آکولاد}. تفسیر کامل در میز است. */
+  userSummaryTemplateFa?: string;
   businessNameItemId?: string;
   contextFields?: ReportContextFieldDef[];
   layerBands?: LayerBand[];

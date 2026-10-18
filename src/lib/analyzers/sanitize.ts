@@ -68,6 +68,13 @@ function asTrimmed(value: unknown, max: number): string | null {
   return text;
 }
 
+function asMultiline(value: unknown, max: number): string | null {
+  if (typeof value !== "string") return null;
+  const text = value.replace(/\r\n/g, "\n").replace(/[^\S\n]+/g, " ").trim();
+  if (!text || text.length > max) return null;
+  return text;
+}
+
 function asId(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const id = value.trim();
@@ -231,6 +238,8 @@ function sanitizeReport(raw: unknown): PackReport | undefined {
   if (interpretationVersion) report.interpretationVersion = interpretationVersion;
   const closingFa = asTrimmed(row.closingFa, 400);
   if (closingFa) report.closingFa = closingFa;
+  const userSummaryTemplateFa = asMultiline(row.userSummaryTemplateFa, 2000);
+  if (userSummaryTemplateFa) report.userSummaryTemplateFa = userSummaryTemplateFa;
   const businessNameItemId = asId(row.businessNameItemId);
   if (businessNameItemId) report.businessNameItemId = businessNameItemId;
   if (Array.isArray(row.contextFields)) {

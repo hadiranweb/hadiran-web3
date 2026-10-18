@@ -129,15 +129,20 @@ export function BotEditor({
           {bot.tokenHint ? ` · توکن ‎••••${bot.tokenHint}` : ""}
         </p>
         {bot.lastError ? <p className="text-sm text-red-700">{bot.lastError}</p> : null}
-        {bot.lastWebhookAt ? (
-          <p className="text-xs text-muted">
-            آخرین پیام وب‌هوک: {new Date(bot.lastWebhookAt).toLocaleString("fa-IR")}
-            {bot.lastUpdateKind ? ` · ${bot.lastUpdateKind}` : ""}
-            {bot.pendingUpdateCount != null ? ` · در صف: ${bot.pendingUpdateCount.toLocaleString("fa-IR")}` : ""}
+        <p className="text-xs leading-6 text-muted">
+          {bot.lastWebhookAt
+            ? `آخرین پیام وب‌هوک: ${new Date(bot.lastWebhookAt).toLocaleString("fa-IR")}${bot.lastUpdateKind ? ` · ${bot.lastUpdateKind}` : ""}`
+            : "از این سرور هنوز POST تلگرام دیده نشده."}
+          {bot.pendingUpdateCount != null
+            ? ` · صف تلگرام: ${bot.pendingUpdateCount.toLocaleString("fa-IR")}`
+            : " · برای دیدن صف، «وضعیت وب‌هوک» را بزنید."}
+        </p>
+        {bot.pendingUpdateCount ? (
+          <p className="text-sm text-amber-800">
+            تلگرام پیام در صف دارد ولی به هادیران نرسانده. بعد از دیپلوی دوباره «اتصال» و بعد در @
+            {bot.telegramUsername ?? "bot"} دستور /start بزنید.
           </p>
-        ) : (
-          <p className="text-xs text-muted">هنوز به‌روزرسانی از تلگرام نیامده. در ربات /start بزنید.</p>
-        )}
+        ) : null}
         {bot.lastWebhookAt && bot.lastError?.includes("ارسال پیام") ? (
           <p className="text-sm text-amber-800">
             وب‌هوک رسید ولی پیام نرفت. روی لیارا TELEGRAM_API_BASE را به Worker کلودفلر بدهید.
@@ -196,8 +201,9 @@ export function BotEditor({
           <li>توکن را فقط در این کادر بگذارید؛ در گیت و چت نگذارید.</li>
           <li>اتصال، getMe و setWebhook با secret_token را می‌زند. polling استفاده نمی‌شود.</li>
           <li>
-            سرور لیارا داخل ایران به api.telegram.org نمی‌رسد؛ خروجی از Worker کلودفلر می‌رود
-            (متغیر TELEGRAM_API_BASE روی لیارا، نه گیت). وب‌هوک ورودی مستقیم به هادیران است.
+            سرور لیارا داخل ایران به api.telegram.org نمی‌رسد و تلگرام هم اغلب به مبدأ ایرانی timeout
+            می‌دهد. هم خروجی (/bot) هم ورودی وب‌هوک (/hook) از Worker کلودفلر می‌رود (متغیر
+            TELEGRAM_API_BASE روی لیارا، نه گیت).
           </li>
         </ol>
         <label className="block text-sm">

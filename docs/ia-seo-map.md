@@ -602,7 +602,7 @@ Schema.org: `ContactPage` با `mainEntity` از نوع `Person` که به `/had
 
 ماتریس پیچیده = همان یال‌های وزن‌دار، نه صفحهٔ اکسل در UI. مثال casio لایه: نمرهٔ لایه = مجموع مؤثر چهار سؤال ÷ ۲؛ گلوگاه = `argmin` پنج لایه.
 
-**اجرا در برابر تألیف.** هب و عضو عمومی عوض نمی‌شوند. تألیف noindex است، فقط مالک، زیر `/workspace/analyzers` (نه `/admin`، نه `/signup`). عمق حداکثر سه: ویرایش نمره و **پاسخ‌های شرکت‌کننده‌ها** تب همان `/workspace/analyzers/[slug]` است نه مسیر چهارم. گزارش شخصی عضو: `/analyzers/[slug]/report` noindex.
+**اجرا در برابر تألیف.** هب و عضو عمومی عوض نمی‌شوند. تألیف noindex است، فقط مالک، زیر `/workspace/analyzers` (نه `/admin`، نه `/signup`). عمق حداکثر سه: ویرایش نمره، **پاسخ‌ها** و **تفسیر اولیه** تب همان `/workspace/analyzers/[slug]` است نه مسیر چهارم. عضو بعد از ثبت فقط قالب خلاصه (`userSummaryTemplateFa` با `{پارامتر}`) را در `/analyzers/[slug]/report` می‌بیند؛ تفسیر لایه/گلوگاه و گیت سه‌رنگ ارزیابی برای آزمون‌ساز در تب‌های پاسخ‌ها و تفسیر اولیه است.
 
 **دادهٔ اجرا (تعمیم `casio_attempts` وقتی دومین آزمون آمد):**
 
@@ -717,7 +717,7 @@ Schema.org: `ContactPage` با `mainEntity` از نوع `Person` که به `/had
 
 آدرس وب‌هوک: `https://hadiranweb.ir/api/bots/telegram/[id]/webhook` (از `NEXT_PUBLIC_SITE_URL`). فقط HTTPS عمومی. هدر `X-Telegram-Bot-Api-Secret-Token` با مقایسهٔ زمان‌ثابت.
 
-خروجی سرور ایران به `api.telegram.org` مسدود است. برنامه با `TELEGRAM_API_BASE` (لیارا، نه GitHub) به Cloudflare Worker (`scripts/telegram-proxy-worker.js`) می‌زند؛ Worker فقط مسیر `/bot…` را به Bot API می‌فرستد. وب‌هوک ورودی تلگرام→هادیران پروکسی نمی‌خواهد. `getUpdates` نیست.
+خروجی سرور ایران به `api.telegram.org` مسدود است و ورودی تلگرام→مبدأ ایرانی اغلب `Connection timed out` است. برنامه با `TELEGRAM_API_BASE` (لیارا، نه GitHub) به Cloudflare Worker می‌زند: `/bot…` به Bot API، `/hook/<botId>` به وب‌هوک هادیران. `getUpdates` نیست.
 
 توکن BotFather در گیت/چت/پاسخ API بعد از ذخیره نیست؛ در Postgres به‌صورت AES-GCM با کلید مشتق از `HADIRAN_JWT_SECRET` (لیارا، نه GitHub).
 

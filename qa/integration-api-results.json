@@ -9,7 +9,7 @@
     "Real listing create/edit, paid-content protection, payout prerequisite and USD repricing",
     "Order resume, buyer isolation, decline/re-reference/confirm, idempotent entitlement, no PSP",
     "Buyer cancellation",
-    "38 analyzer answers: consent, validation, incomplete guard, exact scoring, five-layer report, immutable submission",
+    "38 analyzer answers: consent, validation, incomplete guard, exact scoring, member-only summary, immutable submission",
     "Latest authoring: owner-only create/duplicate and persisted pack, private draft, sanitized publish, generic execution/report; CASIO editable report metadata with unchanged answer scores",
     "Preview bypass is disabled against a configured database",
     "JWT session revocation invalidates replayed cookie"

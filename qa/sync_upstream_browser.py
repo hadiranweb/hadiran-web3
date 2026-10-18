@@ -14,7 +14,7 @@ def cookie(phone):
  jar=http.cookies.SimpleCookie();jar.load(r.headers['Set-Cookie']);return jar['hadiran_session'].value
 with sync_playwright() as pw:
  b=pw.chromium.launch(args=['--no-sandbox'])
- for role,phone,paths in [('owner','09121234567',['/workspace/bots','/workspace/bots/new','/workspace/network','/workspace/referrals','/workspace/discounts','/workspace/analyzers/casio-ss']),('author','09121110001',['/workspace/analyzers','/workspace/analyzers/new','/workspace/referrals'])]:
+ for role,phone,paths in [('owner','09121234567',['/workspace/bots','/workspace/bots/new','/workspace/network','/workspace/referrals','/workspace/discounts','/workspace/analyzers/casio-ss']),('author','09121110001',['/workspace/analyzers','/workspace/analyzers/new','/workspace/referrals','/workspace/analyzers/casio-ss'])]:
   c=b.new_context();c.add_cookies([{'name':'hadiran_session','value':cookie(phone),'url':'https://sync.test','secure':True,'httpOnly':True,'sameSite':'Lax'}]);page=c.new_page();page.route('https://sync.test/**',proxy);page.on('pageerror',lambda e:errors.append(str(e)));page.on('response',lambda r:bad.append([r.status,r.url]) if r.status>=500 else None)
   page.goto('https://sync.test/workspace/analyzers');expect(page.locator('.ws-shell')).to_be_visible();expect(page.get_by_role('dialog')).not_to_be_visible()
   if role=='author':
@@ -36,9 +36,19 @@ with sync_playwright() as pw:
     expect(page.get_by_role('heading',name='گفتگوی ربات')).to_be_visible();page.screenshot(path='qa/sync-bot-editor-dark.png',full_page=False)
    if path=='/workspace/bots/new':
     assert page.locator('input').count()>0
-   if role=='owner' and path=='/workspace/analyzers/casio-ss':
+   if path=='/workspace/analyzers/casio-ss':
     page.get_by_role('button',name='پاسخ‌ها',exact=True).click();expect(page.get_by_text('ثبت‌شده از',exact=False)).to_be_visible();page.screenshot(path='qa/sync-analyzer-responses.png',full_page=False)
-    page.get_by_role('button',name='دسترسی',exact=True).click();expect(page.get_by_role('button',name='اعطا',exact=True)).to_be_visible()
+    page.get_by_role('button',name='تفسیر اولیه',exact=True).click();expect(page.get_by_text('ارزیابی زرد',exact=False)).to_be_visible()
+    page.locator('li button').filter(has_text='09121234568').click();expect(page.get_by_text('نتیجهٔ ارزیابی (بخش اول)',exact=True)).to_be_visible()
+    for theme in ['light','dark']:
+     page.evaluate("v=>{document.documentElement.dataset.theme=v;document.documentElement.classList.toggle('dark',v==='dark')}",theme)
+     for width in [320,390,768,1440]:
+      page.set_viewport_size({'width':width,'height':900});page.wait_for_timeout(60);assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1');cases.append([role,'interpretation',theme,width])
+     page.screenshot(path='qa/latest-interpretation-'+role+'-'+theme+'.png',full_page=False)
+    if role=='owner':
+     page.get_by_role('button',name='گزارش',exact=True).click();expect(page.get_by_text('خلاصهٔ کاربر (قالب)',exact=True)).to_be_visible()
+     page.screenshot(path='qa/latest-summary-template-dark.png',full_page=False)
+     page.get_by_role('button',name='دسترسی',exact=True).click();expect(page.get_by_role('button',name='اعطا',exact=True)).to_be_visible()
    if path=='/workspace/discounts':
     page.screenshot(path='qa/sync-discounts-dark.png',full_page=False)
   # Real shell locale switch and physical sidebar placement.
@@ -47,8 +57,21 @@ with sync_playwright() as pw:
   page.set_viewport_size({'width':390,'height':844});page.locator('.ws-mobile-toggle').click();expect(page.locator('.ws-sidebar')).to_be_visible();page.keyboard.press('Escape');assert not page.locator('.ws-shell').get_attribute('class').endswith('ws-mobile-open')
   if role=='author':page.screenshot(path='qa/sync-author-mobile.png',full_page=False)
   c.close()
+ # Member sees a summary, not the author-only full interpretation; onboarding remains usable.
+ c=b.new_context();c.add_cookies([{'name':'hadiran_session','value':cookie('09121234568'),'url':'https://sync.test','secure':True,'httpOnly':True,'sameSite':'Lax'}]);page=c.new_page();page.route('https://sync.test/**',proxy);page.on('pageerror',lambda e:errors.append(str(e)));page.on('response',lambda r:bad.append([r.status,r.url]) if r.status>=500 else None)
+ page.goto('https://sync.test/analyzers/casio-ss/report');expect(page.locator('h1')).to_contain_text('عارضه‌یابی')
+ dialog=page.get_by_role('dialog')
+ if dialog.is_visible():
+  dialog.get_by_role('button',name='قبول می‌کنم',exact=True).click();dialog.get_by_label('نام',exact=True).fill('عضو');dialog.get_by_label('نام خانوادگی',exact=True).fill('آزمون');dialog.get_by_role('button',name='ادامه',exact=True).click();expect(dialog).not_to_be_visible()
+ expect(page.get_by_text('جمع‌بندی',exact=True)).to_be_visible();assert page.get_by_text('نتیجهٔ ارزیابی (بخش اول)',exact=True).count()==0;assert page.get_by_text('ارزیابی زرد',exact=True).count()==0;assert page.get_by_text('درخت کلیدواژه',exact=False).count()==0
+ for theme in ['light','dark']:
+  page.evaluate("v=>{document.documentElement.dataset.theme=v;document.documentElement.classList.toggle('dark',v==='dark')}",theme)
+  for width in [320,390,768,1440]:
+   page.set_viewport_size({'width':width,'height':900});page.wait_for_timeout(60);assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1');cases.append(['member','summary',theme,width])
+  page.set_viewport_size({'width':390,'height':844});page.screenshot(path='qa/latest-member-summary-'+theme+'.png',full_page=True)
+ c.close()
  assert not errors,errors
  assert not bad,bad
- Path('qa/sync-upstream-browser-results.json').write_text(json.dumps({'passed':True,'layout_cases':len(cases),'cases':cases,'checks':['owner/author role-filtered sidebar','new response and grant tabs','new modules mobile/light/dark reflow','Persian RTL and English LTR sidebar','mobile Escape close'],'browser_errors':errors,'http_5xx':bad,'note':'Real local DB/JWT with simulated HTTPS; no external Telegram'},ensure_ascii=False,indent=2))
+ Path('qa/sync-upstream-browser-results.json').write_text(json.dumps({'passed':True,'layout_cases':len(cases),'cases':cases,'checks':['owner/author role-filtered sidebar','response, interpretation, template and grant tabs','member summary without full interpretation/gate UI','new modules mobile/light/dark reflow','Persian RTL and English LTR sidebar','mobile Escape close'],'browser_errors':errors,'http_5xx':bad,'note':'Real local DB/JWT with simulated HTTPS; no external Telegram'},ensure_ascii=False,indent=2))
  print('PASS',len(cases),'layout cases; no browser exceptions or HTTP 5xx')
  b.close()

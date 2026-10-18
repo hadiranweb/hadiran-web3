@@ -29,3 +29,18 @@ Limitations: no production DB was accessed; no SMS was sent; no real funds were 
 - `sync-preservation-results.json`: byte comparison of original portrait/font/avatar/brand assets, dependencies, disclosure animation and all old/new SQL migrations.
 
 The `sync_*` scripts use intentionally fake local-only fixture credentials. Never run these scripts on production. The bot mock is not evidence of real Telegram/Cloudflare/Liara/SMS/payment delivery. Author access is not a general personal workspace for every member: the original member restriction remains.
+
+## Local review sync through 1ed9ea7 (Drive approval pending)
+
+The next local sync adds five upstream commits after ccc98d6, including Next.js/eslint-config-next 16.4.1. Existing portrait/avatar build scripts stay; there is no new direct npm dependency.
+
+New checks:
+- `node qa/sync_latest_unit.cjs`: 7 pure groups for templates/aliases/fallback/sanitization, gate bands, webhook routing/pending update retention and both Worker directions (fully mocked HTTP).
+- `python qa/sync_latest_api.py`: 3 local DB/API groups for author interpretation snapshots, member template persistence and missing/wrong/valid webhook secret diagnostics. Run after both existing API suites; it leaves the author CASIO grant used by the new browser suite.
+- `python qa/sync_latest_preservation.py`: 11 preservation groups, explicitly allowing the two upstream package version upgrades.
+- `sync_upstream_browser.py` now checks 112 light/dark/viewport cases, including interpretation as owner/author and member-only summary, plus member onboarding. Requires the three API suites in order on a fresh local fixture DB.
+- `navigation_browser.py` now has 11 groups/59 layouts, including page-scroll dismissal and internal scrolling without accidental dismissal.
+
+The previous 12-group API, 13-group upstream API, 4-group avatar API, 8-group mocked Telegram and 96-layout browser suites also pass on this sync. Run browser suites sequentially in this memory-limited sandbox; a parallel run initially hit the 5-second UI-ready assertion under contention, and the unchanged navigation test passed sequentially. Rate limits remain enabled: repeated fixture logins may require waiting or resetting rate buckets only in the exact disposable local QA database. Never relax production limits for QA.
+
+No production Telegram, Cloudflare, SMS/payment or deployment is certified by these tests. Detailed report visibility is an interface distinction; the member attempt API retains the upstream score-snapshot contract. Google Drive must remain unchanged until the user approves the local review.

@@ -25,6 +25,16 @@ export function Nav() {
     const change = () => { if (screen.matches) close(); };
     screen.addEventListener("change", change); return () => screen.removeEventListener("change", change);
   }, [close]);
+  useEffect(() => {
+    if (!open) return;
+    const onScroll = (event: Event) => {
+      // Let a tall disclosure scroll internally; only page scroll dismisses it.
+      if (event.target instanceof Node && panel.current?.contains(event.target)) return;
+      close();
+    };
+    window.addEventListener("scroll", onScroll, { passive: true, capture: true });
+    return () => window.removeEventListener("scroll", onScroll, { capture: true });
+  }, [open, close, panel]);
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
   return <header className="site-header sticky top-3 z-50 px-3 sm:px-5">
     <div className="nav-anchor mx-auto max-w-7xl">

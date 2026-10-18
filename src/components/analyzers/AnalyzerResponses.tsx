@@ -2,6 +2,7 @@
 import { previewFetch as fetch } from "@/lib/auth/preview-fetch";
 
 import { useEffect, useState } from "react";
+import { GateChip, GateStatus } from "@/components/analyzers/GateStatus";
 import type { WorkspaceAttemptRow } from "@/lib/analyzers/workspace-attempt-types";
 
 const statusFa = {
@@ -74,12 +75,16 @@ export function AnalyzerResponses({ slug }: { slug: string }) {
                     {` · ${row.phone}`}
                   </span>
                 </span>
-                <span className="text-xs text-muted">
-                  {statusFa[row.status]} · {whenFa(row.submittedAt ?? row.updatedAt)}
+                <span className="flex flex-col items-end gap-1 text-xs text-muted">
+                  {row.gate ? <GateChip gate={row.gate} /> : null}
+                  <span>
+                    {statusFa[row.status]} · {whenFa(row.submittedAt ?? row.updatedAt)}
+                  </span>
                 </span>
               </button>
               {open ? (
-                <div className="space-y-4 border-t border-slate-100 px-4 py-4 text-sm">
+                <div className="space-y-4 border-t border-line px-4 py-4 text-sm">
+                  {row.gate ? <GateStatus gate={row.gate} /> : null}
                   {row.scores.length ? (
                     <div>
                       <p className="font-medium text-ink">نمره</p>
