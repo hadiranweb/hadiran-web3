@@ -75,7 +75,7 @@ export async function telegramSetWebhook(
     url: args.url,
     secret_token: args.secretToken,
     allowed_updates: ["message", "callback_query"],
-    drop_pending_updates: true,
+    drop_pending_updates: false,
     max_connections: 20,
   });
 }

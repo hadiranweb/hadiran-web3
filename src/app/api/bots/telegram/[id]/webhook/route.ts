@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { handleTelegramUpdate } from "@/lib/bots/chat";
 import { openSecret, secretsMatch } from "@/lib/bots/secret";
-import { markWebhookHit, openWebhookSecret, readBotRowById } from "@/lib/bots/store";
+import { markBotLastError, markWebhookHit, openWebhookSecret, readBotRowById } from "@/lib/bots/store";
 
 export const dynamic = "force-dynamic";
 
@@ -19,9 +19,18 @@ function updateKind(body: unknown): string | null {
 export async function POST(request: Request, { params }: Ctx) {
   const { id } = await params;
   const row = await readBotRowById(id);
-  const expected = row ? openWebhookSecret(row) : null;
+  if (!row || row.status === "disconnected") {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+  const expected = openWebhookSecret(row);
   const given = request.headers.get("x-telegram-bot-api-secret-token");
-  if (!row || row.status === "disconnected" || !expected || !secretsMatch(given, expected)) {
+  if (!expected || !secretsMatch(given, expected)) {
+    await markBotLastError(
+      row.id,
+      given
+        ? "وب‌هوک رسید؛ رمز هدر با مقدار ذخیره‌شده یکی نیست. دوباره «اتصال» بزنید."
+        : "وب‌هوک رسید؛ هدر Secret-Token خالی است — لیارا یا لایهٔ جلو هدر را رد نکرده.",
+    );
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

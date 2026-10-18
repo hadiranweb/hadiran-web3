@@ -128,15 +128,20 @@ export function BotEditor({
           {bot.tokenHint ? ` · توکن ‎••••${bot.tokenHint}` : ""}
         </p>
         {bot.lastError ? <p className="text-sm text-red-700">{bot.lastError}</p> : null}
-        {bot.lastWebhookAt ? (
-          <p className="text-xs text-slate-500">
-            آخرین پیام وب‌هوک: {new Date(bot.lastWebhookAt).toLocaleString("fa-IR")}
-            {bot.lastUpdateKind ? ` · ${bot.lastUpdateKind}` : ""}
-            {bot.pendingUpdateCount != null ? ` · در صف: ${bot.pendingUpdateCount.toLocaleString("fa-IR")}` : ""}
+        <p className="text-xs leading-6 text-slate-500">
+          {bot.lastWebhookAt
+            ? `آخرین پیام وب‌هوک: ${new Date(bot.lastWebhookAt).toLocaleString("fa-IR")}${bot.lastUpdateKind ? ` · ${bot.lastUpdateKind}` : ""}`
+            : "از این سرور هنوز POST تلگرام دیده نشده."}
+          {bot.pendingUpdateCount != null
+            ? ` · صف تلگرام: ${bot.pendingUpdateCount.toLocaleString("fa-IR")}`
+            : " · برای دیدن صف، «وضعیت وب‌هوک» را بزنید."}
+        </p>
+        {bot.pendingUpdateCount ? (
+          <p className="text-sm text-amber-800">
+            تلگرام پیام در صف دارد ولی به هادیران نرسانده. بعد از دیپلوی دوباره «اتصال» و بعد در @
+            {bot.telegramUsername ?? "bot"} دستور /start بزنید.
           </p>
-        ) : (
-          <p className="text-xs text-slate-500">هنوز به‌روزرسانی از تلگرام نیامده. در ربات /start بزنید.</p>
-        )}
+        ) : null}
         {bot.lastWebhookAt && bot.lastError?.includes("ارسال پیام") ? (
           <p className="text-sm text-amber-800">
             وب‌هوک رسید ولی پیام نرفت. روی لیارا TELEGRAM_API_BASE را به Worker کلودفلر بدهید.
