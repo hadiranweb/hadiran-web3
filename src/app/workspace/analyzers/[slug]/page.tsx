@@ -2,7 +2,7 @@ import { buildCasioAuthoredPack } from "@/lib/analyzers/casio-ss/authored-pack";
 import Link from "@/components/workspace/WorkspaceLink";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { requirePageStaff } from "@/lib/auth/guard";
+import { requirePageAnalyzerDesk } from "@/lib/auth/guard";
 import { analyzerAccess } from "@/lib/analyzers/access";
 import { AnalyzerEditor } from "@/components/analyzers/AnalyzerEditor";
 import { readAuthoredPack } from "@/lib/analyzers/authored";
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 type Props = { params: Promise<{ slug: string }> };
 
 export default async function EditAnalyzerPage({ params }: Props) {
-  const account = await requirePageStaff("/workspace/analyzers");
+  const account = await requirePageAnalyzerDesk("/workspace/analyzers");
   const { slug } = await params;
   const pack = account.id === 0 ? (slug === "casio-ss" ? buildCasioAuthoredPack() : null) : await readAuthoredPack(slug);
   if (!pack) notFound();

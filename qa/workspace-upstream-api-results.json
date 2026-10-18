@@ -1,0 +1,20 @@
+{
+  "upstream": "cb20276e0f82b6d1baa42bf843a5aa5c9ac05231",
+  "passed": true,
+  "checks": [
+    "Author role survives real password login and JWT session hydration",
+    "Anonymous, member, author and owner API role boundaries",
+    "Author can enter the existing RTL workspace shell; owner-only pages redirect safely",
+    "Owner grants an analyzer by public code; author sees only accessible packs",
+    "Granted editing and author-owned analyzer creation persist",
+    "Read-only grants reject writes and response access at the server",
+    "Referrer self/cycle rejection, immutable attribution and personal referral isolation",
+    "Discount validation, analyzer scope and duplicate rejection",
+    "Live respondent answers, scores, referral and discount metadata visible only with response permission",
+    "Disabled discounts cannot be redeemed",
+    "Grant revocation applies immediately without removing author-owned work",
+    "Bot create/edit/list use owner isolation; tokens are not returned",
+    "Unauthenticated webhook and unconfigured connection rejected; local bot deletion"
+  ],
+  "external_telegram_tested": false
+}

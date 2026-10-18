@@ -1,6 +1,7 @@
 import Link from "@/components/workspace/WorkspaceLink";
 import type { Metadata } from "next";
 import { requirePageOwner } from "@/lib/auth/guard";
+import { botServiceLabel } from "@/lib/bots/script";
 import { listBots } from "@/lib/bots/store";
 
 export const dynamic = "force-dynamic";
@@ -27,7 +28,7 @@ export default async function WorkspaceBotsPage() {
         <div>
           <h1 className="text-2xl font-bold text-ink">ربات‌ها</h1>
           <p className="mt-2 text-sm leading-7 text-muted">
-            اتصال ربات تلگرامی که خودتان در BotFather می‌سازید. ورود کاربر با تلگرام نیست. اجرای آزمون و دریافت پاسخ‌ها از طریق گفت‌وگوی ربات انجام می‌شود.
+            بخش مستقل میز. هر ربات تلگرام جدا ساخته می‌شود و زیر هیچ آزمونی — از جمله عارضه‌یابی — نیست. ورود مرورگر با تلگرام نیست.
           </p>
         </div>
         <Link href="/workspace/bots/new" className="rounded-xl bg-accent px-4 py-2 text-sm font-medium text-accent-fg">
@@ -48,9 +49,9 @@ export default async function WorkspaceBotsPage() {
               >
                 <p className="font-medium text-ink">{bot.titleFa}</p>
                 <p className="mt-1 text-xs text-muted">
-                  تلگرام · {statusFa[bot.status] ?? bot.status}
+                  تلگرام · {botServiceLabel(bot.service)} · {statusFa[bot.status] ?? bot.status}
                   {bot.telegramUsername ? ` · @${bot.telegramUsername}` : ""}
-                  {bot.analyzerSlug ? ` · ${bot.analyzerSlug}` : ""}
+                  {bot.service === "analyzers" && bot.analyzerSlug ? ` · فقط ${bot.analyzerSlug}` : ""}
                 </p>
               </Link>
             </li>

@@ -7,9 +7,11 @@ import { KeyRound, LogOut, LayoutDashboard, UserRound, ChartNoAxesCombined, Shop
 import { PREVIEW_SESSION_KEY } from "@/lib/auth/preview-client";
 import { clearDraftsByPrefix, subscribeAccount } from "@/lib/ui/draft";
 import { defaultAvatarVariant, type AccountAvatar } from "@/lib/account/avatar";
+import { workspaceHome } from "@/lib/workspace/access";
+import type { AccountRole } from "@/lib/auth/roles";
 import { UserAvatar } from "./UserAvatar";
 import { useDisclosure } from "@/components/navigation/useDisclosure";
-type Account = { id: number; displayName: string | null; phone: string; role: string; avatar?: AccountAvatar };
+type Account = { id: number; displayName: string | null; phone: string; role: AccountRole; avatar?: AccountAvatar; needsPassword?: boolean; analyzerDesk?: boolean };
 export function SessionMenu() {
   const pathname = usePathname(); const router = useRouter();
   const [account, setAccount] = useState<Account | null | undefined>(undefined);
@@ -37,12 +39,13 @@ export function SessionMenu() {
   const name = account.displayName?.trim() || "حساب من";
   const links = [
     { href: "/account", title: "حساب و تصویر پروفایل", icon: UserRound },
-    ...(["owner", "author"].includes(account.role) ? [{ href: account.role === "author" ? "/workspace/analyzers" : "/workspace", title: "میز کار من", icon: LayoutDashboard }] : []),
+    ...(["owner", "author"].includes(account.role) || account.analyzerDesk ? [{ href: workspaceHome(account), title: "میز کار من", icon: LayoutDashboard }] : []),
+    ...(account.needsPassword ? [{ href: "/account#password", title: "تنظیم رمز ثابت", icon: KeyRound }] : []),
     { href: "/analyzers", title: "تحلیلگرهای من", icon: ChartNoAxesCombined },
     { href: "/shop", title: "فروشگاه", icon: ShoppingBag },
   ];
   return <div className="session-control">
-    <button ref={trigger} type="button" className="session-avatar-button" onClick={toggle} aria-label={`باز کردن دسترسی‌های حساب ${name}`} aria-expanded={open} aria-controls={`profile-${id}`} title={name}><UserAvatar variant={account.avatar?.variant ?? defaultAvatarVariant(account.id)} photoUrl={account.avatar?.photoUrl} /></button>
+    <button ref={trigger} type="button" className="session-avatar-button" onClick={toggle} aria-label={`باز کردن دسترسی‌های حساب ${name}`} aria-expanded={open} aria-controls={`profile-${id}`} title={name}>{account.needsPassword ? <span className="absolute top-0 end-0 h-2.5 w-2.5 rounded-full bg-mark ring-2 ring-paper" aria-hidden="true" /> : null}<UserAvatar variant={account.avatar?.variant ?? defaultAvatarVariant(account.id)} photoUrl={account.avatar?.photoUrl} /></button>
     <div id={`profile-${id}`} ref={panel} className="profile-dropdown" hidden={!visible} inert={!open || undefined} aria-hidden={!open}>
       <div className="profile-dropdown-identity"><UserAvatar variant={account.avatar?.variant ?? defaultAvatarVariant(account.id)} photoUrl={account.avatar?.photoUrl} size={48} /><div><strong>{name}</strong><small>{account.role === "owner" ? "حساب مالک" : account.role === "author" ? "حساب نویسنده" : "حساب کاربری"}</small></div></div>
       <nav aria-label="دسترسی‌های سریع حساب"><ul>{links.map(link => <li key={link.href}><Link href={link.href} onClick={() => close()}><link.icon size={18} aria-hidden="true" /><span>{link.title}</span><ArrowUpLeft size={15} className="profile-link-arrow" aria-hidden="true" /></Link></li>)}</ul></nav>

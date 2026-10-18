@@ -1,0 +1,68 @@
+{
+  "date": "2026-10-19",
+  "upstream": "cb20276e0f82b6d1baa42bf843a5aa5c9ac05231",
+  "previous_integration": "e3458709dbbc87df035de27bcd3ed3160fc222c4",
+  "migrations": 22,
+  "migrations_applied_locally": 22,
+  "migration_repeat_skipped": 22,
+  "checks": [
+    {
+      "file": "integration-api-results.json",
+      "passed": true,
+      "groups": 12,
+      "layout_cases": 0
+    },
+    {
+      "file": "workspace-upstream-api-results.json",
+      "passed": true,
+      "groups": 13,
+      "layout_cases": 0
+    },
+    {
+      "file": "workspace-latest-api-results.json",
+      "passed": true,
+      "groups": 3,
+      "layout_cases": 0
+    },
+    {
+      "file": "workspace-foundation-api-results.json",
+      "passed": true,
+      "groups": 7,
+      "layout_cases": 0
+    },
+    {
+      "file": "workspace-telegram-mock-results.json",
+      "passed": true,
+      "groups": 8,
+      "layout_cases": 0
+    },
+    {
+      "file": "workspace-unit-results.json",
+      "passed": true,
+      "groups": 8,
+      "layout_cases": 0
+    },
+    {
+      "file": "workspace-preservation-results.json",
+      "passed": true,
+      "groups": 12,
+      "layout_cases": 0
+    },
+    {
+      "file": "navigation-browser-results.json",
+      "passed": true,
+      "groups": 11,
+      "layout_cases": 59
+    },
+    {
+      "file": "workspace-db-browser-results.json",
+      "passed": true,
+      "groups": 6,
+      "layout_cases": 116
+    }
+  ],
+  "npm_dependency_changes": false,
+  "drive_changed": false,
+  "external_services_tested": false,
+  "deployment_performed": false
+}

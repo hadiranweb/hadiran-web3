@@ -31,9 +31,10 @@ export async function sendSmsIrVerificationCode(input: {
     const response = await fetch(verifyUrl(), {
       method: "POST",
       headers: {
+        // SMS.ir REST: X-API-KEY + ACCEPT on the outbound verify call — not on hadiranweb.ir.
         "Content-Type": "application/json",
-        Accept: "application/json, text/plain",
-        "x-api-key": env.apiKey,
+        Accept: "application/json",
+        "X-API-KEY": env.apiKey,
       },
       body: JSON.stringify({
         mobile,

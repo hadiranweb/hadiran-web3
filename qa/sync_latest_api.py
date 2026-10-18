@@ -1,4 +1,4 @@
-"""1ed9ea7: local PostgreSQL-only API checks; no real Telegram/Worker traffic."""
+"""cb20276: local PostgreSQL-only API checks; no real Telegram/Worker traffic."""
 import json,os,subprocess,urllib.request,urllib.error
 from pathlib import Path
 BASE='http://127.0.0.1:3002';DB='postgresql://hadiran_qa:local-qa-only@127.0.0.1:5432/hadiran_integration_qa';checks=[]
@@ -49,12 +49,12 @@ try:
  encrypted=subprocess.check_output(['node','-e',loader+"console.log(require('./src/lib/bots/secret.ts').sealSecret('"+secret+"'))"],env={**os.environ,'DATABASE_URL':DB,'HADIRAN_JWT_SECRET':'local-qa-secret-only-648b623-at-least-32-characters'},text=True).strip()
  sql("UPDATE bots SET status='paused',webhook_secret_cipher=$1 WHERE id=$2",[encrypted,bid])
  anon.call('/api/bots/telegram/'+bid+'/webhook','POST',{'update_id':1},expected=401)
- diagnostic=sql('SELECT last_error,last_webhook_at FROM bots WHERE id=$1',[bid])[0]
- assert 'خالی' in diagnostic['last_error'] and diagnostic['last_webhook_at'] is None
+ diagnostic=sql('SELECT last_error,last_webhook_at,last_inbound_status FROM bots WHERE id=$1',[bid])[0]
+ assert 'خالی' in diagnostic['last_error'] and diagnostic['last_webhook_at'] is not None and diagnostic['last_inbound_status']==401
  anon.call('/api/bots/telegram/'+bid+'/webhook','POST',{'update_id':1},expected=401,headers={'X-Telegram-Bot-Api-Secret-Token':'wrong'})
  assert 'یکی نیست' in sql('SELECT last_error FROM bots WHERE id=$1',[bid])[0]['last_error']
  assert anon.call('/api/bots/telegram/'+bid+'/webhook','POST',{'update_id':1,'message':{'text':'/start'}},headers={'X-Telegram-Bot-Api-Secret-Token':secret})['ok']
  hit=sql('SELECT last_webhook_at,last_update_kind FROM bots WHERE id=$1',[bid])[0];assert hit['last_webhook_at'] and hit['last_update_kind']=='message'
  check('Webhook missing/wrong-secret diagnostics and authenticated paused ACK with recorded receipt')
 finally:owner.call('/api/workspace/bots/'+bid,'DELETE',{})
-Path('qa/sync-latest-api-results.json').write_text(json.dumps({'passed':True,'upstream':'1ed9ea7661d766245975654de22377534af53eb4','checks':checks,'external_telegram_tested':False},ensure_ascii=False,indent=2))
+Path('qa/workspace-latest-api-results.json').write_text(json.dumps({'passed':True,'upstream':'cb20276e0f82b6d1baa42bf843a5aa5c9ac05231','checks':checks,'external_telegram_tested':False},ensure_ascii=False,indent=2))

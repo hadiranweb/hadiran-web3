@@ -8,6 +8,7 @@ import type { WorkspaceAttemptRow } from "@/lib/analyzers/workspace-attempt-type
 const statusFa = {
   submitted: "ثبت‌شده",
   in_progress: "در جریان",
+  abandoned: "نیمه‌کاره — شروع مجدد",
 };
 
 function whenFa(value: string | null) {
@@ -53,7 +54,7 @@ export function AnalyzerResponses({ slug }: { slug: string }) {
   return (
     <section className="space-y-4">
       <p className="text-sm text-muted">
-        {submitted.toLocaleString("fa-IR")} ثبت‌شده از {items.length.toLocaleString("fa-IR")} نفر. شناسهٔ داخلی حساب نشان داده نمی‌شود.
+        {submitted.toLocaleString("fa-IR")} نوبت ثبت‌شده از {items.length.toLocaleString("fa-IR")} نوبت (هر شروع مجدد نوبت جدا است). شناسهٔ داخلی حساب نشان داده نمی‌شود.
       </p>
       <ul className="space-y-2">
         {items.map((row) => {

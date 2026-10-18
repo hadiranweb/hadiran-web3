@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "upstream": "cb20276e0f82b6d1baa42bf843a5aa5c9ac05231",
+  "checks": [
+    "Grant preserves member role, defaults to read-only editing, and hydrates desk plus avatar",
+    "Delegated shell and direct APIs deny owner modules, analyzer creation and delegation",
+    "Explicit edit and response flags are independent and do not escalate account role",
+    "Retake creates a clean attempt without overwriting submitted scores; unauthenticated retake denied",
+    "Revocation immediately removes desk and record API access",
+    "Only owner assigns account roles; owner role cannot be downgraded by this API",
+    "Published analyzer landing is public without exposing author controls"
+  ],
+  "environment": "disposable local PostgreSQL",
+  "live_services_tested": false
+}

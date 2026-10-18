@@ -59,7 +59,7 @@ function clonePack(pack: AnalyzerPack): AnalyzerPack {
 
 export function AnalyzerEditor({ initial, readOnly = false, canEdit = true, canReadResponses = true, canGrant = false }: { initial: AnalyzerPack; readOnly?: boolean; canEdit?: boolean; canReadResponses?: boolean; canGrant?: boolean }) {
   const [pack, setPack] = useState<AnalyzerPack>(() => clonePack(initial));
-  const [tab, setTab] = useState<Tab>("meta");
+  const [tab, setTab] = useState<Tab>(canEdit ? "meta" : "responses");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -144,10 +144,14 @@ export function AnalyzerEditor({ initial, readOnly = false, canEdit = true, canR
       <div className="flex flex-wrap gap-2">
         {(
           [
-            ["meta", "مشخصات"],
-            ["items", `سؤال‌ها (${itemCount})`],
-            ["score", "نمره"],
-            ["report", "گزارش"],
+            ...(canEdit
+              ? ([
+                  ["meta", "مشخصات"],
+                  ["items", `سؤال‌ها (${itemCount})`],
+                  ["score", "نمره"],
+                  ["report", "گزارش"],
+                ] as [Tab, string][])
+              : []),
             ...(canReadResponses
               ? ([
                   ["responses", "پاسخ‌ها"],
@@ -174,6 +178,13 @@ export function AnalyzerEditor({ initial, readOnly = false, canEdit = true, canR
       {tab === "meta" ? (
         <section className="space-y-4 rounded-2xl border border-line bg-elev p-6">
           <p className="text-xs text-muted">شناسه: {pack.slug} — بعد از ساخت عوض نمی‌شود.</p>
+          <p className="text-xs text-muted">
+            آدرس عمومی:{" "}
+            <a href={`/analyzers/${pack.slug}`} className="text-mark" dir="ltr">
+              /analyzers/{pack.slug}
+            </a>
+            {pack.status !== "open" ? " — تا وضعیت «باز» باشد برای مهمان دیده نمی‌شود." : null}
+          </p>
           <label className="block text-sm">
             <span className="mb-1 block text-muted">نام</span>
             <input

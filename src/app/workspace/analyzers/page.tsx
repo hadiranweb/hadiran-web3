@@ -1,14 +1,14 @@
-import { buildCasioAuthoredPack } from "@/lib/analyzers/casio-ss/authored-pack";
-import { ModuleHeading } from "@/components/workspace/ModuleHeading";
 import Link from "@/components/workspace/WorkspaceLink";
+import { buildCasioAuthoredPack } from "@/lib/analyzers/casio-ss/authored-pack";
 import type { Metadata } from "next";
-import { requirePageStaff } from "@/lib/auth/guard";
+import { requirePageAnalyzerDesk } from "@/lib/auth/guard";
+import { isStaff } from "@/lib/auth/roles";
 import { listAccessiblePacks } from "@/lib/analyzers/access";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "تألیف تحلیلگر‌ها",
+  title: "میز آزمون‌ساز",
   robots: { index: false, follow: false },
 };
 
@@ -19,18 +19,36 @@ const statusFa: Record<string, string> = {
 };
 
 export default async function WorkspaceAnalyzersPage() {
-  const account = await requirePageStaff("/workspace/analyzers");
+  const account = await requirePageAnalyzerDesk("/workspace/analyzers");
   const authored = account.id === 0 ? [{ pack: buildCasioAuthoredPack(), access: { view: true, edit: true, responses: false, grant: false } }] : await listAccessiblePacks(account);
+  const canCreate = isStaff(account.role);
 
   return (
     <main className="ws-page repo-module space-y-8">
-      <ModuleHeading title="تحلیلگرها" en="Analyzer authoring" lede="ساخت و ویرایش سؤال، نمره، رضایت و گزارش؛ همهٔ آزمون‌ها از جمله CASIO از همین میز مدیریت می‌شوند." ledeEn="Manage questions, scoring, consent and reports for every assessment, including CASIO." action={<Link href="/workspace/analyzers/new" className="ws-button ws-primary">آزمون تازه</Link>} />
-      {account.id === 0 ? <p className="integration-notice">در پیش‌نمایش، CASIO با بستهٔ بذر اولیه اجرا می‌شود. ویرایشگر قابل بررسی است؛ ذخیرهٔ تغییرات و ساخت تحلیلگر به دیتابیس نیاز دارد.</p> : null}
-
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-ink">میز آزمون‌ساز</h1>
+          <p className="mt-2 text-sm leading-7 text-muted">
+            {canCreate
+              ? "آزمون بسازید، پاسخ‌ها و تفسیر را ببینید، و با شناسهٔ ۸رقمی به همکار دسترسی همین آزمون را بدهید."
+              : "آزمون‌هایی که به شما سپرده شده. پاسخ‌ها و تفسیر اولیه روی همان صفحه است."}
+          </p>
+        </div>
+        {canCreate ? (
+          <Link
+            href="/workspace/analyzers/new"
+            className="rounded-xl bg-accent px-4 py-2 text-sm font-medium text-accent-fg"
+          >
+            آزمون تازه
+          </Link>
+        ) : null}
+      </div>
 
       <section>
         {authored.length === 0 ? (
-          <p className="text-sm text-muted">آزمونی نیست.</p>
+          <p className="text-sm text-muted">
+            {canCreate ? "آزمونی نیست. از «آزمون تازه» شروع کنید." : "هنوز آزمونی به شما سپرده نشده."}
+          </p>
         ) : (
           <ul className="space-y-2">
             {authored.map(({ pack, access }) => (
@@ -42,7 +60,8 @@ export default async function WorkspaceAnalyzersPage() {
                   <p className="font-medium text-ink">{pack.nameFa}</p>
                   <p className="mt-1 text-xs text-muted">
                     {pack.slug} · {statusFa[pack.status] ?? pack.status} · {pack.version}
-                    {access.edit ? "" : " · خواندنی"}
+                    {access.edit ? "" : " · پاسخ و تفسیر"}
+                    {access.grant ? " · اعطا" : ""}
                   </p>
                 </Link>
               </li>

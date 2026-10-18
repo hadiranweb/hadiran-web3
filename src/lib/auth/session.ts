@@ -28,6 +28,8 @@ export type SessionAccount = {
   onboardingComplete: boolean;
   avatar?: import("@/lib/account/avatar").AccountAvatar;
   previewTicket?: string;
+  needsPassword: boolean;
+  analyzerDesk?: boolean;
 };
 
 function asRole(value: string): AccountRole {
@@ -44,6 +46,7 @@ function toSessionAccount(row: {
   role: string;
   policiesAcceptedAt: Date | null;
   policiesVersion: string | null;
+  passwordHash?: string | null;
 }): SessionAccount {
   return {
     id: row.id,
@@ -53,6 +56,7 @@ function toSessionAccount(row: {
     familyName: row.familyName,
     role: asRole(row.role),
     ...onboardingFlags(row),
+    needsPassword: needsPasswordSetup({ phone: row.phone, passwordHash: row.passwordHash ?? null }),
   };
 }
 
@@ -110,7 +114,7 @@ export async function getPreviewAccount(): Promise<SessionAccount | null> {
   const jar = await cookies();
   const ticket = requestHeaders.get(PREVIEW_TICKET_HEADER) || jar.get(PREVIEW_OWNER_COOKIE)?.value || "";
   if (!validPreviewTicket(ticket)) return null;
-  return { id: 0, phone: login.phone, displayName: "مالک آزمایشی", givenName: "مالک", familyName: "آزمایشی", role: "owner", policiesAccepted: true, needsProfile: false, onboardingComplete: true, previewTicket: ticket };
+  return { id: 0, phone: login.phone, displayName: "مالک آزمایشی", givenName: "مالک", familyName: "آزمایشی", role: "owner", policiesAccepted: true, needsProfile: false, onboardingComplete: true, needsPassword: false, previewTicket: ticket };
 }
 
 export async function getCurrentAccount(): Promise<SessionAccount | null> {
@@ -133,6 +137,7 @@ export async function getCurrentAccount(): Promise<SessionAccount | null> {
         policiesAcceptedAt: accounts.policiesAcceptedAt,
         policiesVersion: accounts.policiesVersion,
         onboardingCompletedAt: accounts.onboardingCompletedAt,
+        passwordHash: accounts.passwordHash,
         sessionId: sessions.id,
       })
       .from(sessions)

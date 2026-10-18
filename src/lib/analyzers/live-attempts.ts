@@ -1,6 +1,7 @@
 import {
   consentAttempt as consentGeneric,
   readAttempt as readGeneric,
+  retakeAttempt as retakeGeneric,
   saveAnswer as saveGeneric,
   submitAttempt as submitGeneric,
 } from "@/lib/analyzers/attempts";
@@ -8,6 +9,7 @@ import { resolveLivePack } from "@/lib/analyzers/authored";
 import {
   consentAttempt as consentCasio,
   readAttempt as readCasio,
+  retakeAttempt as retakeCasio,
   saveAnswer as saveCasio,
   submitAttempt as submitCasio,
 } from "@/lib/analyzers/casio-ss/attempts";
@@ -23,6 +25,13 @@ export async function liveReadAttempt(accountId: number, slug: string): Promise<
   const pack = await resolveLivePack(slug);
   if (!pack) return null;
   return readGeneric(accountId, pack);
+}
+
+export async function liveRetakeAttempt(accountId: number, slug: string): Promise<AttemptView | null> {
+  if (slug === "casio-ss") return retakeCasio(accountId);
+  const pack = await resolveLivePack(slug);
+  if (!pack) return null;
+  return retakeGeneric(accountId, pack);
 }
 
 export async function liveConsentAttempt(

@@ -96,6 +96,19 @@ export async function readAttempt(accountId: number, pack: AnalyzerPack): Promis
   return submitted ? view(submitted, pack) : null;
 }
 
+export async function retakeAttempt(accountId: number, pack: AnalyzerPack): Promise<AttemptView> {
+  await ensureAnalyzerAuthoringSchema();
+  const open = await openAttempt(accountId, pack.slug);
+  if (open) {
+    await db
+      .update(analyzerAttempts)
+      .set({ status: "abandoned", updatedAt: new Date() })
+      .where(eq(analyzerAttempts.id, open.id));
+  }
+  const row = await createOpen(accountId, pack);
+  return view(row, pack);
+}
+
 export async function consentAttempt(
   accountId: number,
   pack: AnalyzerPack,

@@ -10,7 +10,16 @@
 - نرخ: ۱ ارسال / شماره / دقیقه؛ ۵ ارسال / IP / ۱۰ دقیقه؛ ۱۰ تأیید / جفت شماره+IP / ۱۰ دقیقه
 - اگر پیامک نرود، چالش OTP باطل می‌شود
 - رویدادهای auth بدون ذخیرهٔ کد یا توکن
-- API Verify: `https://api.sms.ir/v1/send/verify`
+- API Verify: `POST https://api.sms.ir/v1/send/verify`
+- هدر فقط روی همان درخواست سرور (نه روی HTML سایت، نه `next.config`):
+
+  | کلید | مقدار |
+  |---|---|
+  | `X-API-KEY` | کلید پنل برنامه‌نویسان SMS.ir (`SMSIR_API_KEY` روی لیارا) |
+  | `Accept` | `application/json` |
+  | `Content-Type` | `application/json` |
+
+  منبع: [مقدمهٔ REST](https://sms.ir/rest-api/) — صفحهٔ پنل `app.sms.ir/developer/help/introduction` پشت ورود است. اگر کلید به IP محدود باشد کد وضعیت ۱۲ می‌آید.
 
 ## چه چیزی مال هادیران است
 

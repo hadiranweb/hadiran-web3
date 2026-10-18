@@ -98,6 +98,30 @@ export async function telegramSetMyCommands(
   });
 }
 
+export async function telegramSetMyDescription(token: string, description: string): Promise<void> {
+  await call<true>(token, "setMyDescription", { description: description.slice(0, 512), language_code: "fa" });
+}
+
+export async function telegramSetMyShortDescription(token: string, shortDescription: string): Promise<void> {
+  await call<true>(token, "setMyShortDescription", {
+    short_description: shortDescription.slice(0, 120),
+    language_code: "fa",
+  });
+}
+
+export async function telegramSetChatMenuButton(token: string): Promise<void> {
+  await call<true>(token, "setChatMenuButton", { menu_button: { type: "commands" } });
+}
+
+export async function telegramDeleteMessages(
+  token: string,
+  args: { chatId: number | string; messageIds: number[] },
+): Promise<void> {
+  const ids = args.messageIds.filter((id) => Number.isInteger(id) && id > 0).slice(0, 100);
+  if (!ids.length) return;
+  await call<true>(token, "deleteMessages", { chat_id: args.chatId, message_ids: ids });
+}
+
 export async function telegramSendMessage(
   token: string,
   args: { chatId: number | string; text: string; replyMarkup?: Record<string, unknown> },
@@ -108,6 +132,19 @@ export async function telegramSendMessage(
   };
   if (args.replyMarkup) payload.reply_markup = args.replyMarkup;
   await call<unknown>(token, "sendMessage", payload);
+}
+
+export async function telegramEditMessage(
+  token: string,
+  args: { chatId: number | string; messageId: number; text: string; replyMarkup?: Record<string, unknown> },
+): Promise<void> {
+  const payload: Record<string, unknown> = {
+    chat_id: args.chatId,
+    message_id: args.messageId,
+    text: args.text.slice(0, 4096),
+  };
+  if (args.replyMarkup) payload.reply_markup = args.replyMarkup;
+  await call<unknown>(token, "editMessageText", payload);
 }
 
 export async function telegramAnswerCallback(token: string, callbackQueryId: string): Promise<void> {

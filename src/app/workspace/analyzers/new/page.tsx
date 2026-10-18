@@ -21,7 +21,9 @@ export default async function NewAnalyzerPage() {
       </p>
       <h1 className="text-2xl font-bold text-ink">آزمون تازه</h1>
       <p className="text-sm leading-7 text-muted">
-        سؤال‌ها ردیف دیتابیس نمی‌شوند؛ یک pack نسخه‌دار ذخیره می‌شود. Typeform نیست.
+        پس از ساخت، آدرس عمومی
+        <span dir="ltr"> /analyzers/شناسه </span>
+        به آزمون اختصاص می‌یابد.
       </p>
       {account.id === 0 ? <p className="integration-notice">فرم واقعی تألیف تحلیلگر؛ ذخیره در محیط بدون دیتابیس غیرفعال است.</p> : null}
       <section className="ws-panel p-6"><fieldset disabled={account.id === 0}><AnalyzerCreateForm /></fieldset></section>

@@ -1,5 +1,6 @@
+import { hasAnalyzerDesk } from "@/lib/analyzers/access";
+import { safeReturnPath, workspaceHome } from "@/lib/workspace/access";
 import type { Metadata } from "next";
-import { Suspense } from "react";
 import { SignInForm } from "@/components/auth/SignInForm";
 import { developmentTestLogin } from "@/lib/auth/config";
 import { getCurrentAccount } from "@/lib/auth/session";
@@ -23,8 +24,8 @@ export default async function SignInPage({
   const preview = developmentTestLogin();
   const account = await getCurrentAccount();
   const { next } = await searchParams;
-  const nextPath = next?.startsWith("/") && !next.startsWith("//") ? next : "/";
-  if (account) redirect(nextPath === "/" && account.role === "owner" ? "/workspace" : nextPath);
+  const nextPath = safeReturnPath(next);
+  if (account) redirect(nextPath === "/" ? workspaceHome({ ...account, analyzerDesk: await hasAnalyzerDesk(account) }) : nextPath);
 
   return (
     <PageShell width="narrow" className="auth-shell flex min-h-[70vh] flex-col justify-center py-16">
@@ -32,12 +33,10 @@ export default async function SignInPage({
       <p className="hadiran-brand-text mb-2 text-sm font-medium">هادیران</p>
       <h1 className="text-3xl font-extrabold leading-[1.35] text-ink">ورود با موبایل</h1>
       <p className="mt-2 mb-8 text-sm leading-7 text-muted">
-        شماره را بگذار. اگر قبلاً وارد شده باشی رمز می‌خواهیم؛ وگرنه یک کد پیامکی می‌آید.
+        شماره را بگذار. اگر رمز ثابت دارید همان را می‌خواهیم؛ وگرنه یک کد پیامکی می‌آید. گذاشتن رمز هنگام ثبت‌نام لازم
+        نیست.
       </p>
-      {preview ? <p className="integration-notice mb-5">ورود تستی داخلی · نسخهٔ P3 بدون نیاز به کوکی<br />شماره: <b dir="ltr">{preview.phone}</b> · کد: <b dir="ltr">{preview.code}</b><br />فقط پیش‌نمایش؛ رمز و JWT واقعی ریپو حفظ شده‌اند.</p> : null}
-      <Suspense fallback={<p className="text-sm text-muted">در حال بارگذاری…</p>}>
-        <SignInForm previewLogin={!!preview} />
-      </Suspense>
+      <SignInForm nextPath={nextPath} previewLogin={!!preview} />
     </PageShell>
   );
 }

@@ -1,4 +1,5 @@
 "use client";
+import type { ReactNode } from "react";
 import Link from "./WorkspaceLink";
 import { ArrowUpLeft, ArrowUpRight, BookOpen, FlaskConical, Users, ShoppingBag, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { useWorkspace } from "./WorkspaceContext";
@@ -6,7 +7,7 @@ import { demoKeys, useDemoItems } from "./useDemoItems";
 import type { PulseCounts } from "@/lib/workspace/pulse";
 import type { WorkspaceData } from "@/lib/workspace/types";
 
-export function Overview({ data, pulse }: { data: WorkspaceData; pulse: PulseCounts }) {
+export function Overview({ data, pulse, children }: { data: WorkspaceData; pulse: PulseCounts; children?: ReactNode }) {
   const { t, locale, number, demo } = useWorkspace();
   const { items: knowledge } = useDemoItems(demoKeys.knowledge, data.knowledge, false);
   const { items: projects } = useDemoItems(demoKeys.projects, data.projects, demo);
@@ -33,5 +34,6 @@ export function Overview({ data, pulse }: { data: WorkspaceData; pulse: PulseCou
     <div className="ws-overview-grid"><section className="ws-panel"><div className="ws-panel-title"><h2>{t("آخرین یادداشت‌ها", "Recent notes")}</h2><Link href="/workspace/knowledge">{t("همه یادداشت‌ها", "View all")}<Chevron size={14} /></Link></div>{knowledge.length ? knowledge.slice(0, 5).map((item) => <Link href={item.editUrl || "/workspace/knowledge"} className="ws-recent-row" key={item.id}><span className="ws-record-icon"><BookOpen size={17} /></span><span><strong>{locale === "en" ? item.titleEn || item.title : item.title}</strong><small>{({ article: t("مقاله", "Article"), note: t("یادداشت", "Note"), research: t("پژوهش", "Research"), idea: t("ایده", "Idea"), wiki: t("ویکی", "Wiki") } as Record<string, string>)[item.category] || item.category}</small></span><Chevron size={16} /></Link>) : <p className="ws-empty">{t("هنوز یادداشتی ثبت نشده است.", "No notes yet.")}</p>}</section>
     <section className="ws-panel ws-next-steps"><p className="ws-overline">{t("گام بعدی", "NEXT STEP")}</p><h2>{t("چیزی برای ثبت‌کردن داری؟", "Something worth capturing?")}</h2><p>{t("ایده‌ها را به یادداشت تبدیل کن؛ بعد می‌توانی آن‌ها را کامل‌تر کنی.", "Turn an idea into a note. You can refine it as your thinking develops.")}</p><Link className="ws-button ws-primary" href="/workspace/capture"><Plus size={16} />{t("یادداشت جدید", "New note")}</Link><Link className="ws-text-link" href="/workspace/projects">{t("مرور پروژه‌ها", "Explore projects")}<Chevron size={15} /></Link></section></div>
     <section className="ws-panel ws-bottom-panel"><div className="ws-panel-title"><h2>{t("پیشنهادهای همکاری", "Collaboration inbox")}</h2><Link href="/workspace/collaborations">{t("بازکردن صندوق", "Open inbox")}<Chevron size={14} /></Link></div><div className="ws-inbox-summary"><span className="ws-module-icon ws-tone-amber"><Users size={22} /></span><div><strong>{number(collaborations.filter((i) => i.status === "submitted").length)} {t("درخواست تازه", "new applications")}</strong><p>{t("درخواست‌ها را بخوان و مرحلهٔ بررسی را مشخص کن.", "Read applications and move them to the next review stage.")}</p></div></div></section>
+    {children}
   </main>;
 }

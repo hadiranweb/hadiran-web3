@@ -8,6 +8,7 @@ export type AccountChangedDetail = {
   givenName?: string;
   familyName?: string;
   displayName?: string | null;
+  needsPassword?: boolean;
 };
 
 function fullKey(key: string) {

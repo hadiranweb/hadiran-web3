@@ -13,6 +13,7 @@ import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { clearDraftsByPrefix } from "@/lib/ui/draft";
 import { PREVIEW_SESSION_KEY } from "@/lib/auth/preview-client";
 import { WorkspaceContext, type Locale } from "./WorkspaceContext";
+import { workspaceHome, workspaceScope } from "@/lib/workspace/access";
 import type { SessionAccount } from "@/lib/auth/session";
 
 const workspaceModules = [
@@ -37,9 +38,11 @@ function subscribeSidebar(callback: () => void) {
 function sidebarSnapshot() { try { return localStorage.getItem("hadiran-sidebar") === "collapsed"; } catch { return false; } }
 
 export function WorkspaceShell({ children, account, initialLocale, demo }: { children: ReactNode; account: SessionAccount; initialLocale: Locale; demo: boolean }) {
-  const author = account.role === "author";
-  const home = author ? "/workspace/analyzers" : "/workspace";
-  const modules = author ? workspaceModules.filter(item => ["/workspace/analyzers", "/workspace/referrals", "/account", "/workspace/settings"].includes(item.href)) : workspaceModules;
+  const scope = workspaceScope(account);
+  const author = scope === "author";
+  const delegated = scope === "delegated";
+  const home = workspaceHome(account);
+  const modules = delegated ? workspaceModules.filter(item => ["/workspace/analyzers", "/account", "/workspace/settings"].includes(item.href)) : author ? workspaceModules.filter(item => ["/workspace/analyzers", "/workspace/referrals", "/account", "/workspace/settings"].includes(item.href)) : workspaceModules;
   const [locale, setLocaleState] = useState(initialLocale);
   const collapsed = useSyncExternalStore(subscribeSidebar, sidebarSnapshot, () => false);
   const [mobile, setMobile] = useState(false);
@@ -120,7 +123,7 @@ export function WorkspaceShell({ children, account, initialLocale, demo }: { chi
         {mobile ? <button className="ws-backdrop" aria-label={t("بستن منو", "Close navigation")} onClick={closeMobile} /> : null}
         <aside className="ws-sidebar" id="workspace-navigation" ref={sidebar} aria-label={t("ناوبری فضای کار", "Workspace navigation")} role={mobile ? "dialog" : undefined} aria-modal={mobile || undefined}>
           <div className="ws-brand-row">
-            <Link className="ws-brand" href={home} onClick={() => setMobile(false)}><HadiranMark size={29} /><span className="ws-sidebar-text">{t("هادیران", "Hadiran")}<small>{t(author ? "میز کار نویسنده" : "فضای مدیریت", author ? "Author workspace" : "Management workspace")}</small></span></Link>
+            <Link className="ws-brand" href={home} onClick={() => setMobile(false)}><HadiranMark size={29} /><span className="ws-sidebar-text">{t("هادیران", "Hadiran")}<small>{t(author || delegated ? "میز آزمون" : "فضای مدیریت", author || delegated ? "Exam workspace" : "Management workspace")}</small></span></Link>
             <button className="ws-icon-button ws-mobile-close" onClick={closeMobile} aria-label={t("بستن منو", "Close navigation")}><X size={18} /></button>
           </div>
           <button className="ws-sidebar-search" onClick={() => searchDialog.current?.showModal()} title={t("جست‌وجوی بخش‌ها", "Find a module")}><Search size={17} /><span className="ws-sidebar-text">{t("جست‌وجوی بخش‌ها", "Find a module")}</span><kbd className="ws-sidebar-text">⌘ K</kbd></button>
@@ -129,14 +132,14 @@ export function WorkspaceShell({ children, account, initialLocale, demo }: { chi
           <div className="ws-sidebar-bottom">
             <Link className="ws-nav-item" href="/" title={t("مشاهده سایت", "View website")}><ExternalLink size={18} /><span className="ws-sidebar-text">{t("مشاهده سایت", "View website")}</span></Link>
             <button className="ws-nav-item ws-collapse" onClick={toggleCollapsed} aria-expanded={!collapsed} title={t(collapsed ? "بازکردن سایدبار" : "جمع‌کردن سایدبار", collapsed ? "Expand sidebar" : "Collapse sidebar")}>{collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}<span className="ws-sidebar-text">{t("جمع‌کردن منو", "Collapse sidebar")}</span></button>
-            <div className="ws-account"><Link className="ws-avatar-link" href="/account" aria-label={t("حساب و تصویر پروفایل", "Account and profile image")}><UserAvatar variant={account.avatar?.variant ?? defaultAvatarVariant(account.id)} photoUrl={account.avatar?.photoUrl} size={38} /></Link><div className="ws-sidebar-text"><strong>{account.id === 0 ? t("مالک آزمایشی", "Preview owner") : account.displayName || account.phone}</strong><small>{t("دسترسی مالک", "Owner access")}</small></div><button className="ws-icon-button" disabled={loggingOut} onClick={() => void logout()} title={t("خروج", "Sign out")} aria-label={t("خروج از حساب", "Sign out")}><LogOut size={17} /></button></div>
+            <div className="ws-account"><Link className="ws-avatar-link" href="/account" aria-label={t("حساب و تصویر پروفایل", "Account and profile image")}><UserAvatar variant={account.avatar?.variant ?? defaultAvatarVariant(account.id)} photoUrl={account.avatar?.photoUrl} size={38} /></Link><div className="ws-sidebar-text"><strong>{account.id === 0 ? t("مالک آزمایشی", "Preview owner") : account.displayName || account.phone}</strong><small>{t(author ? "آزمون‌ساز" : delegated ? "دسترسی آزمون" : "دسترسی مالک", author ? "Author access" : delegated ? "Exam access" : "Owner access")}</small></div><button className="ws-icon-button" disabled={loggingOut} onClick={() => void logout()} title={t("خروج", "Sign out")} aria-label={t("خروج از حساب", "Sign out")}><LogOut size={17} /></button></div>
             {logoutError ? <p role="alert" className="ws-error">{t("خروج انجام نشد؛ دوباره تلاش کنید.", "Sign out failed. Try again.")}</p> : null}
           </div>
         </aside>
         <div className="ws-main" inert={mobile || undefined}>
           <header className="ws-topbar">
             <div className="ws-topbar-start"><button className="ws-icon-button ws-mobile-toggle" ref={menuButton} onClick={() => setMobile(true)} aria-label={t("بازکردن منو", "Open navigation")} aria-expanded={mobile} aria-controls="workspace-navigation"><Menu size={20} /></button><nav className="ws-breadcrumb" aria-label={t("مسیر صفحه", "Breadcrumb")}><Link href={home}>{t("فضای کار", "Workspace")}</Link><Arrow size={13} /><span aria-current="page">{capture ? t("یادداشت جدید", "New note") : t(active.fa, active.en)}</span></nav></div>
-            <div className="ws-topbar-actions"><button className="ws-icon-button" onClick={() => searchDialog.current?.showModal()} aria-label={t("جست‌وجوی بخش‌ها", "Find a module")}><Search size={18} /></button><button className="ws-language" onClick={() => setLocale(locale === "fa" ? "en" : "fa")} aria-label={t("تغییر زبان به انگلیسی", "Switch language to Persian")}><Languages size={16} /><span>{locale === "fa" ? "EN" : "فا"}</span></button><ThemeSwitcher locale={locale} /><Link className="ws-quick-new" href={author ? "/workspace/analyzers/new" : "/workspace/capture"}><Plus size={17} /><span>{t(author ? "آزمون تازه" : "یادداشت جدید", author ? "New analyzer" : "New note")}</span></Link></div>
+            <div className="ws-topbar-actions"><button className="ws-icon-button" onClick={() => searchDialog.current?.showModal()} aria-label={t("جست‌وجوی بخش‌ها", "Find a module")}><Search size={18} /></button><button className="ws-language" onClick={() => setLocale(locale === "fa" ? "en" : "fa")} aria-label={t("تغییر زبان به انگلیسی", "Switch language to Persian")}><Languages size={16} /><span>{locale === "fa" ? "EN" : "فا"}</span></button><ThemeSwitcher locale={locale} />{!delegated ? <Link className="ws-quick-new" href={author ? "/workspace/analyzers/new" : "/workspace/capture"}><Plus size={17} /><span>{t(author ? "آزمون تازه" : "یادداشت جدید", author ? "New analyzer" : "New note")}</span></Link> : null}</div>
           </header>
           {demo ? <div className="ws-environment"><span />{t("محیط نمایشی", "Demo workspace")}<span className="ws-environment-detail">{t("داده‌های نمونه؛ ثبت و تحلیل موقتِ همین نشست است و هیچ انتشار یا پرداخت واقعی انجام نمی‌شود.", "Sample data. Captures and analyses are temporary. No real publication or payment.")}</span></div> : null}
           <div id="workspace-content" className="ws-content" tabIndex={-1}>{children}</div>

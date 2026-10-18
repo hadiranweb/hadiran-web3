@@ -25,9 +25,6 @@ export default async function BotDetailPage({ params }: Props) {
   const analyzers = packs
     .filter((pack) => pack.status !== "archived")
     .map((pack) => ({ slug: pack.slug, nameFa: pack.nameFa }));
-  if (!analyzers.some((item) => item.slug === "casio-ss")) {
-    analyzers.unshift({ slug: "casio-ss", nameFa: "عارضه‌یابی سازمانی" });
-  }
 
   return (
     <main className="ws-page repo-module space-y-6">

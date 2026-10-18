@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import { PreviewSignInForm } from "./PreviewSignInForm";
 import { normalizeDigits } from "@/lib/auth/phone";
-import { Loader2, Phone, Lock, RefreshCw, KeyRound } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Loader2, Phone, Lock, RefreshCw } from "lucide-react";
+import { safeReturnPath, workspaceHome } from "@/lib/workspace/access";
+import type { AccountRole } from "@/lib/auth/roles";
+import { publishAccount } from "@/lib/ui/draft";
 
-type Step = "phone" | "password" | "code" | "setPassword";
+type Step = "phone" | "password" | "code";
 
 function persianError(code: string) {
   const map: Record<string, string> = {
@@ -50,21 +53,30 @@ async function readJson(res: Response) {
   };
 }
 
-export function SignInForm({ previewLogin = false }: { previewLogin?: boolean }) {
-  return previewLogin ? <PreviewSignInForm previewLogin /> : <LiveSignInForm />;
+const fieldClass =
+  "w-full rounded-[var(--radius-md)] border border-line bg-elev px-4 py-3 text-sm text-ink outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] disabled:opacity-60";
+const primaryBtn =
+  "inline-flex w-full items-center justify-center gap-2 rounded-[var(--radius-md)] bg-accent px-4 py-3 text-sm font-medium text-accent-fg hover:opacity-95 disabled:opacity-60";
+
+export function SignInForm({ previewLogin = false, ...props }: { previewLogin?: boolean; nextPath?: string; onAuthenticated?: () => void; hideHint?: boolean }) {
+  return previewLogin ? <PreviewSignInForm previewLogin /> : <LiveSignInForm {...props} />;
 }
 
-function LiveSignInForm() {
+function LiveSignInForm({
+  nextPath = "/",
+  onAuthenticated,
+  hideHint = false,
+}: {
+  nextPath?: string;
+  onAuthenticated?: () => void;
+  hideHint?: boolean;
+}) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const rawNext = searchParams.get("next") || "";
-  const nextPath = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/";
+  const safeNext = safeReturnPath(nextPath);
 
   const [step, setStep] = useState<Step>("phone");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [code, setCode] = useState("");
   const [masked, setMasked] = useState("");
   const [devCode, setDevCode] = useState<string | null>(null);
@@ -74,6 +86,7 @@ function LiveSignInForm() {
   const [resendSeconds, setResendSeconds] = useState(0);
 
   async function loadStatusHint() {
+    if (hideHint) return;
     try {
       const res = await fetch("/api/auth/status", { cache: "no-store" });
       const data = (await res.json()) as {
@@ -95,16 +108,21 @@ function LiveSignInForm() {
     return () => window.clearInterval(timer);
   }, [resendSeconds]);
 
-  function finish(needsPassword?: boolean) {
-    if (needsPassword) {
-      setStep("setPassword");
-      setPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-      setError(null);
+  async function finish() {
+    publishAccount({});
+    if (onAuthenticated) {
+      onAuthenticated();
       return;
     }
-    router.push(nextPath);
+    let destination = safeNext;
+    if (destination === "/") {
+      try {
+        const response = await fetch("/api/auth/me", { cache: "no-store" });
+        const data = await response.json() as { account?: { role: AccountRole; analyzerDesk?: boolean } };
+        if (response.ok && data.account) destination = workspaceHome(data.account);
+      } catch { destination = "/account"; }
+    }
+    router.push(destination);
     router.refresh();
   }
 
@@ -172,7 +190,7 @@ function LiveSignInForm() {
       });
       const data = await readJson(res);
       if (!res.ok) throw new Error(data.error || "otp_verify_failed");
-      finish(data.needs_password);
+      finish();
     } catch (err) {
       setError(persianError(err instanceof Error ? err.message : ""));
     } finally {
@@ -192,32 +210,7 @@ function LiveSignInForm() {
       });
       const data = await readJson(res);
       if (!res.ok) throw new Error(data.error || "password_login_failed");
-      finish(data.needs_password);
-    } catch (err) {
-      setError(persianError(err instanceof Error ? err.message : ""));
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function savePassword() {
-    setError(null);
-    if (newPassword !== confirmPassword) {
-      setError(persianError("password_mismatch"));
-      return;
-    }
-    setSubmitting(true);
-    try {
-      const res = await fetch("/api/auth/password/set", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        cache: "no-store",
-        body: JSON.stringify({ password: newPassword }),
-      });
-      const data = await readJson(res);
-      if (!res.ok) throw new Error(data.error || "password_set_failed");
-      router.push(nextPath);
-      router.refresh();
+      finish();
     } catch (err) {
       setError(persianError(err instanceof Error ? err.message : ""));
     } finally {
@@ -229,8 +222,7 @@ function LiveSignInForm() {
     e.preventDefault();
     if (step === "phone") void lookupPhone();
     else if (step === "password") void loginWithPassword();
-    else if (step === "code") void verifyCode();
-    else void savePassword();
+    else void verifyCode();
   }
 
   return (
@@ -242,13 +234,13 @@ function LiveSignInForm() {
         </span>
         <input
           value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+          onChange={(e) => setPhone(normalizeDigits(e.target.value))}
           placeholder="۰۹۱۲۱۲۳۴۵۶۷"
           dir="ltr"
           inputMode="tel"
           autoComplete="tel"
           disabled={step !== "phone" || submitting}
-          className="w-full rounded-2xl border border-line bg-elev px-4 py-3 text-left text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent-soft disabled:bg-paper"
+          className={`${fieldClass} text-left`}
         />
       </label>
 
@@ -264,7 +256,7 @@ function LiveSignInForm() {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="رمز حساب"
             autoComplete="current-password"
-            className="w-full rounded-2xl border border-line bg-elev px-4 py-3 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent-soft"
+            className={fieldClass}
           />
           {masked && <span className="block text-xs text-muted">ورود برای {masked}</span>}
         </label>
@@ -278,65 +270,28 @@ function LiveSignInForm() {
           </span>
           <input
             value={code}
-            onChange={(e) => setCode(normalizeDigits(e.target.value).replace(/\D/g, "").slice(0, 6))}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
             placeholder="••••••"
             dir="ltr"
             inputMode="numeric"
             autoComplete="one-time-code"
-            className="w-full rounded-2xl border border-line bg-elev px-4 py-3 text-center font-mono text-lg tracking-[0.4em] outline-none focus:border-accent focus:ring-2 focus:ring-accent-soft"
+            className={`${fieldClass} text-center font-mono text-lg tracking-[0.4em]`}
           />
           {masked && <span className="block text-xs text-muted">ارسال به {masked}</span>}
           {devCode && (
-            <span className="block rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            <span className="block rounded-[var(--radius-sm)] bg-accent-soft px-3 py-2 text-xs text-ink">
               حالت توسعه: پنل SMS.ir تنظیم نیست. کد: <strong dir="ltr">{devCode}</strong>
             </span>
           )}
         </label>
       )}
 
-      {step === "setPassword" && (
-        <div className="space-y-4">
-          <p className="text-sm leading-7 text-muted">
-            برای دفعات بعد یک رمز بگذار. رمز در دیتابیس هش می‌شود؛ سشن جداست و منقضی می‌شود.
-          </p>
-          <label className="block space-y-1.5">
-            <span className="flex items-center gap-1.5 text-sm font-medium text-ink">
-              <KeyRound className="h-3.5 w-3.5" />
-              رمز جدید
-            </span>
-            <input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              autoComplete="new-password"
-              minLength={8}
-              className="w-full rounded-2xl border border-line bg-elev px-4 py-3 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent-soft"
-            />
-          </label>
-          <label className="block space-y-1.5">
-            <span className="text-sm font-medium text-ink">تکرار رمز</span>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              autoComplete="new-password"
-              minLength={8}
-              className="w-full rounded-2xl border border-line bg-elev px-4 py-3 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent-soft"
-            />
-          </label>
-        </div>
-      )}
-
-      {error && <p className="text-sm text-rose-600">{error}</p>}
-      {hint && <p className="text-xs leading-6 text-muted">{hint}</p>}
+      {error && <p className="text-sm text-mark">{error}</p>}
+      {!hideHint && hint && <p className="text-xs leading-6 text-muted">{hint}</p>}
 
       {step === "password" ? (
         <div className="grid gap-3 sm:grid-cols-2">
-          <button
-            type="submit"
-            disabled={submitting || !password}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-accent px-4 py-3 text-sm font-medium text-accent-fg hover:opacity-90 disabled:opacity-60"
-          >
+          <button type="submit" disabled={submitting || !password} className={primaryBtn}>
             {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
             ورود
           </button>
@@ -344,19 +299,15 @@ function LiveSignInForm() {
             type="button"
             disabled={submitting}
             onClick={() => void sendCode()}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-accent px-4 py-3 text-sm font-medium text-accent-fg hover:opacity-90 disabled:opacity-60"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-[var(--radius-md)] border border-line bg-elev px-4 py-3 text-sm font-medium text-ink disabled:opacity-60"
           >
             ارسال رمز یکبار مصرف
           </button>
         </div>
       ) : (
-        <button
-          type="submit"
-          disabled={submitting}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-accent px-4 py-3 text-sm font-medium text-accent-fg hover:opacity-90 disabled:opacity-60"
-        >
+        <button type="submit" disabled={submitting} className={primaryBtn}>
           {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-          {step === "phone" ? "ادامه" : step === "code" ? "ورود" : "ذخیرهٔ رمز و ادامه"}
+          {step === "phone" ? "ادامه" : "ورود"}
         </button>
       )}
 
@@ -371,7 +322,7 @@ function LiveSignInForm() {
               setDevCode(null);
               setError(null);
             }}
-            className="hover:text-mark"
+            className="hover:text-ink"
           >
             تغییر شماره
           </button>
@@ -380,7 +331,7 @@ function LiveSignInForm() {
               type="button"
               disabled={resendSeconds > 0 || submitting}
               onClick={() => void sendCode()}
-              className="inline-flex items-center gap-1 hover:text-mark disabled:opacity-40"
+              className="inline-flex items-center gap-1 hover:text-ink disabled:opacity-40"
             >
               <RefreshCw className="h-3 w-3" />
               {resendSeconds > 0 ? `ارسال دوباره (${resendSeconds})` : "ارسال دوباره"}

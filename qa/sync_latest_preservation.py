@@ -7,6 +7,10 @@ for group in ['src/components/portrait/','assets/portrait/','src/app/fonts/','pu
  checks.append(group+' unchanged from 289e3a6')
 files=subprocess.check_output(['git','ls-tree','-r','--name-only','f132353','--','src/db/migrations'],text=True).splitlines()
 for file in files:assert subprocess.check_output(['git','show','f132353:'+file])==Path(file).read_bytes(),file
+latest=subprocess.check_output(['git','ls-tree','-r','--name-only','cb20276','--','src/db/migrations'],text=True).splitlines()
+for file in latest: assert subprocess.check_output(['git','show','cb20276:'+file])==Path(file).read_bytes(),file
+assert len(list(Path('src/db/migrations').glob('*.sql')))==22
+checks.append('All 22 merged migrations match their original sources')
 checks.append('All 20 existing migrations retained byte-for-byte, including both 0015 filenames')
 assert subprocess.check_output(['git','show','1ed9ea7:package-lock.json'])==Path('package-lock.json').read_bytes()
 old=json.loads(subprocess.check_output(['git','show','f132353:package.json']));new=json.loads(Path('package.json').read_text());upstream=json.loads(subprocess.check_output(['git','show','1ed9ea7:package.json']))
@@ -20,8 +24,8 @@ checks.append('Upstream dependency lockfile unchanged and no new direct npm depe
 for file in subprocess.check_output(['git','diff','--name-only','f132353'],text=True).splitlines():
  p=Path(file)
  if p.suffix in ['.ts','.tsx','.js','.cjs','.mjs','.md','.py']:
-  text=p.read_text();assert '<<<<<<< HEAD' not in text,file
+  text=p.read_text();assert not any(line.startswith('<' * 7) or line.startswith('>' * 7) for line in text.splitlines()),file
   assert not any('\u4e00'<=c<='\u9fff' for c in text),file
 checks.append('No unresolved markers or unintended CJK in changed source/docs')
-Path('qa/sync-latest-preservation-results.json').write_text(json.dumps({'passed':True,'upstream':'1ed9ea7661d766245975654de22377534af53eb4','checks':checks,'new_npm_dependencies':False},indent=2))
+Path('qa/workspace-preservation-results.json').write_text(json.dumps({'passed':True,'upstream':'cb20276e0f82b6d1baa42bf843a5aa5c9ac05231','checks':checks,'new_npm_dependencies':False},indent=2))
 print('PASS',len(checks),'preservation groups')

@@ -116,7 +116,7 @@ function toRow(pack: AnalyzerPack, row: Joined, referrerCode: string | null): Wo
     publicCode: row.publicCode,
     nameFa: nameOf(row),
     phone: row.phone,
-    status: row.status === "submitted" ? "submitted" : "in_progress",
+    status: row.status === "submitted" ? "submitted" : row.status === "abandoned" ? "abandoned" : "in_progress",
     instrumentVersion: row.instrumentVersion,
     submittedAt: row.submittedAt ? row.submittedAt.toISOString() : null,
     updatedAt: row.updatedAt ? row.updatedAt.toISOString() : null,

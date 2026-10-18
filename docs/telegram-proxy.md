@@ -47,5 +47,8 @@ TELEGRAM_API_BASE=https://hadiran-tg.your-name.workers.dev
 ## نکته‌ها
 
 - پلن رایگان Cloudflare روزانه ۱۰۰ هزار درخواست است.
-- Worker توکن را ذخیره نمی‌کند؛ فقط `/bot…` و `/hook/…` را پاس می‌دهد.
+- Worker توکن را ذخیره نمی‌کند؛ `/hook/<botId>` شناسهٔ ربات هادیران است نه توکن BotFather.
+- Worker را روی `workers.dev` نگه دارید. Route روی کل `hadiranweb.ir/*` نگذارید (حلقه).
+- متغیر اختیاری Worker: `HADIRAN_ORIGIN=https://hadiranweb.ir` (secret نیست).
 - آدرس واقعی Worker را در گیت نگذارید.
+- تلگرام به مبدأ ایرانی timeout می‌دهد؛ مسیر `/hook` را حذف نکنید.

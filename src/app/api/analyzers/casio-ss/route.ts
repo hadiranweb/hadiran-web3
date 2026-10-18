@@ -5,6 +5,7 @@ import { requireAccount } from "@/lib/auth/guard";
 import {
   consentAttempt,
   readAttempt,
+  retakeAttempt,
   saveAnswer,
   submitAttempt,
 } from "@/lib/analyzers/casio-ss/attempts";
@@ -32,6 +33,10 @@ export async function POST(request: Request) {
 
   const preview = await previewAnalyzerAction(body);
   if (preview) return NextResponse.json(preview.data, { status: preview.status });
+  if (body.action === "retake") {
+    const attempt = await retakeAttempt(auth.account.id);
+    return NextResponse.json({ attempt });
+  }
 
   if (body.action === "consent") {
     const attempt = await consentAttempt(auth.account.id, {

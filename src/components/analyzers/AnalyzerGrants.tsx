@@ -7,6 +7,8 @@ type Grant = { publicCode: string; nameFa: string; canEdit: boolean; canReadResp
 
 export function AnalyzerGrants({ slug }: { slug: string }) {
   const [items, setItems] = useState<Grant[]>([]);
+  const [canEdit, setCanEdit] = useState(false);
+  const [canReadResponses, setCanReadResponses] = useState(true);
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -31,7 +33,7 @@ export function AnalyzerGrants({ slug }: { slug: string }) {
     const res = await fetch(`/api/workspace/analyzers/${slug}/grants`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ publicCode: code.trim() }),
+      body: JSON.stringify({ publicCode: code.trim(), canEdit, canReadResponses }),
     });
     const data = (await res.json()) as { error?: string; items?: Grant[] };
     setBusy(false);
@@ -64,11 +66,15 @@ export function AnalyzerGrants({ slug }: { slug: string }) {
   return (
     <section className="space-y-4 rounded-2xl border border-line bg-elev p-6">
       <p className="text-sm leading-7 text-muted">
-        شناسهٔ ۸رقمی آزمون‌ساز را بگذارید. اگر عضو باشد، نقشش آزمون‌ساز می‌شود و این آزمون را می‌بیند.
+        مدیر یا سازنده می‌تواند برای همین آزمون دسترسی بدهد؛ نقش حساب تغییر نمی‌کند.
       </p>
+      <div className="flex flex-wrap gap-4 text-sm">
+        <label className="flex items-center gap-2"><input type="checkbox" checked={canEdit} onChange={(event) => setCanEdit(event.target.checked)} />ویرایش آزمون</label>
+        <label className="flex items-center gap-2"><input type="checkbox" checked={canReadResponses} onChange={(event) => setCanReadResponses(event.target.checked)} />مشاهدهٔ پاسخ‌ها</label>
+      </div>
       <div className="flex flex-wrap gap-2">
         <input
-          className="rounded-xl border border-line px-3 py-2 text-sm"
+          className="min-w-0 max-w-full rounded-xl border border-line bg-elev px-3 py-2 text-sm"
           dir="ltr"
           aria-label="شناسهٔ هشت‌رقمی حساب"
           maxLength={8}
@@ -94,6 +100,7 @@ export function AnalyzerGrants({ slug }: { slug: string }) {
             <li key={item.publicCode} className="flex items-center justify-between rounded-xl border border-line px-3 py-2 text-sm">
               <span>
                 {item.nameFa} · <span dir="ltr">{item.publicCode}</span>
+                {item.canReadResponses ? " · پاسخ و تفسیر" : ""}
               </span>
               <button type="button" className="text-red-700" onClick={() => void remove(item.publicCode)} disabled={busy}>
                 برداشتن

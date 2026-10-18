@@ -16,12 +16,24 @@ import {
   telegramDeleteWebhook,
   telegramGetMe,
   telegramGetWebhookInfo,
+  telegramSetChatMenuButton,
   telegramSetMyCommands,
+  telegramSetMyDescription,
+  telegramSetMyShortDescription,
   telegramSetWebhook,
   webhookUrlFor,
   webhookUrlIsPublicHttps,
 } from "@/lib/bots/telegram";
-import { BOT_COMMANDS } from "@/lib/bots/copy";
+import {
+  botVars,
+  defaultScript,
+  interpolateBotText,
+  parseBotScript,
+  parseBotService,
+  telegramCommandsOf,
+  type BotScript,
+  type BotService,
+} from "@/lib/bots/script";
 import type { BotStatus, BotView } from "@/lib/bots/types";
 
 export type { BotStatus, BotView };
@@ -39,7 +51,12 @@ function viewOf(row: BotRow, extra?: { pendingUpdateCount?: number | null }): Bo
     titleFa: row.titleFa,
     channel: "telegram",
     status: asStatus(row.status),
+    service: parseBotService(row.service),
     analyzerSlug: row.analyzerSlug,
+    script: parseBotScript({
+      ...(row.script && typeof row.script === "object" && !Array.isArray(row.script) ? row.script : {}),
+      service: row.service,
+    }),
     telegramUsername: row.telegramUsername,
     telegramFirstName: row.telegramFirstName,
     tokenHint: row.tokenHint,
@@ -48,8 +65,10 @@ function viewOf(row: BotRow, extra?: { pendingUpdateCount?: number | null }): Bo
     lastError: row.lastError,
     lastWebhookAt: row.lastWebhookAt ? row.lastWebhookAt.toISOString() : null,
     lastUpdateKind: row.lastUpdateKind,
+    lastInboundStatus: row.lastInboundStatus ?? null,
+    telegramLastError: row.telegramLastError,
     connectedAt: row.connectedAt ? row.connectedAt.toISOString() : null,
-    pendingUpdateCount: extra?.pendingUpdateCount ?? null,
+    pendingUpdateCount: extra?.pendingUpdateCount ?? row.telegramPendingCount ?? null,
   };
 }
 
@@ -88,11 +107,13 @@ export async function readBotRowById(id: string): Promise<BotRow | null> {
 
 export async function createBot(
   ownerId: number,
-  input: { titleFa: string; analyzerSlug: string | null },
+  input: { titleFa: string; service?: unknown; analyzerSlug?: string | null },
 ): Promise<BotView> {
   await ensureBotsSchema();
   const titleFa = input.titleFa.replace(/\s+/g, " ").trim();
   if (titleFa.length < 3) throw new Error("عنوان حداقل سه نویسه باشد.");
+  const service = parseBotService(input.service);
+  const analyzerSlug = service === "analyzers" ? (input.analyzerSlug ?? null) : null;
   const id = newBotId();
   const [row] = await db
     .insert(bots)
@@ -101,7 +122,9 @@ export async function createBot(
       ownerId,
       channel: "telegram",
       titleFa,
-      analyzerSlug: input.analyzerSlug,
+      service,
+      analyzerSlug,
+      script: defaultScript(service),
       status: "disconnected",
     })
     .returning();
@@ -111,7 +134,7 @@ export async function createBot(
 export async function updateBot(
   ownerId: number,
   id: string,
-  input: { titleFa?: string; analyzerSlug?: string | null },
+  input: { titleFa?: string; service?: unknown; analyzerSlug?: string | null; script?: unknown },
 ): Promise<BotView> {
   await ensureBotsSchema();
   const [existing] = await db.select().from(bots).where(eq(bots.id, id)).limit(1);
@@ -120,12 +143,44 @@ export async function updateBot(
     typeof input.titleFa === "string" && input.titleFa.trim().length >= 3
       ? input.titleFa.replace(/\s+/g, " ").trim()
       : existing.titleFa;
-  const analyzerSlug = input.analyzerSlug === undefined ? existing.analyzerSlug : input.analyzerSlug;
+  const service: BotService =
+    input.service === undefined ? parseBotService(existing.service) : parseBotService(input.service);
+  const analyzerSlug =
+    service !== "analyzers"
+      ? null
+      : input.analyzerSlug === undefined
+        ? existing.analyzerSlug
+        : input.analyzerSlug;
+  const script =
+    input.script === undefined
+      ? parseBotScript({
+          ...(existing.script && typeof existing.script === "object" && !Array.isArray(existing.script)
+            ? existing.script
+            : {}),
+          service,
+        })
+      : parseBotScript({
+          ...(input.script && typeof input.script === "object" && !Array.isArray(input.script)
+            ? (input.script as Record<string, unknown>)
+            : {}),
+          service,
+        });
   const [row] = await db
     .update(bots)
-    .set({ titleFa, analyzerSlug, updatedAt: new Date() })
+    .set({ titleFa, analyzerSlug, script, service, updatedAt: new Date() })
     .where(eq(bots.id, id))
     .returning();
+  if (row.tokenCipher) {
+    try {
+      await publishTelegramSurface(
+        openSecret(row.tokenCipher),
+        parseBotScript({ ...script, service }),
+        row.titleFa,
+      );
+    } catch {
+      // menu is optional
+    }
+  }
   return viewOf(row);
 }
 
@@ -142,6 +197,27 @@ export async function deleteBot(ownerId: number, id: string): Promise<void> {
     }
   }
   await db.delete(bots).where(eq(bots.id, id));
+}
+
+async function publishTelegramSurface(token: string, script: BotScript, titleFa: string) {
+  await telegramSetMyCommands(token, telegramCommandsOf(script));
+  const description = interpolateBotText(script.texts.welcome, botVars({ service: titleFa })).slice(0, 512);
+  const shortDescription = (script.texts.startDescription || "شروع یا ادامه").slice(0, 120);
+  try {
+    await telegramSetMyDescription(token, description);
+  } catch {
+    // اختیاری
+  }
+  try {
+    await telegramSetMyShortDescription(token, shortDescription);
+  } catch {
+    // اختیاری
+  }
+  try {
+    await telegramSetChatMenuButton(token);
+  } catch {
+    // اختیاری
+  }
 }
 
 export async function connectBot(
@@ -172,7 +248,13 @@ export async function connectBot(
     const webhookSecret = newWebhookSecret();
     await telegramSetWebhook(token, { url, secretToken: webhookSecret });
     try {
-      await telegramSetMyCommands(token, BOT_COMMANDS);
+      const script = parseBotScript({
+        ...(existing.script && typeof existing.script === "object" && !Array.isArray(existing.script)
+          ? existing.script
+          : {}),
+        service: existing.service,
+      });
+      await publishTelegramSurface(token, script, existing.titleFa);
     } catch {
       // menu is optional; webhook still counts as connected
     }
@@ -244,6 +326,8 @@ export async function refreshBot(ownerId: number, id: string): Promise<BotView> 
       .set({
         status: connected ? "connected" : existing.status === "paused" ? "paused" : "disconnected",
         lastError: info.last_error_message || existing.lastError,
+        telegramLastError: info.last_error_message || null,
+        telegramPendingCount: info.pending_update_count ?? 0,
         updatedAt: new Date(),
       })
       .where(eq(bots.id, id))
@@ -265,14 +349,15 @@ export async function markBotLastError(id: string, lastError: string | null): Pr
   await db.update(bots).set({ lastError, updatedAt: new Date() }).where(eq(bots.id, id));
 }
 
-export async function markWebhookHit(id: string, kind: string | null): Promise<void> {
+export async function markWebhookHit(id: string, kind: string | null, status = 200): Promise<void> {
   await ensureBotsSchema();
   await db
     .update(bots)
     .set({
       lastWebhookAt: new Date(),
       lastUpdateKind: kind,
-      lastError: null,
+      lastInboundStatus: status,
+      ...(status === 200 ? { lastError: null } : {}),
       updatedAt: new Date(),
     })
     .where(eq(bots.id, id));

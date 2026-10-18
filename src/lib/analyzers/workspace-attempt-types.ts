@@ -9,7 +9,7 @@ export type WorkspaceAttemptRow = {
   publicCode: string | null;
   nameFa: string;
   phone: string;
-  status: "submitted" | "in_progress";
+  status: "submitted" | "in_progress" | "abandoned";
   instrumentVersion: string;
   submittedAt: string | null;
   updatedAt: string | null;

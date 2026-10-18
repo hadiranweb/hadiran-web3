@@ -33,7 +33,10 @@ with sync_playwright() as pw:
      assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),(role,path,theme,width,page.evaluate('document.documentElement.scrollWidth'))
      cases.append([role,path,theme,width])
    if '/workspace/bots/' in path and not path.endswith('/new'):
-    expect(page.get_by_role('heading',name='گفتگوی ربات')).to_be_visible();page.screenshot(path='qa/sync-bot-editor-dark.png',full_page=False)
+    page.get_by_role('button',name='گفتگو',exact=True).click()
+    expect(page.get_by_role('heading',name='قالب گفتگو')).to_be_visible();page.screenshot(path='qa/sync-bot-editor-dark.png',full_page=False)
+    for width in [320,390,768,1440]:
+     page.set_viewport_size({'width':width,'height':900});assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),('bot script',width);cases.append([role,'bot script','dark',width])
    if path=='/workspace/bots/new':
     assert page.locator('input').count()>0
    if path=='/workspace/analyzers/casio-ss':
@@ -72,6 +75,6 @@ with sync_playwright() as pw:
  c.close()
  assert not errors,errors
  assert not bad,bad
- Path('qa/sync-upstream-browser-results.json').write_text(json.dumps({'passed':True,'layout_cases':len(cases),'cases':cases,'checks':['owner/author role-filtered sidebar','response, interpretation, template and grant tabs','member summary without full interpretation/gate UI','new modules mobile/light/dark reflow','Persian RTL and English LTR sidebar','mobile Escape close'],'browser_errors':errors,'http_5xx':bad,'note':'Real local DB/JWT with simulated HTTPS; no external Telegram'},ensure_ascii=False,indent=2))
+ Path('qa/workspace-db-browser-results.json').write_text(json.dumps({'passed':True,'layout_cases':len(cases),'cases':cases,'checks':['owner/author role-filtered sidebar','response, interpretation, template and grant tabs','member summary without full interpretation/gate UI','new modules mobile/light/dark reflow','Persian RTL and English LTR sidebar','mobile Escape close'],'browser_errors':errors,'http_5xx':bad,'note':'Real local DB/JWT with simulated HTTPS; no external Telegram'},ensure_ascii=False,indent=2))
  print('PASS',len(cases),'layout cases; no browser exceptions or HTTP 5xx')
  b.close()

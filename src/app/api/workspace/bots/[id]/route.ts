@@ -21,21 +21,28 @@ export async function PATCH(request: Request, { params }: Ctx) {
   if (auth.error) return auth.error;
   if (auth.account.id === 0) return NextResponse.json({ error: "این بخش به دیتابیس واقعی نیاز دارد." }, { status: 503 });
   const { id } = await params;
-  let body: { titleFa?: unknown; analyzerSlug?: unknown };
+  let body: { titleFa?: unknown; service?: unknown; analyzerSlug?: unknown; script?: unknown };
   try {
-    body = (await request.json()) as { titleFa?: unknown; analyzerSlug?: unknown };
+    body = (await request.json()) as {
+      titleFa?: unknown;
+      service?: unknown;
+      analyzerSlug?: unknown;
+      script?: unknown;
+    };
   } catch {
     return NextResponse.json({ error: "بدنه نامعتبر است." }, { status: 400 });
   }
   try {
     const bot = await updateBot(auth.account.id, id, {
       titleFa: typeof body.titleFa === "string" ? body.titleFa : undefined,
+      service: "service" in body ? body.service : undefined,
       analyzerSlug:
         body.analyzerSlug === null
           ? null
           : typeof body.analyzerSlug === "string"
             ? body.analyzerSlug.trim() || null
             : undefined,
+      script: "script" in body ? body.script : undefined,
     });
     return NextResponse.json({ ok: true, bot });
   } catch (error) {

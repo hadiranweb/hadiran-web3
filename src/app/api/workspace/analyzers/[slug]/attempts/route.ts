@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireStaff } from "@/lib/auth/guard";
+import { requireAccount } from "@/lib/auth/guard";
 import { analyzerAccess } from "@/lib/analyzers/access";
 import { readAuthoredPack } from "@/lib/analyzers/authored";
 import { listWorkspaceAttempts } from "@/lib/analyzers/workspace-attempts";
@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 type Ctx = { params: Promise<{ slug: string }> };
 
 export async function GET(_request: Request, { params }: Ctx) {
-  const auth = await requireStaff();
+  const auth = await requireAccount();
   if (auth.error) return auth.error;
   if (auth.account.id === 0) return NextResponse.json({ error: "این بخش به دیتابیس واقعی نیاز دارد." }, { status: 503 });
   const { slug } = await params;

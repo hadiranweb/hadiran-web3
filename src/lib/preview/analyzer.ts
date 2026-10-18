@@ -8,7 +8,9 @@ export async function previewAnalyzerAction(body: { action?: unknown; id?: unkno
   const store = await previewStore();
   if (!store) return null;
   const fail = (error: string, status = 400) => ({ data: { error }, status });
-  if (body.action === "consent") {
+  if (body.action === "retake") {
+    store.attempt = null;
+  } else if (body.action === "consent") {
     store.attempt ||= { instrumentVersion: INSTRUMENT_VERSION, status: "in_progress", consentAt: new Date().toISOString(), answers: {}, submittedAt: null, results: null };
   } else if (body.action === "answer") {
     if (store.attempt?.status === "submitted") return fail("already_submitted",409);

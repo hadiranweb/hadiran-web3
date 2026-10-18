@@ -101,6 +101,20 @@ export async function readAttempt(accountId: number): Promise<AttemptView | null
   return submitted ? view(await withCodes(submitted), pack) : null;
 }
 
+export async function retakeAttempt(accountId: number): Promise<AttemptView> {
+  await ensureCasioAttemptsSchema();
+  const pack = await livePack();
+  const open = await openAttempt(accountId);
+  if (open) {
+    await db
+      .update(casioAttempts)
+      .set({ status: "abandoned", updatedAt: new Date() })
+      .where(eq(casioAttempts.id, open.id));
+  }
+  const row = await createOpen(accountId, pack);
+  return view(await withCodes(row), pack);
+}
+
 export async function consentAttempt(
   accountId: number,
   codes?: { referralCode?: unknown; discountCode?: unknown },

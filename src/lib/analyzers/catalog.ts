@@ -1,3 +1,4 @@
+import { analyzerPublicPath } from "@/lib/analyzers/paths";
 import { loadPacks } from "@/lib/analyzers/registry";
 import type { AnalyzerPackStatus } from "@/lib/analyzers/pack";
 
@@ -17,7 +18,7 @@ function hubStatus(status: AnalyzerPackStatus): AnalyzerStatus {
 
 export function analyzerHref(item: Analyzer): string | null {
   if (item.status !== "open") return null;
-  return `/analyzers/${item.slug}`;
+  return analyzerPublicPath(item.slug);
 }
 
 /** فهرست عمومی: پیش‌نویس‌های تألیف‌شده روی هب نمی‌آیند. */

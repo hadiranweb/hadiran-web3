@@ -1,0 +1,16 @@
+{
+  "passed": true,
+  "checks": [
+    "AES-GCM roundtrip and tamper rejection",
+    "Independent hub ignores malformed/group updates and requests contact on start",
+    "Contact without matching Telegram user ID cannot link an account",
+    "Contact registration and policy work without web JWT; hub lists available exams",
+    "Pack consent, question guide and range callback submit scored attempt",
+    "Replay is immutable and restart creates a separate clean attempt",
+    "Clear chat invokes Telegram deletion without deleting assessment history",
+    "Custom service runs without an exam or automatic password links"
+  ],
+  "telegram_http": "fully mocked",
+  "database": "local disposable PostgreSQL",
+  "real_telegram_tested": false
+}

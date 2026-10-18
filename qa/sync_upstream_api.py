@@ -51,7 +51,7 @@ owner.call('/api/workspace/analyzers/'+slug,'PUT',pack)
 author.call('/api/workspace/analyzers/'+slug,expected=403)
 author.call('/api/workspace/analyzers/'+slug+'/attempts',expected=403)
 code=author.call('/api/account/referral')['publicCode']
-owner.call('/api/workspace/analyzers/'+slug+'/grants','POST',{'publicCode':code})
+owner.call('/api/workspace/analyzers/'+slug+'/grants','POST',{'publicCode':code,'canEdit':True,'canReadResponses':True})
 access=author.call('/api/workspace/analyzers/'+slug)
 assert access['canEdit'] and access['canReadResponses'] and not access['canGrant']
 assert slug in [x['slug'] for x in author.call('/api/workspace/analyzers')['authored']]
@@ -68,7 +68,7 @@ sql('UPDATE analyzer_grants SET can_edit=false,can_read_responses=false WHERE sl
 assert not author.call('/api/workspace/analyzers/'+slug)['canEdit']
 author.call('/api/workspace/analyzers/'+slug,'PUT',pack,expected=403)
 author.call('/api/workspace/analyzers/'+slug+'/attempts',expected=403)
-owner.call('/api/workspace/analyzers/'+slug+'/grants','POST',{'publicCode':code})
+owner.call('/api/workspace/analyzers/'+slug+'/grants','POST',{'publicCode':code,'canEdit':True,'canReadResponses':True})
 check('Read-only grants reject writes and response access at the server')
 ownerCode=owner.call('/api/account/referral')['publicCode'];memberCode=member.call('/api/account/referral')['publicCode']
 member.call('/api/account/referral','POST',{'referralCode':memberCode},expected=400)
@@ -97,7 +97,7 @@ check('Live respondent answers, scores, referral and discount metadata visible o
 owner.call('/api/workspace/discounts','PATCH',{'code':discount,'active':False})
 author.call('/api/analyzers/'+slug,'POST',{'action':'consent','discountCode':discount},expected=400)
 check('Disabled discounts cannot be redeemed')
-owner.call('/api/workspace/analyzers/'+slug+'/grants','DELETE',{'publicCode':code})
+owner.call('/api/workspace/analyzers/'+slug+'/grants','DELETE',{'publicCode':code,'canEdit':True,'canReadResponses':True})
 author.call('/api/workspace/analyzers/'+slug,expected=403)
 author.call('/api/workspace/analyzers/'+slug+'/attempts',expected=403)
 assert author.call('/api/workspace/analyzers/'+newslug)['canEdit']
@@ -117,5 +117,5 @@ anon.call('/api/bots/telegram/'+bid+'/webhook','POST',{'update_id':1},expected=4
 owner.call('/api/workspace/bots/'+bid,'DELETE',{})
 owner.call('/api/workspace/bots/'+bid,expected=404)
 check('Unauthenticated webhook and unconfigured connection rejected; local bot deletion')
-Path('qa/sync-upstream-api-results.json').write_text(json.dumps({'upstream':'1ed9ea7661d766245975654de22377534af53eb4','passed':True,'checks':checks,'external_telegram_tested':False},ensure_ascii=False,indent=2))
+Path('qa/workspace-upstream-api-results.json').write_text(json.dumps({'upstream':'cb20276e0f82b6d1baa42bf843a5aa5c9ac05231','passed':True,'checks':checks,'external_telegram_tested':False},ensure_ascii=False,indent=2))
 print('PASS',len(checks),'groups')
