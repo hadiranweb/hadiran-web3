@@ -3,7 +3,8 @@
   "checks": [
     "Real password UI over HTTPS proxy, secure HttpOnly JWT cookie",
     "Real listing creation, list refresh and editing form",
-    "Submitted member report renders on mobile with policy/onboarding preserved"
+    "Authored analyzer creation, range-question editing and pack persistence",
+    "Submitted member mobile report and completed two-step policy/profile onboarding"
   ],
   "browser_errors": [],
   "http_5xx": [],

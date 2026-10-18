@@ -49,7 +49,7 @@ with sync_playwright() as p:
  page.get_by_role('link',name='کالای جدید',exact=True).click();expect(page.locator('h1')).to_have_text('کالای جدید');assert page.locator('input[name=titleFa]').is_disabled()
  check('Complete real commerce UI remains present; no fake demo commerce writes')
  # Localized sidebar and both themes for all administrative modules, including new ones.
- routes=['/workspace','/workspace/knowledge','/workspace/projects','/workspace/collaborations','/workspace/shop','/workspace/shop/listings/new','/workspace/capture','/workspace/records/'+rid,'/workspace/settings','/workspace/analyzers']
+ routes=['/workspace','/workspace/knowledge','/workspace/projects','/workspace/collaborations','/workspace/shop','/workspace/shop/listings/new','/workspace/capture','/workspace/records/'+rid,'/workspace/settings','/workspace/analyzers','/workspace/analyzers/new','/workspace/analyzers/casio-ss']
  layouts=0
  for locale in ['fa','en']:
   for width in [375,768,1280,1440]:

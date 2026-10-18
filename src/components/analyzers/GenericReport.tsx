@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/workspace/WorkspaceLink";
 import type { GenericReport } from "@/lib/analyzers/generic-report";
 
 const FA = "۰۱۲۳۴۵۶۷۸۹";

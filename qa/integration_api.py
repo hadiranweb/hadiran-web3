@@ -98,6 +98,32 @@ assert 'گزارش شخصی' in report and 'درخت' in report
 member.call('/api/analyzers/casio-ss','POST',{'action':'answer','id':'MG.A1','value':6},expected=409)
 assert member.call('/api/analyzers/casio-ss')['attempt']['status']=='submitted'
 check('38 analyzer answers: consent, validation, incomplete guard, exact scoring, five-layer report, immutable submission')
+# Latest repository authoring feature, including DB isolation from the code-defined CASIO pack.
+member.call('/api/workspace/analyzers',expected=403)
+owner.call('/api/workspace/analyzers','POST',{'slug':'casio-ss','nameFa':'نام ممنوع'},expected=400)
+authoredSlug='qa-analyzer-'+nonce
+owner.call('/api/workspace/analyzers','POST',{'slug':authoredSlug,'nameFa':'تحلیلگر تألیفی آزمون'})
+owner.call('/api/workspace/analyzers','POST',{'slug':authoredSlug,'nameFa':'تحلیلگر تکراری'},expected=409)
+pack=owner.call('/api/workspace/analyzers/'+authoredSlug)['pack']
+assert pack['status']=='draft'
+member.call('/api/analyzers/'+authoredSlug,expected=404)
+anon.call('/analyzers/'+authoredSlug,expected=404)
+pack['status']='open'
+owner.call('/api/workspace/analyzers/'+authoredSlug,'PUT',pack,expected=400)
+pack['sections'][0]['items']=[{'id':'QA.1','kind':'range','text':'میزان آمادگی شما چقدر است؟','reverse':False,'anchors':{'0':'کم','5':'متوسط','10':'زیاد'}}]
+pack['formulas']=[{'id':'qa-mean','op':'mean','of':['QA.1']}]
+owner.call('/api/workspace/analyzers/'+authoredSlug,'PUT',pack)
+assert 'تحلیلگر تألیفی آزمون' in anon.call('/analyzers')
+assert 'تحلیلگر تألیفی آزمون' in anon.call('/analyzers/'+authoredSlug)
+member.call('/api/analyzers/'+authoredSlug,'POST',{'action':'consent'})
+member.call('/api/analyzers/'+authoredSlug,'POST',{'action':'answer','id':'QA.1','value':7})
+generic=member.call('/api/analyzers/'+authoredSlug,'POST',{'action':'submit'})['attempt']
+assert generic['results']['scores']['qa-mean']==7
+assert 'گزارش شخصی' in member.call('/analyzers/'+authoredSlug+'/report')
+assert owner.call('/api/workspace/analyzers/casio-ss')['readonly']
+owner.call('/api/workspace/analyzers/casio-ss','PUT',pack,expected=400)
+assert member.call('/api/analyzers/casio-ss')['attempt']['results']==fixture['results']
+check('Latest authoring: owner-only create/duplicate/reserved slug, private draft, sanitized publish, generic execution/report; CASIO read-only and unchanged')
 # Signed preview tickets must never authenticate when DATABASE_URL is configured, even with TEST_MODE=1.
 demo=urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:3001/api/auth/otp/verify',data=json.dumps({'phone':'09121234567','code':'123456'}).encode(),headers={'Content-Type':'application/json'}))
 ticket=json.load(demo)['preview_ticket']

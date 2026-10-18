@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/workspace/WorkspaceLink";
 import { notFound, redirect } from "next/navigation";
 import { AnalyzerRun } from "@/components/analyzers/AnalyzerRun";
 import { JsonLd } from "@/components/JsonLd";

@@ -1,10 +1,11 @@
 "use client";
+import { previewFetch as fetch } from "@/lib/auth/preview-fetch";
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 const fieldClass =
-  "w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-400";
+  "w-full rounded-xl border border-line bg-elev px-3 py-2 text-sm text-ink outline-none focus:border-indigo-400";
 
 export function AnalyzerCreateForm() {
   const router = useRouter();
@@ -35,21 +36,21 @@ export function AnalyzerCreateForm() {
   }
 
   return (
-    <form onSubmit={(event) => void onSubmit(event)} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6">
+    <form onSubmit={(event) => void onSubmit(event)} className="space-y-4 rounded-2xl border border-line bg-elev p-6">
       <label className="block text-sm">
-        <span className="mb-1 block text-slate-600">نام فارسی</span>
+        <span className="mb-1 block text-muted">نام فارسی</span>
         <input name="nameFa" required minLength={3} className={fieldClass} placeholder="مثلاً ارزیابی تیم فروش" />
       </label>
       <label className="block text-sm">
-        <span className="mb-1 block text-slate-600">شناسهٔ لاتین پایدار</span>
+        <span className="mb-1 block text-muted">شناسهٔ لاتین پایدار</span>
         <input name="slug" required className={fieldClass} placeholder="sales-health" dir="ltr" />
-        <span className="mt-1 block text-xs text-slate-500">حروف کوچک انگلیسی و خط تیره. بعداً عوض نمی‌شود.</span>
+        <span className="mt-1 block text-xs text-muted">حروف کوچک انگلیسی و خط تیره. بعداً عوض نمی‌شود.</span>
       </label>
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
       <button
         type="submit"
         disabled={busy}
-        className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+        className="rounded-xl bg-accent px-4 py-2 text-sm font-medium text-accent-fg disabled:opacity-60"
       >
         {busy ? "در حال ساخت…" : "ساخت پیش‌نویس"}
       </button>

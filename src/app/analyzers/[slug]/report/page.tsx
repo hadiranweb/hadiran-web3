@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/workspace/WorkspaceLink";
 import { notFound, redirect } from "next/navigation";
 import { GenericReportView } from "@/components/analyzers/GenericReport";
 import { PageHeader } from "@/components/ui/PageHeader";

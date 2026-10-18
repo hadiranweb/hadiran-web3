@@ -1,7 +1,8 @@
 "use client";
+import { previewFetch as fetch } from "@/lib/auth/preview-fetch";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/workspace/WorkspaceLink";
 import { useRouter } from "next/navigation";
 import { itemsOf, sectionOf, type AnalyzerPack, type Item } from "@/lib/analyzers/pack";
 import {
@@ -78,10 +79,8 @@ export function AnalyzerRun({ pack }: { pack: AnalyzerPack }) {
 
   useEffect(() => {
     const draft = readDraft<DraftState>(draftKey) ?? { consent: false, answers: {}, index: 0 };
-    setConsent(draft.consent);
-    setAnswers(draft.answers);
-    setIndex(Math.min(Math.max(draft.index, 0), Math.max(allItems.length - 1, 0)));
-    setReady(true);
+    let cancelled = false;
+    queueMicrotask(() => { if (cancelled) return; setConsent(draft.consent); setAnswers(draft.answers); setIndex(Math.min(Math.max(draft.index, 0), Math.max(allItems.length - 1, 0))); setReady(true); });
 
     void (async () => {
       const res = await fetch(api, { cache: "no-store" });
@@ -111,6 +110,7 @@ export function AnalyzerRun({ pack }: { pack: AnalyzerPack }) {
     })();
 
     return () => {
+      cancelled = true;
       if (advanceTimer.current) window.clearTimeout(advanceTimer.current);
     };
     // load once per pack
@@ -127,7 +127,10 @@ export function AnalyzerRun({ pack }: { pack: AnalyzerPack }) {
 
   useEffect(() => {
     if (item?.kind === "text") {
-      setTextDraft(typeof answers[item.id] === "string" ? String(answers[item.id]) : "");
+      const id = item.id;
+      let cancelled = false;
+      queueMicrotask(() => { if (!cancelled) setTextDraft(typeof answers[id] === "string" ? String(answers[id]) : ""); });
+      return () => { cancelled = true; };
     }
   }, [item, answers]);
 

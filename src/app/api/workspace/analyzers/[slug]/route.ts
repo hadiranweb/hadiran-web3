@@ -10,6 +10,7 @@ type Ctx = { params: Promise<{ slug: string }> };
 export async function GET(_request: Request, { params }: Ctx) {
   const auth = await requireOwner();
   if (auth.error) return auth.error;
+  if (auth.account.id === 0) return NextResponse.json({ error: "تألیف تحلیلگر به دیتابیس نیاز دارد." }, { status: 503 });
   const { slug } = await params;
   const pack = await readAuthoredPack(slug);
   if (!pack) return NextResponse.json({ error: "not_found" }, { status: 404 });
@@ -19,6 +20,7 @@ export async function GET(_request: Request, { params }: Ctx) {
 export async function PUT(request: Request, { params }: Ctx) {
   const auth = await requireOwner();
   if (auth.error) return auth.error;
+  if (auth.account.id === 0) return NextResponse.json({ error: "تألیف تحلیلگر به دیتابیس نیاز دارد." }, { status: 503 });
   const { slug } = await params;
   const existing = await readAuthoredPack(slug);
   if (!existing) return NextResponse.json({ error: "not_found" }, { status: 404 });

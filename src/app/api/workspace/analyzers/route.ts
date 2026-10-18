@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const auth = await requireOwner();
   if (auth.error) return auth.error;
+  if (auth.account.id === 0) return NextResponse.json({ error: "تألیف تحلیلگر به دیتابیس نیاز دارد." }, { status: 503 });
   const authored = await listAuthoredPacks();
   return NextResponse.json({
     authored: authored.map((pack) => ({
@@ -23,6 +24,7 @@ export async function GET() {
 export async function POST(request: Request) {
   const auth = await requireOwner();
   if (auth.error) return auth.error;
+  if (auth.account.id === 0) return NextResponse.json({ error: "تألیف تحلیلگر به دیتابیس نیاز دارد." }, { status: 503 });
   let body: { slug?: unknown; nameFa?: unknown };
   try {
     body = (await request.json()) as { slug?: unknown; nameFa?: unknown };

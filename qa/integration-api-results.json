@@ -10,6 +10,7 @@
     "Order resume, buyer isolation, decline/re-reference/confirm, idempotent entitlement, no PSP",
     "Buyer cancellation",
     "38 analyzer answers: consent, validation, incomplete guard, exact scoring, five-layer report, immutable submission",
+    "Latest authoring: owner-only create/duplicate/reserved slug, private draft, sanitized publish, generic execution/report; CASIO read-only and unchanged",
     "Preview bypass is disabled against a configured database",
     "JWT session revocation invalidates replayed cookie"
   ],

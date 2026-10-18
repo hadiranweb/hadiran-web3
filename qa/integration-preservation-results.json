@@ -1,0 +1,19 @@
+{
+  "status": "PASS",
+  "checks": {
+    "public/hadiran-portrait.svg": true,
+    "src/components/portrait/ReassemblyPortrait.tsx": true,
+    "src/components/portrait/portrait.generated.ts": true,
+    "src/app/fonts/IRANSharp-Regular.woff2": true,
+    "src/app/fonts/IRANSharp-Bold.woff2": true,
+    "src/app/fonts/IRANSharp-Light.woff2": true,
+    "production_shop_services_unchanged": true,
+    "scoring_and_reports_unchanged": true,
+    "all_migrations_preserved": true,
+    "no_npm_dependency_changes": true,
+    "lockfile_unchanged": true,
+    "all_upstream_pages_present": true
+  },
+  "upstream_pages_checked": 38,
+  "migrations_checked": 15
+}
