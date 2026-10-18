@@ -15,6 +15,7 @@ import type {
   Section,
 } from "@/lib/analyzers/pack";
 import { DEFAULT_ANCHORS } from "@/lib/analyzers/sanitize";
+import { AnalyzerResponses } from "@/components/analyzers/AnalyzerResponses";
 
 const fieldClass =
   "w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-400";
@@ -30,7 +31,7 @@ const ops: FormulaOp[] = [
   "matmul",
 ];
 
-type Tab = "meta" | "items" | "score" | "report";
+type Tab = "meta" | "items" | "score" | "report" | "responses";
 
 function emptyReport(): PackReport {
   return {
@@ -140,6 +141,7 @@ export function AnalyzerEditor({ initial }: { initial: AnalyzerPack }) {
             ["items", `سؤال‌ها (${itemCount})`],
             ["score", "نمره"],
             ["report", "گزارش"],
+            ["responses", "پاسخ‌ها"],
           ] as [Tab, string][]
         ).map(([id, label]) => (
           <button
@@ -298,6 +300,8 @@ export function AnalyzerEditor({ initial }: { initial: AnalyzerPack }) {
           onChange={(report) => patch({ ...pack, report })}
         />
       ) : null}
+
+      {tab === "responses" ? <AnalyzerResponses slug={pack.slug} /> : null}
 
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
       {saved ? <p className="text-sm text-teal-800">ذخیره شد.</p> : null}
