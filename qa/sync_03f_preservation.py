@@ -1,7 +1,7 @@
 """Pinned upstream merge checks; only the user-selected CodeMirror exception is allowed."""
 from pathlib import Path
 import subprocess,json
-old='ecf3b5807bcc2868512786cd25c53c62066c130f';up='03f0235668054f7b83f6fad6881e137231557758';checks=[]
+old='ecf3b5807bcc2868512786cd25c53c62066c130f';up='ab290dcf7b6998c5994f5bb3cddc3454565444e5';checks=[]
 def unchanged(ref,path):assert not subprocess.check_output(['git','diff',ref,'--',path]),path
 for path in ['src/components/portrait','assets/portrait','src/app/fonts','public/avatars','public/brand','public/hadiran-portrait.svg','src/components/navigation/useDisclosure.ts','src/lib/shop/orders.ts','src/lib/finance','src/components/finance','src/lib/commerce/assessment-policy.ts','src/lib/workspace/network.ts','src/app/api/workspace/network']:
  unchanged(old,path)

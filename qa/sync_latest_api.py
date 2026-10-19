@@ -24,8 +24,10 @@ def check(name):checks.append(name);print('PASS',name,flush=True)
 owner,author,member,anon=[Client(phone) for phone in ['09121234567','09121110001','09121234568',None]]
 code=author.call('/api/account/referral')['publicCode']
 owner.call('/api/workspace/analyzers/casio-ss/grants','POST',{'publicCode':code})
-rows=author.call('/api/workspace/analyzers/casio-ss/attempts')['items'];assert len(rows)==1
-row=rows[0];assert row['gate']['bandId']=='yellow' and len(row['gate']['dimensions'])==3
+rows=author.call('/api/workspace/analyzers/casio-ss/attempts')['items']
+# Other suites may add respondents; bind these assertions to this suite's own member.
+matched=[row for row in rows if row['phone']=='09121234568'];assert len(matched)==1
+row=matched[0];assert row['gate']['bandId']=='yellow' and len(row['gate']['dimensions'])==3
 assert row['rawAnswers'] and row['rawResults']['scores']['gate-band']=='yellow'
 member.call('/api/workspace/analyzers/casio-ss/attempts',expected=403)
 anon.call('/api/workspace/analyzers/casio-ss/attempts',expected=401)

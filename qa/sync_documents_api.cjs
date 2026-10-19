@@ -45,5 +45,5 @@ try{
  assert.deepEqual(await money(),beforeMoney);pass('Browsing, template editing and conversion create no payment, discount, shop grant or wallet effect');
  fs.mkdirSync('/home/user/.cache',{recursive:true});fs.writeFileSync('/home/user/.cache/sync-docs-clients.json',JSON.stringify(cookies));fs.writeFileSync('qa/sync-documents-fixture.json',JSON.stringify({local_only:true,documentId,attemptId:attempt},null,2));
 }finally{await faultOff();await call('owner','/api/workspace/document-templates/casio-ss','PUT',{chrome:own.chrome});await call('author','/api/workspace/document-templates/casio-ss','PUT',{chrome:author.chrome})}
-fs.writeFileSync('qa/sync-documents-api-results.json',JSON.stringify({passed:true,upstream:'03f0235668054f7b83f6fad6881e137231557758',checks,external_payments:false},null,2));
+fs.writeFileSync('qa/sync-documents-api-results.json',JSON.stringify({passed:true,upstream:'ab290dcf7b6998c5994f5bb3cddc3454565444e5',checks,external_payments:false},null,2));
 })().catch(e=>{console.error(e);process.exitCode=1}).finally(()=>db.end());

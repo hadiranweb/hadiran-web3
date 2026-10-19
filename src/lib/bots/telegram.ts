@@ -124,26 +124,41 @@ export async function telegramDeleteMessages(
 
 export async function telegramSendMessage(
   token: string,
-  args: { chatId: number | string; text: string; replyMarkup?: Record<string, unknown> },
+  args: {
+    chatId: number | string;
+    text: string;
+    replyMarkup?: Record<string, unknown>;
+    parseMode?: "HTML";
+  },
 ): Promise<void> {
   const payload: Record<string, unknown> = {
     chat_id: args.chatId,
     text: args.text.slice(0, 4096),
+    link_preview_options: { is_disabled: true },
   };
   if (args.replyMarkup) payload.reply_markup = args.replyMarkup;
+  if (args.parseMode) payload.parse_mode = args.parseMode;
   await call<unknown>(token, "sendMessage", payload);
 }
 
 export async function telegramEditMessage(
   token: string,
-  args: { chatId: number | string; messageId: number; text: string; replyMarkup?: Record<string, unknown> },
+  args: {
+    chatId: number | string;
+    messageId: number;
+    text: string;
+    replyMarkup?: Record<string, unknown>;
+    parseMode?: "HTML";
+  },
 ): Promise<void> {
   const payload: Record<string, unknown> = {
     chat_id: args.chatId,
     message_id: args.messageId,
     text: args.text.slice(0, 4096),
+    link_preview_options: { is_disabled: true },
   };
   if (args.replyMarkup) payload.reply_markup = args.replyMarkup;
+  if (args.parseMode) payload.parse_mode = args.parseMode;
   await call<unknown>(token, "editMessageText", payload);
 }
 

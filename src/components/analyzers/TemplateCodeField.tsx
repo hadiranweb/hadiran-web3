@@ -10,24 +10,38 @@ export function TemplateCodeField({
   language,
   onChange,
   editorRef,
+  dir = "ltr",
+  height = "320px",
+  editable = true,
 }: {
   value: string;
-  language: "html" | "css" | "xml";
+  language: "html" | "css" | "xml" | "text";
   onChange: (value: string) => void;
   editorRef?: MutableRefObject<ReactCodeMirrorRef | null>;
+  dir?: "ltr" | "rtl";
+  height?: string;
+  editable?: boolean;
 }) {
   const localRef = useRef<ReactCodeMirrorRef>(null);
   const ref = editorRef ?? localRef;
-  const extensions = useMemo(() => (language === "css" ? [css()] : [html()]), [language]);
+  const extensions = useMemo(() => {
+    if (language === "css") return [css()];
+    if (language === "text") return [];
+    return [html()];
+  }, [language]);
 
   return (
-    <div dir="ltr" className="overflow-hidden rounded-xl border border-slate-200 text-left">
+    <div
+      dir={dir}
+      className={`overflow-hidden rounded-xl border border-slate-200 ${dir === "rtl" ? "text-right" : "text-left"}`}
+    >
       <CodeMirror
         ref={ref}
         value={value}
-        height="320px"
+        height={height}
         theme="light"
         extensions={extensions}
+        editable={editable}
         basicSetup={{ lineNumbers: true, foldGutter: true, highlightActiveLine: true }}
         onChange={onChange}
       />

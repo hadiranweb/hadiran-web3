@@ -343,6 +343,9 @@ export function AnalyzerEditor({ initial, readOnly = false, canEdit = true, canR
           onSummary={(userSummaryTemplateFa) =>
             patch({ ...pack, report: { ...(pack.report ?? emptyReport()), userSummaryTemplateFa } })
           }
+          onBotDisplay={(questionTemplateFa) =>
+            patch({ ...pack, botDisplay: { questionTemplateFa } })
+          }
         />
       ) : null}
 

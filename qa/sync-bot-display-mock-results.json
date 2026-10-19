@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "checks": [
+    "Real chat handler renders per-exam Markdown/HTML and eleven 0–10 callbacks in one row; all HTTP mocked",
+    "Question guide is a separate expandable HTML message and retains the question keyboard",
+    "Answer callback stores and scores one real local attempt; replay/start neither changes the answer nor duplicates an attempt"
+  ],
+  "telegram_http": "fully mocked",
+  "live_telegram": false
+}

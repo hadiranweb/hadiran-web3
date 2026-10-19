@@ -118,6 +118,11 @@ export type Consent = {
   acceptLabelFa: string;
 };
 
+/** نمایش سؤال در تلگرام؛ وب همان item.text می‌ماند. */
+export type PackBotDisplay = {
+  questionTemplateFa: string;
+};
+
 export type AnalyzerScale = {
   kind: "range-0-10";
   min: 0;
@@ -138,6 +143,7 @@ export type AnalyzerPack = {
   edges: Edge[];
   formulas: Formula[];
   report?: PackReport;
+  botDisplay?: PackBotDisplay;
 };
 
 export function itemsOf(pack: AnalyzerPack): Item[] {

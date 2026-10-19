@@ -9,7 +9,7 @@
     "Cycles, self-referrals and unavailable parents are explicit; reading does not allocate public codes or rewrite relationships",
     "Genuine empty filtered directory remains a successful live snapshot"
   ],
-  "dataset_accounts": 285,
+  "dataset_accounts": 290,
   "max_nodes_tested": 120,
   "production_database_tested": false
 }
