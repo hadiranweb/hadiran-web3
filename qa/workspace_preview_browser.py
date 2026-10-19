@@ -75,7 +75,7 @@ with sync_playwright() as pw:
  check('Reduced motion; zero preview mutations, browser exceptions or HTTP 5xx')
  context.close()
  # The shared exam login popup is minimal too.
- context=browser.new_context();page=context.new_page();page.goto(BASE+'/analyzers/casio-ss');page.get_by_role('button',name='این تحلیل را شروع کنید').click();expect(page.get_by_role('dialog')).to_be_visible();assert 'شماره را بگذار' not in page.get_by_role('dialog').inner_text();context.close()
+ context=browser.new_context();page=context.new_page();page.goto(BASE+'/analyzers/casio-ss');page.get_by_role('button',name='شروع کن',exact=True).click();expect(page.get_by_role('dialog')).to_be_visible();assert 'شماره را بگذار' not in page.get_by_role('dialog').inner_text();context.close()
  check('Exam popup no longer repeats the removed explanation')
  browser.close()
 Path('qa/workspace-preview-browser-results.json').write_text(json.dumps({'passed':True,'checks':checks,'layout_cases':len(layouts),'cases':layouts,'browser_errors':errors,'http_5xx':bad,'preview_writes':writes,'data':'explicit sample fixtures','production_build':True},ensure_ascii=False,indent=2))

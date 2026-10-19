@@ -25,6 +25,7 @@ const workspaceModules = [
   { href: "/workspace/finance", fa: "گزارش مالی", en: "Financial report", icon: ReceiptText },
   { href: "/workspace/shop", fa: "فروشگاه", en: "Shop", icon: ShoppingBag },
   { href: "/workspace/analyzers", fa: "تحلیلگرها", en: "Analyzers", icon: ChartNoAxesCombined },
+  { href: "/workspace/documents", fa: "سندساز", en: "Document builder", icon: BookOpen },
   { href: "/workspace/bots", fa: "ربات‌ها", en: "Bots", icon: Bot },
   { href: "/workspace/referrals", fa: "معرف‌های من", en: "My referrals", icon: Users },
   { href: "/workspace/network", fa: "درخت معرف", en: "Referral tree", icon: Network },
@@ -46,7 +47,7 @@ export function WorkspaceShell({ children, account, initialLocale, demo }: { chi
   const author = scope === "author";
   const delegated = scope === "delegated";
   const home = workspaceHome(account);
-  const modules = delegated ? workspaceModules.filter(item => ["/workspace/analyzers", "/account", "/workspace/settings"].includes(item.href)) : author ? workspaceModules.filter(item => ["/workspace/analyzers", "/workspace/referrals", "/account", "/workspace/settings"].includes(item.href)) : workspaceModules;
+  const modules = delegated ? workspaceModules.filter(item => ["/workspace/documents", "/workspace/analyzers", "/account", "/workspace/settings"].includes(item.href)) : author ? workspaceModules.filter(item => ["/workspace/documents", "/workspace/analyzers", "/workspace/referrals", "/account", "/workspace/settings"].includes(item.href)) : workspaceModules;
   const [locale, setLocaleState] = useState(initialLocale);
   const sidebarKey = workspacePreferenceKey(account.id, "sidebar");
   const collapsed = useSyncExternalStore(subscribeSidebar, () => sidebarSnapshot(sidebarKey), () => false);

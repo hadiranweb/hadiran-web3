@@ -19,7 +19,7 @@ const STORAGE_KEY = "hw3-conversation-id";
 const GREETING: ChatMessage = {
   role: "assistant",
   content:
-    "سلام. مسئله‌ات را بگو تا با هم شفافش کنیم — از بازنمایی ایده تا معماری سیستم، هوش مصنوعی و وب۳.",
+    "سلام. مسئله‌ات را بگو تا با هم شفافش کنیم — از گلوگاه روزمره تا معماری سیستم. اول می‌بینیم، بعد می‌سازیم.",
 };
 
 const STARTERS = [
@@ -202,7 +202,7 @@ export function HomeChat() {
                     icon={BookOpen}
                   />
                   <ReferenceGroup
-                    label="پروژه‌های مرتبط"
+                    label="کارگاه"
                     href={(slug) => `/lab/${slug}`}
                     items={msg.references.projects.map((p) => ({ slug: p.slug, label: p.name }))}
                     className="reference-chip reference-chip-project"

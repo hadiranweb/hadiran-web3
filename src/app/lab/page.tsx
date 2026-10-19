@@ -10,8 +10,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "آزمایشگاه",
-  description: "پروژه‌های در جریان، آزمایش‌ها و فرصت‌های همکاری در اکوسیستم هادیران.",
+  title: "کارگاه",
+  description: "ظرف‌ها و پروژه‌های باز. اینجا کار می‌کنیم، نه تبلیغ.",
   alternates: { canonical: "/lab" },
 };
 
@@ -42,7 +42,7 @@ export default async function LabPage() {
 
   return (
     <PageShell>
-      <PageHeader title="آزمایشگاه" lede="پروژه‌های در جریان، آزمایش‌ها و فرصت‌های همکاری" />
+      <PageHeader title="کارگاه" lede="ظرف‌ها و پروژه‌های باز. اینجا کار می‌کنیم، نه تبلیغ." />
 
       {allProjects.length === 0 ? (
         <EmptyState title="هنوز پروژه‌ای ثبت نشده." />

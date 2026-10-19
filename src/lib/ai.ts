@@ -102,7 +102,7 @@ function buildAnswer(refs: ChatReferences): string {
   const topCourse = refs.courses[0];
 
   if (!topTopic && !topKnowledge && !topProject && !topCourse) {
-    return "سؤال جالبی است. فعلاً در دانش موجود من مطلب مستقیمی پیدا نکردم، ولی می‌توانی در دانشنامه یا آزمایشگاه جستجو کنی یا سؤال را با کلمات دیگری بپرسی.";
+    return "سؤال جالبی است. فعلاً در دانش موجود من مطلب مستقیمی پیدا نکردم، ولی می‌توانی در باغ دانش یا کارگاه بگردی یا سؤال را جور دیگری بپرسی.";
   }
 
   const parts: string[] = [];
@@ -119,7 +119,7 @@ function buildAnswer(refs: ChatReferences): string {
   }
 
   if (topKnowledge) {
-    parts.push(`در دانشنامه، مطلب «${topKnowledge.title}» می‌تواند پاسخت را تکمیل کند.`);
+    parts.push(`در باغ دانش، مطلب «${topKnowledge.title}» می‌تواند پاسخت را تکمیل کند.`);
   }
   if (topProject) {
     parts.push(
@@ -161,7 +161,7 @@ async function retrieveFromDatabase(query: string): Promise<AIResponse> {
   if (tokens.length === 0) {
     return {
       answer:
-        "سلام. مسئله‌ات را بگو تا با هم شفافش کنیم — از بازنمایی ایده تا معماری سیستم، هوش مصنوعی و وب۳.",
+        "سلام. مسئله‌ات را بگو تا با هم شفافش کنیم — از گلوگاه روزمره تا معماری سیستم. اول می‌بینیم، بعد می‌سازیم.",
       references: EMPTY_REFERENCES,
       related: [],
     };

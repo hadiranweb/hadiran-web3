@@ -19,6 +19,8 @@ import { DEFAULT_ANCHORS } from "@/lib/analyzers/sanitize";
 import { AnalyzerResponses } from "@/components/analyzers/AnalyzerResponses";
 import { AnalyzerInterpretation } from "@/components/analyzers/AnalyzerInterpretation";
 import { AnalyzerGrants } from "@/components/analyzers/AnalyzerGrants";
+import { AnalyzerBotPath, type AnalyzerBotLink } from "@/components/analyzers/AnalyzerBotPath";
+import { canonicalizeTemplateId, templatesForPack } from "@/lib/analyzers/document-templates";
 import { summaryPlaceholders } from "@/lib/analyzers/summary-template";
 
 const fieldClass =
@@ -35,13 +37,14 @@ const ops: FormulaOp[] = [
   "matmul",
 ];
 
-type Tab = "meta" | "items" | "score" | "report" | "responses" | "interpret" | "access";
+type Tab = "meta" | "items" | "score" | "report" | "responses" | "interpret" | "access" | "bot";
 
 function emptyReport(): PackReport {
   return {
     hideGateScores: true,
     closingFa: "",
     userSummaryTemplateFa: "",
+    documentTemplateId: "",
     businessNameItemId: "",
     contextFields: [],
     layerBands: [],
@@ -57,7 +60,7 @@ function clonePack(pack: AnalyzerPack): AnalyzerPack {
   return JSON.parse(JSON.stringify(pack)) as AnalyzerPack;
 }
 
-export function AnalyzerEditor({ initial, readOnly = false, canEdit = true, canReadResponses = true, canGrant = false }: { initial: AnalyzerPack; readOnly?: boolean; canEdit?: boolean; canReadResponses?: boolean; canGrant?: boolean }) {
+export function AnalyzerEditor({ initial, readOnly = false, canEdit = true, canReadResponses = true, canGrant = false, bots = [] }: { initial: AnalyzerPack; readOnly?: boolean; canEdit?: boolean; canReadResponses?: boolean; canGrant?: boolean; bots?: AnalyzerBotLink[] }) {
   const [pack, setPack] = useState<AnalyzerPack>(() => clonePack(initial));
   const [tab, setTab] = useState<Tab>(canEdit || !canReadResponses ? "meta" : "responses");
   const [busy, setBusy] = useState(false);
@@ -150,6 +153,7 @@ export function AnalyzerEditor({ initial, readOnly = false, canEdit = true, canR
                   ["items", `سؤال‌ها (${itemCount})`],
                   ["score", "نمره"],
                   ["report", "گزارش"],
+                  ["bot", "ربات"],
                 ] as [Tab, string][])
               : []),
             ...(canReadResponses
@@ -324,6 +328,21 @@ export function AnalyzerEditor({ initial, readOnly = false, canEdit = true, canR
           pack={pack}
           report={pack.report ?? emptyReport()}
           onChange={(report) => patch({ ...pack, report })}
+        />
+      ) : null}
+
+      {tab === "bot" ? (
+        <AnalyzerBotPath
+          pack={pack}
+          bots={bots}
+          canEdit={canEdit}
+          onOpenItems={() => setTab("items")}
+          onConsent={(consentPatch) =>
+            patch({ ...pack, consent: { ...pack.consent, ...consentPatch } })
+          }
+          onSummary={(userSummaryTemplateFa) =>
+            patch({ ...pack, report: { ...(pack.report ?? emptyReport()), userSummaryTemplateFa } })
+          }
         />
       ) : null}
 
@@ -860,6 +879,28 @@ function ReportEditor({
         عضو فقط قالب خلاصه را می‌بیند. تفسیر لایه و گلوگاه در تب «تفسیر اولیه» برای آزمون‌ساز است.
       </p>
       <div className="rounded-2xl border border-line bg-elev p-5 space-y-4">
+        <label className="block text-sm">
+          <span className="mb-1 block text-slate-600">قالب سند چندصفحه</span>
+          <select
+            className={fieldClass}
+            value={
+              canonicalizeTemplateId(
+                report.documentTemplateId ||
+                  (pack.slug === "casio-ss" ? "casio-ss" : "hadiran"),
+              )
+            }
+            onChange={(event) => onChange({ ...report, documentTemplateId: event.target.value })}
+          >
+            {templatesForPack(pack).map((template) => (
+              <option key={template.id} value={template.id}>
+                {template.titleFa}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p className="text-xs leading-6 text-slate-500">
+          هادیران ظاهر محصول است. کاسیو · پنج‌لایه همان چیدمان پژوهش با لوگوی کاسیو و نمودار چندوجهی لایه‌هاست.
+        </p>
         <label className="block text-sm">
           <span className="mb-1 block text-muted">خلاصهٔ کاربر (قالب)</span>
           <textarea

@@ -1,13 +1,15 @@
-import { desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
-import { accountPublicCodes, accounts, analyzerAttempts, casioAttempts } from "@/db/schema";
+import { accountPublicCodes, accounts, analyzerAttempts, analyzerReports, casioAttempts } from "@/db/schema";
 import { resolveLivePack } from "@/lib/analyzers/authored";
 import { gateOf } from "@/lib/analyzers/gate";
 import { findItem, itemsOf, type AnalyzerPack } from "@/lib/analyzers/pack";
+import { attemptKindOf } from "@/lib/analyzers/document-templates";
 import {
   ensureAccountProfileSchema,
   ensureAnalyzerAuthoringSchema,
   ensureCasioAttemptsSchema,
+  ensureInterpretationDocumentsSchema,
 } from "@/lib/auth/schema-guard";
 import type {
   WorkspaceAttemptAnswer,
@@ -123,6 +125,7 @@ function toRow(pack: AnalyzerPack, row: Joined, referrerCode: string | null): Wo
     businessName: businessNameOf(pack, row.answers),
     referrerPublicCode: referrerCode,
     discountCode: row.discountCode ?? null,
+    documentId: null,
     gate: gateOf(pack, row.results),
     scores: scoreRows(pack, row.results),
     answers: answerRows(pack, row.answers),
@@ -147,7 +150,96 @@ async function withReferrerCodes(pack: AnalyzerPack, rows: Joined[]): Promise<Wo
       .where(inArray(accountPublicCodes.accountId, ids));
     for (const row of codes) map.set(row.accountId, row.code);
   }
-  return rows.map((row) => toRow(pack, row, row.referrerAccountId ? map.get(row.referrerAccountId) ?? null : null));
+  return withDocumentIds(
+    pack.slug,
+    rows.map((row) => toRow(pack, row, row.referrerAccountId ? map.get(row.referrerAccountId) ?? null : null)),
+  );
+}
+
+async function withDocumentIds(slug: string, rows: WorkspaceAttemptRow[]): Promise<WorkspaceAttemptRow[]> {
+  if (!rows.length) return rows;
+  try {
+    await ensureInterpretationDocumentsSchema();
+    const kind = attemptKindOf(slug);
+    const docs = await db
+      .select({ id: analyzerReports.id, attemptId: analyzerReports.attemptId })
+      .from(analyzerReports)
+      .where(
+        and(
+          eq(analyzerReports.slug, slug),
+          eq(analyzerReports.attemptKind, kind),
+          inArray(
+            analyzerReports.attemptId,
+            rows.map((row) => row.attemptId),
+          ),
+        ),
+      );
+    const map = new Map(docs.map((row) => [row.attemptId, row.id]));
+    return rows.map((row) => ({ ...row, documentId: map.get(row.attemptId) ?? null }));
+  } catch {
+    return rows;
+  }
+}
+
+export async function readWorkspaceAttempt(slug: string, attemptId: number): Promise<WorkspaceAttemptRow | null> {
+  if (!Number.isInteger(attemptId) || attemptId <= 0) return null;
+  const pack = await resolveLivePack(slug);
+  if (!pack) return null;
+  await ensureAccountProfileSchema();
+
+  if (slug === "casio-ss") {
+    await ensureCasioAttemptsSchema();
+    const rows = await db
+      .select({
+        attemptId: casioAttempts.id,
+        instrumentVersion: casioAttempts.instrumentVersion,
+        status: casioAttempts.status,
+        answers: casioAttempts.answers,
+        results: casioAttempts.results,
+        submittedAt: casioAttempts.submittedAt,
+        updatedAt: casioAttempts.updatedAt,
+        givenName: accounts.givenName,
+        familyName: accounts.familyName,
+        displayName: accounts.displayName,
+        phone: accounts.phone,
+        publicCode: accountPublicCodes.code,
+        referrerAccountId: casioAttempts.referrerAccountId,
+        discountCode: casioAttempts.discountCode,
+      })
+      .from(casioAttempts)
+      .innerJoin(accounts, eq(accounts.id, casioAttempts.accountId))
+      .leftJoin(accountPublicCodes, eq(accountPublicCodes.accountId, accounts.id))
+      .where(eq(casioAttempts.id, attemptId))
+      .limit(1);
+    const [row] = await withReferrerCodes(pack, rows);
+    return row ?? null;
+  }
+
+  await ensureAnalyzerAuthoringSchema();
+  const rows = await db
+    .select({
+      attemptId: analyzerAttempts.id,
+      instrumentVersion: analyzerAttempts.instrumentVersion,
+      status: analyzerAttempts.status,
+      answers: analyzerAttempts.answers,
+      results: analyzerAttempts.results,
+      submittedAt: analyzerAttempts.submittedAt,
+      updatedAt: analyzerAttempts.updatedAt,
+      givenName: accounts.givenName,
+      familyName: accounts.familyName,
+      displayName: accounts.displayName,
+      phone: accounts.phone,
+      publicCode: accountPublicCodes.code,
+      referrerAccountId: analyzerAttempts.referrerAccountId,
+      discountCode: analyzerAttempts.discountCode,
+    })
+    .from(analyzerAttempts)
+    .innerJoin(accounts, eq(accounts.id, analyzerAttempts.accountId))
+    .leftJoin(accountPublicCodes, eq(accountPublicCodes.accountId, accounts.id))
+    .where(and(eq(analyzerAttempts.id, attemptId), eq(analyzerAttempts.slug, slug)))
+    .limit(1);
+  const [row] = await withReferrerCodes(pack, rows);
+  return row ?? null;
 }
 
 export async function listWorkspaceAttempts(slug: string): Promise<WorkspaceAttemptRow[]> {

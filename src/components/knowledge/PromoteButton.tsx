@@ -44,7 +44,7 @@ export function PromoteButton({ recordId, disabled = false, initialVisibility = 
   return (
     <div className="space-y-2 rounded-2xl border border-line bg-accent-soft p-4">
       <p className="text-sm text-ink">
-        ذخیره دانش نیست. ارتقا، ادعا و بازبینی می‌سازد و در صورت عمومی بودن، صفحهٔ دانشنامه را به‌عنوان نمود می‌نویسد.
+        ذخیره دانش نیست. ارتقا، ادعا و بازبینی می‌سازد و در صورت عمومی بودن، صفحهٔ باغ دانش را به‌عنوان نمود می‌نویسد.
       </p>
       {disabled ? <p className="text-sm text-mark">ابتدا تغییرات متن را ذخیره کنید؛ ارتقا فقط روی نسخهٔ ذخیره‌شده انجام می‌شود.</p> : null}
       <label className="flex items-center gap-2 text-sm">

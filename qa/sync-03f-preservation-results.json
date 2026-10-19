@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "upstream": "03f0235668054f7b83f6fad6881e137231557758",
+  "session_base": "ecf3b5807bcc2868512786cd25c53c62066c130f",
+  "checks": [
+    "Portrait/native paths/WAAPI/disclosure/IRANSharp/avatars, finance/atomic orders/commission policy and referral graph preserved",
+    "23 session migrations and 2 upstream migrations byte-identical; one new account/template-snapshot migration",
+    "Exactly 3 explicitly selected upstream editor dependencies; exact upstream lock; local SVG/avatar scripts retained",
+    "No unresolved conflict markers or unintended CJK in changed sources",
+    "Existing persisted system/light/dark theme state retained with upstream native-SVG lamp"
+  ],
+  "dependency_exception": "Explicit use of existing Hadiran editor method; no additional library"
+}

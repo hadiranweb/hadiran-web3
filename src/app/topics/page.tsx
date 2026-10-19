@@ -13,11 +13,11 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "موضوعات",
-  description: "موضوعات اتصال‌دهندهٔ دانش، آزمایشگاه و دوره‌های هادیران — پل گراف اکوسیستم، نه یک جهان جدا.",
+  description: "موضوعات اتصال‌دهندهٔ باغ دانش، کارگاه و دوره‌های هادیران — پل خانه، نه یک جهان جدا.",
   alternates: { canonical: "/topics" },
   openGraph: {
     title: "موضوعات هادیران",
-    description: "پل بین دانشنامه، آزمایشگاه و آکادمی.",
+    description: "پل بین باغ دانش، کارگاه و دوره‌ها.",
     url: "/topics",
     locale: "fa_IR",
     type: "website",
@@ -48,13 +48,13 @@ export default async function TopicsPage() {
           "@context": "https://schema.org",
           "@type": "CollectionPage",
           name: "موضوعات هادیران",
-          description: "موضوعات اتصال‌دهندهٔ دانش، آزمایشگاه و دوره‌های هادیران.",
+          description: "موضوعات اتصال‌دهندهٔ باغ دانش، کارگاه و دوره‌های هادیران.",
           url: absoluteUrl("/topics"),
         }}
       />
       <PageHeader
         title="موضوعات"
-        lede="پل گراف اکوسیستم: هر موضوع دانش، پروژه و دورهٔ مرتبط را در یک صفحه جمع می‌کند."
+        lede="پل خانه: هر موضوع باغ دانش، ظرف کارگاه و دورهٔ مرتبط را در یک صفحه جمع می‌کند."
       />
 
       {allTopics.length === 0 ? (

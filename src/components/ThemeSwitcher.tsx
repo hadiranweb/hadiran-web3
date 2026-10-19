@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useSyncExternalStore } from "react";
 import { DISCLOSURE_EVENT } from "@/components/navigation/useDisclosure";
+import { StudyLamp } from "@/components/StudyLamp";
 import { Check, Monitor, Moon, Sun } from "lucide-react";
 
 const KEY = "hadiran-theme";
@@ -53,7 +54,6 @@ export function ThemeSwitcher({ locale = "fa" }: { locale?: "fa" | "en" }) {
   const preference = useSyncExternalStore(subscribe, getPreference, () => "system" as Preference);
   const detailsRef = useRef<HTMLDetailsElement>(null);
   const active = options.find((option) => option.value === preference)!;
-  const Icon = active.icon;
 
   useEffect(() => {
     const onPointer = (event: Event) => {
@@ -91,7 +91,7 @@ export function ThemeSwitcher({ locale = "fa" }: { locale?: "fa" | "en" }) {
       if (event.currentTarget.open) window.dispatchEvent(new CustomEvent(DISCLOSURE_EVENT, { detail: `theme-${groupName}` }));
     }}>
       <summary className="theme-trigger" aria-label={t(`تغییر تم؛ انتخاب فعلی: ${active.label}`, `Change appearance; selected: ${optionLabel(active.value, active.label)}`)} title={optionLabel(active.value, active.label)}>
-        <Icon size={17} aria-hidden="true" />
+        <StudyLamp on={preference === "dark"} />
       </summary>
       <fieldset className="theme-options">
         <legend className="sr-only">{t("ظاهر سایت", "Appearance")}</legend>

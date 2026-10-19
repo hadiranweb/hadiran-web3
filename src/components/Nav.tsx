@@ -8,12 +8,12 @@ import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { SessionMenu } from "@/components/auth/SessionMenu";
 import { useDisclosure } from "@/components/navigation/useDisclosure";
 const primaryLinks = [
-  { href: "/ecosystem", label: "اکوسیستم", note: "نگاه یکپارچه به هادیران", icon: Layers },
+  { href: "/ecosystem", label: "خانه", note: "نگاه یکپارچه به هادیران", icon: Layers },
   { href: "/hadiran", label: "درباره من", note: "مسیر و نگاه هادی", icon: User },
-  { href: "/knowledge", label: "دانشنامه", note: "از ایده تا دانش", icon: BookOpen },
-  { href: "/lab", label: "آزمایشگاه", note: "پروژه‌ها و تجربه‌ها", icon: FlaskConical },
+  { href: "/knowledge", label: "باغ دانش", note: "از ایده تا دانش", icon: BookOpen },
+  { href: "/lab", label: "کارگاه", note: "پروژه‌ها و تجربه‌ها", icon: FlaskConical },
   { href: "/courses", label: "دوره‌ها", note: "مسیر یادگیری", icon: GraduationCap },
-  { href: "/analyzers", label: "تحلیلگرها", note: "ارزیابی و گزارش شخصی", icon: ChartNoAxesCombined },
+  { href: "/analyzers", label: "آینه‌ها", note: "ارزیابی و گزارش شخصی", icon: ChartNoAxesCombined },
   { href: "/shop", label: "فروشگاه", note: "محصولات و دسترسی‌ها", icon: ShoppingBag },
 ];
 export function Nav() {
@@ -36,7 +36,7 @@ export function Nav() {
     return () => window.removeEventListener("scroll", onScroll, { capture: true });
   }, [open, close, panel]);
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
-  return <header className="site-header sticky top-3 z-50 px-3 sm:px-5">
+  return <header className="print-hide site-header sticky top-3 z-50 px-3 sm:px-5">
     <div className="nav-anchor mx-auto max-w-7xl">
       <div className="nav-pill site-nav-bar">
         <Link href="/" className="brand-link" onClick={() => close()}><HadiranMark size={28} className="brand-mark" /><span className="brand-name">هادیران</span></Link>

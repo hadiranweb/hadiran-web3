@@ -36,7 +36,7 @@ export default async function CasioSsReportPage() {
       {account.id === 0 ? <p className="integration-notice mb-6">پاسخ‌ها و گزارش فقط در نشست موقت پیش‌نمایش نگه‌داری می‌شوند.</p> : null}
       <p className="mb-4 text-sm">
         <Link href="/analyzers" className="text-muted hover:text-ink">
-          تحلیلگر‌ها
+          آینه‌ها
         </Link>
         <span className="text-muted"> / {pack.nameFa}</span>
       </p>

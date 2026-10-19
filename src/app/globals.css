@@ -1563,3 +1563,46 @@ main, .module-page, .repo-module, .ws-content { min-width: 0; }
 @media(max-width: 899px) { .home-hero-grid { grid-template-columns: minmax(0,1fr); } }
 .section-heading-row { flex-wrap: wrap; }
 .section-heading-row > div { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+
+.doc-break {
+  break-after: page;
+  page-break-after: always;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  .site-header,
+  .site-footer,
+  .ws-sidebar,
+  .ws-toolbar,
+  .print-hide {
+    display: none !important;
+  }
+
+  body {
+    background: #fff !important;
+  }
+
+  .doc-page {
+    break-after: page;
+    page-break-after: always;
+    break-inside: avoid;
+    min-height: auto;
+    border: none !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .doc-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+}
+
+html[data-theme="dark"] .study-lamp-glow { fill-opacity: .35; }

@@ -9,24 +9,26 @@ files=subprocess.check_output(['git','ls-tree','-r','--name-only','f132353','--'
 for file in files:assert subprocess.check_output(['git','show','f132353:'+file])==Path(file).read_bytes(),file
 latest=subprocess.check_output(['git','ls-tree','-r','--name-only','cb20276','--','src/db/migrations'],text=True).splitlines()
 for file in latest: assert subprocess.check_output(['git','show','cb20276:'+file])==Path(file).read_bytes(),file
-assert len(list(Path('src/db/migrations').glob('*.sql')))==23
+assert len(list(Path('src/db/migrations').glob('*.sql')))==26
 assert Path('src/db/migrations/0021_shop_order_events.sql').exists()
-checks.append('All 22 merged migrations match their original sources; one new P05 migration')
+assert subprocess.check_output(['git','show','ecf3b58:src/db/migrations/0021_shop_order_events.sql'])==Path('src/db/migrations/0021_shop_order_events.sql').read_bytes()
+for name in ['0021_interpretation_documents.sql','0022_casio_ss_document_template.sql']: assert subprocess.check_output(['git','show','03f0235:src/db/migrations/'+name])==Path('src/db/migrations/'+name).read_bytes()
+checks.append('All 23 session migrations and 2 upstream migrations are byte-identical; new scoped-template migration is present')
 checks.append('All 20 existing migrations retained byte-for-byte, including both 0015 filenames')
-assert subprocess.check_output(['git','show','1ed9ea7:package-lock.json'])==Path('package-lock.json').read_bytes()
-old=json.loads(subprocess.check_output(['git','show','f132353:package.json']));new=json.loads(Path('package.json').read_text());upstream=json.loads(subprocess.check_output(['git','show','1ed9ea7:package.json']))
-assert old['dependencies'].keys()==new['dependencies'].keys();assert old['devDependencies'].keys()==new['devDependencies'].keys()
-assert {k for k in new['dependencies'] if old['dependencies'][k]!=new['dependencies'][k]}=={'next'}
+assert subprocess.check_output(['git','show','03f0235:package-lock.json'])==Path('package-lock.json').read_bytes()
+old=json.loads(subprocess.check_output(['git','show','f132353:package.json']));new=json.loads(Path('package.json').read_text());upstream=json.loads(subprocess.check_output(['git','show','03f0235:package.json']))
+assert set(new['dependencies'])-set(old['dependencies'])=={'@codemirror/lang-css','@codemirror/lang-html','@uiw/react-codemirror'};assert old['devDependencies'].keys()==new['devDependencies'].keys()
+assert {k for k in new['dependencies'] if k in old['dependencies'] and old['dependencies'][k]!=new['dependencies'][k]}=={'next'}
 assert {k for k in new['devDependencies'] if old['devDependencies'][k]!=new['devDependencies'][k]}=={'eslint-config-next'}
 assert new['dependencies']==upstream['dependencies'] and new['devDependencies']==upstream['devDependencies']
 assert new['scripts']==old['scripts']
 checks.append('Only existing Next.js and eslint-config-next upgraded to upstream 16.4.1; native SVG build scripts retained')
-checks.append('Upstream dependency lockfile unchanged and no new direct npm dependency')
+checks.append('Exact upstream dependency lockfile; only 3 explicitly user-selected CodeMirror additions')
 for file in subprocess.check_output(['git','diff','--name-only','f132353'],text=True).splitlines():
  p=Path(file)
  if p.suffix in ['.ts','.tsx','.js','.cjs','.mjs','.md','.py']:
   text=p.read_text();assert not any(line.startswith('<' * 7) or line.startswith('>' * 7) for line in text.splitlines()),file
   assert not any('\u4e00'<=c<='\u9fff' for c in text),file
 checks.append('No unresolved markers or unintended CJK in changed source/docs')
-Path('qa/workspace-preservation-results.json').write_text(json.dumps({'passed':True,'upstream':'cb20276e0f82b6d1baa42bf843a5aa5c9ac05231','checks':checks,'new_npm_dependencies':False},indent=2))
+Path('qa/workspace-preservation-results.json').write_text(json.dumps({'passed':True,'upstream':'03f0235668054f7b83f6fad6881e137231557758','checks':checks,'new_npm_dependencies':['@codemirror/lang-css','@codemirror/lang-html','@uiw/react-codemirror'],'dependency_exception_approved':True},indent=2))
 print('PASS',len(checks),'preservation groups')

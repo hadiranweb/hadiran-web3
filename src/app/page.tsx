@@ -1,3 +1,4 @@
+import { voice } from "@/lib/copy";
 import type { Metadata } from "next";
 import Link from "@/components/workspace/WorkspaceLink";
 import { ChartNoAxesCombined, ArrowLeft, BookOpen, FlaskConical, GraduationCap, Layers, ShoppingBag, Sparkles, User } from "lucide-react";
@@ -7,7 +8,7 @@ import { siteConfig } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: {
-    absolute: "هادیران | فضای هم‌فکری، شفاف‌سازی مسئله و طراحی سیستم‌ها",
+    absolute: voice.browserTitle,
   },
   description:
     "ارتباط مستقیم و هم‌فکری با هادی درباره هستی‌شناسی سیستم‌ها، حل مسائل پیچیده، هوش خودمختار و معماری وب۳.",
@@ -15,8 +16,8 @@ export const metadata: Metadata = {
     canonical: siteConfig.url || "/",
   },
   openGraph: {
-    title: "هادیران | گفت‌وگو برای درک و شفاف‌سازی مسئله",
-    description: "فضایی برای بازنمایی دقیق ایده‌ها، ساختاردهی به دغدغه‌ها و هم‌مسیر شدن.",
+    title: voice.altTitle,
+    description: voice.description,
     url: siteConfig.url || "/",
     type: "website",
     locale: "fa_IR",
@@ -42,10 +43,10 @@ const steps = [
 ];
 
 const sections = [
-  { href: "/ecosystem", title: "اکوسیستم", note: "نمای کلی اتصال بخش‌های هادیران", icon: Layers },
-  { href: "/knowledge", title: "دانشنامه", note: "مقاله‌ها، یادداشت‌ها و پژوهش‌ها", icon: BookOpen },
-  { href: "/lab", title: "آزمایشگاه", note: "پروژه‌ها و آزمایش‌های در جریان", icon: FlaskConical },
-  { href: "/analyzers", title: "تحلیلگرها", note: "ارزیابی ساختاریافته و گزارش شخصی", icon: ChartNoAxesCombined },
+  { href: "/ecosystem", title: "خانه", note: "نمای کلی اتصال بخش‌های هادیران", icon: Layers },
+  { href: "/knowledge", title: "باغ دانش", note: "مقاله‌ها، یادداشت‌ها و پژوهش‌ها", icon: BookOpen },
+  { href: "/lab", title: "کارگاه", note: "پروژه‌ها و آزمایش‌های در جریان", icon: FlaskConical },
+  { href: "/analyzers", title: "آینه‌ها", note: "ارزیابی ساختاریافته و گزارش شخصی", icon: ChartNoAxesCombined },
   { href: "/courses", title: "دوره‌ها", note: "مسیرهای یادگیری و آموزش", icon: GraduationCap },
   { href: "/shop", title: "فروشگاه", note: "محصولات و اسناد دیجیتال", icon: ShoppingBag },
   { href: "/hadiran", title: "درباره من", note: "مسیر، نگاه و زمینه فعالیت هادی", icon: User },
@@ -85,14 +86,13 @@ export default function HomePage() {
               هادیران
             </span>
             <h1 className="display mt-6">
-              گفت‌وگو برای درک و <span className="text-accent">شفاف‌سازی مسئله</span>
+              {voice.slogan}
             </h1>
             <p className="lede mt-5 max-w-2xl">
-              مسئله‌ات را بنویس؛ هدف و مانع اصلی را با هم جدا می‌کنیم و به گام بعدی می‌رسیم.
+              {voice.subSlogan}
             </p>
             <div className="home-hero-note mt-7">
-              <span className="home-status-dot" aria-hidden="true" />
-              ورودی گفتگو از همین حالا فعال است
+              {voice.distinction}
             </div>
           </div>
 
@@ -108,7 +108,7 @@ export default function HomePage() {
 
       <div className="marquee" aria-hidden="true">
         <div className="marquee-track">
-          {["اکوسیستم", "دانشنامه", "آزمایشگاه", "دوره‌ها", "موضوعات"].map((word) => (
+          {["خانه", "باغ دانش", "کارگاه", "دوره‌ها", "موضوعات"].map((word) => (
             <span key={word} className="marquee-item">
               <span>{word}</span>
               <span className="marquee-symbol">◇</span>
@@ -149,7 +149,7 @@ export default function HomePage() {
             </h2>
           </div>
           <Link href="/ecosystem" className="more hidden sm:inline-flex">
-            نمای کامل اکوسیستم
+            نمای کامل خانه
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           </Link>
         </div>

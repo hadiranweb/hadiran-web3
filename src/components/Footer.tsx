@@ -2,11 +2,11 @@ import Link from "@/components/workspace/WorkspaceLink";
 import { HadiranMark } from "@/components/HadiranMark";
 
 const sections = [
-  { href: "/ecosystem", label: "اکوسیستم" },
-  { href: "/knowledge", label: "دانشنامه" },
+  { href: "/ecosystem", label: "خانه" },
+  { href: "/knowledge", label: "باغ دانش" },
   { href: "/topics", label: "موضوعات" },
-  { href: "/lab", label: "آزمایشگاه" },
-  { href: "/analyzers", label: "تحلیلگرها" },
+  { href: "/lab", label: "کارگاه" },
+  { href: "/analyzers", label: "آینه‌ها" },
   { href: "/courses", label: "دوره‌ها" },
   { href: "/shop", label: "فروشگاه" },
 ];
@@ -24,7 +24,7 @@ export function Footer() {
   const year = new Intl.DateTimeFormat("fa-IR", { year: "numeric" }).format(new Date());
 
   return (
-    <footer className="site-footer relative mt-20 overflow-hidden">
+    <footer className="print-hide site-footer relative mt-20 overflow-hidden">
       <div className="wrap relative z-10 pt-12">
         <div className="grid gap-10 md:grid-cols-[1.4fr_1fr_1fr]">
           <div className="space-y-4">
@@ -37,7 +37,7 @@ export function Footer() {
             </p>
           </div>
 
-          <nav aria-label="بخش‌های اکوسیستم">
+          <nav aria-label="بخش‌های خانه">
             <h2 className="mb-3 text-xs font-black">بخش‌ها</h2>
             <ul className="space-y-2 text-sm">
               {sections.map((item) => (

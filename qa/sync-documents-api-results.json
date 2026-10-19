@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "upstream": "03f0235668054f7b83f6fad6881e137231557758",
+  "checks": [
+    "Anonymous/member denied; unrelated author and view-only delegate cannot read or convert response documents",
+    "Code editor saves a private account override, never another author or the shared system template",
+    "Six concurrent conversions serialize to one complete five-layer document with actor and template snapshot",
+    "Editing a personal template does not silently rewrite an already converted document",
+    "Injected child-write failure rolls back parent, template, actor and all previous layers together",
+    "Batch boundary is explicit and retry after rollback regenerates the existing document safely",
+    "Converted documents stay staff-authorized; free member summary cannot bypass the unimplemented paid grant",
+    "Browsing, template editing and conversion create no payment, discount, shop grant or wallet effect"
+  ],
+  "external_payments": false
+}

@@ -38,7 +38,7 @@ export default async function AnalyzerReportPage({ params }: Props) {
     <PageShell width="narrow">
       <p className="mb-4 text-sm">
         <Link href="/analyzers" className="text-muted hover:text-ink">
-          تحلیلگر‌ها
+          آینه‌ها
         </Link>
         <span className="text-muted"> / {pack.nameFa}</span>
       </p>

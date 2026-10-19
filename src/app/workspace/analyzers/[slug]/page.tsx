@@ -1,3 +1,4 @@
+import { listBots } from "@/lib/bots/store";
 import { buildCasioAuthoredPack } from "@/lib/analyzers/casio-ss/authored-pack";
 import Link from "@/components/workspace/WorkspaceLink";
 import { notFound } from "next/navigation";
@@ -23,12 +24,13 @@ export default async function EditAnalyzerPage({ params }: Props) {
   if (!pack) notFound();
   const access = account.id === 0 ? { view: true, edit: true, responses: false, grant: false } : await analyzerAccess(account, slug);
   if (!access.view) notFound();
+  const bots = account.id !== 0 && account.role === "owner" ? (await listBots(account.id)).filter(bot => bot.service === "analyzers" && (!bot.analyzerSlug || bot.analyzerSlug === pack.slug)).map(bot => ({id:bot.id,titleFa:bot.titleFa,analyzerSlug:bot.analyzerSlug,telegramUsername:bot.telegramUsername})) : [];
 
   return (
     <main className="ws-page repo-module space-y-6">
       <p className="text-sm">
         <Link href="/workspace/analyzers" className="text-muted hover:text-mark">
-          تحلیلگر‌ها
+          آینه‌ها
         </Link>
       </p>
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -38,7 +40,7 @@ export default async function EditAnalyzerPage({ params }: Props) {
         </Link>
       </div>
       {account.id === 0 ? <p className="integration-notice">بررسی ویرایشگر و سؤال‌ها آزاد است؛ ذخیره در محیط بدون دیتابیس انجام نمی‌شود.</p> : null}
-      <AnalyzerEditor initial={pack} readOnly={account.id === 0} canEdit={access.edit} canReadResponses={account.id !== 0 && access.responses} canGrant={account.id !== 0 && access.grant} />
+      <AnalyzerEditor bots={bots} initial={pack} readOnly={account.id === 0} canEdit={access.edit} canReadResponses={account.id !== 0 && access.responses} canGrant={account.id !== 0 && access.grant} />
     </main>
   );
 }

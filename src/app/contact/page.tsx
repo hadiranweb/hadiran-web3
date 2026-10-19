@@ -59,7 +59,13 @@ export default async function ContactPage() {
 
       <Surface className="p-6 sm:p-10">
         {methods.length === 0 ? (
-          <p className="text-sm leading-7 text-muted">روش تماسی ثبت نشده است.</p>
+          <p className="text-sm leading-7 text-muted">
+            راه ارتباط به‌زودی باز می‌شود. تا آن موقع، مسئله‌ات را در{" "}
+            <Link href="/" className="text-accent">
+              گفتگو
+            </Link>{" "}
+            بگو.
+          </p>
         ) : (
           <ul className="space-y-3">
             {methods.map((method) => {
@@ -102,7 +108,7 @@ export default async function ContactPage() {
           href="/lab"
           className="rounded-[var(--radius-md)] border border-line bg-elev px-4 py-3 text-sm font-medium text-ink"
         >
-          همکاری از آزمایشگاه
+          همکاری از کارگاه
         </Link>
       </div>
     </PageShell>

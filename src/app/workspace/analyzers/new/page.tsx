@@ -16,7 +16,7 @@ export default async function NewAnalyzerPage() {
     <main className="ws-page repo-module space-y-6">
       <p className="text-sm">
         <Link href="/workspace/analyzers" className="text-muted hover:text-mark">
-          تحلیلگر‌ها
+          آینه‌ها
         </Link>
       </p>
       <h1 className="text-2xl font-bold text-ink">آزمون تازه</h1>

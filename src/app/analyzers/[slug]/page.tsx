@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const pack = await loadPack(slug);
   if (!pack || getCodePack(slug) || pack.status !== "open") {
-    return { title: "تحلیلگر", robots: { index: false, follow: false } };
+    return { title: "آینه", robots: { index: false, follow: false } };
   }
   return {
     title: pack.nameFa,
@@ -63,7 +63,7 @@ export default async function AnalyzerMemberPage({ params }: Props) {
             url: absoluteUrl(path),
             inLanguage: "fa",
             description: pack.summaryFa,
-            isPartOf: { "@type": "CollectionPage", name: "تحلیلگر‌ها", url: absoluteUrl("/analyzers") },
+            isPartOf: { "@type": "CollectionPage", name: "آینه‌ها", url: absoluteUrl("/analyzers") },
           }}
         />
       ) : null}

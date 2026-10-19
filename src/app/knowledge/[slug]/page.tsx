@@ -81,7 +81,7 @@ export default async function KnowledgeItemPage({ params }: Props) {
       <div className="mb-6 flex items-center justify-between gap-3">
         <Link href="/knowledge" className="inline-flex items-center gap-1 text-sm font-medium text-muted hover:text-ink">
           <ArrowLeft className="h-4 w-4" />
-          بازگشت به دانشنامه
+          بازگشت به باغ دانش
         </Link>
         {account?.role === "owner" && (
           <Link

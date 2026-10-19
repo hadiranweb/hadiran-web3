@@ -1,6 +1,7 @@
 "use client";
 import { previewFetch as fetch } from "@/lib/auth/preview-fetch";
 
+import { ConvertDocumentControls } from "@/components/analyzers/ConvertDocumentControls";
 import { useEffect, useState } from "react";
 import { CasioSsReport } from "@/components/analyzers/CasioSsReport";
 import { GateChip, GateStatus } from "@/components/analyzers/GateStatus";
@@ -87,7 +88,7 @@ export function AnalyzerInterpretation({ slug, pack }: { slug: string; pack: Ana
                   <span>{whenFa(row.submittedAt ?? row.updatedAt)}</span>
                 </span>
               </button>
-              {open ? <AttemptInterpretation pack={pack} row={row} /> : null}
+              {open ? <div><ConvertDocumentControls slug={slug} pack={pack} attemptId={row.attemptId} documentId={row.documentId} onConverted={id => setItems(current => current ? current.map(item => item.attemptId === row.attemptId ? {...item,documentId:id} : item) : current)} /><AttemptInterpretation pack={pack} row={row} /></div> : null}
             </li>
           );
         })}
