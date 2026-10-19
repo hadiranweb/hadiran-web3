@@ -286,7 +286,11 @@ function questionMarkup(itemIndex: number, item: Item, chrome: BotChrome, select
         : [];
   if (itemIndex > 0) {
     rows.push([
-      { text: "سؤال قبل", callback_data: `p:${itemIndex - 1}`, ...withTgStyle(chrome.questionPrevStyle) },
+      {
+        text: "سؤال قبل",
+        callback_data: `p:${itemIndex - 1}`,
+        ...withTgStyle(chrome.questionPrevStyle || "primary"),
+      },
     ]);
   }
   if (!rows.length) return undefined;
