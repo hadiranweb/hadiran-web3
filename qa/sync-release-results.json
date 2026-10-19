@@ -1,0 +1,88 @@
+{
+  "passed": true,
+  "upstream": "12362039e94140c9ca0536e3a1842191b4e7afd8",
+  "tested_implementation": "039b0cc3ce479da312e1fc3d3ea449d18c0cfe41",
+  "build": {
+    "typecheck": true,
+    "production": true,
+    "lint_errors": 0,
+    "lint_img_warnings": 2
+  },
+  "browser_layouts": 384,
+  "suites": [
+    {
+      "file": "qa/sync-documents-api-results.json",
+      "passed": true,
+      "groups": 8
+    },
+    {
+      "file": "qa/sync-documents-browser-results.json",
+      "passed": true,
+      "groups": 7
+    },
+    {
+      "file": "qa/sync-bot-display-unit-results.json",
+      "passed": true,
+      "groups": 5
+    },
+    {
+      "file": "qa/sync-bot-display-mock-results.json",
+      "passed": true,
+      "groups": 3
+    },
+    {
+      "file": "qa/sync-bot-display-browser-results.json",
+      "passed": true,
+      "groups": 2
+    },
+    {
+      "file": "qa/finance-api-results.json",
+      "passed": true,
+      "groups": 9
+    },
+    {
+      "file": "qa/finance-browser-results.json",
+      "passed": true,
+      "groups": 7
+    },
+    {
+      "file": "qa/network-api-results.json",
+      "passed": true,
+      "groups": 7
+    },
+    {
+      "file": "qa/network-browser-results.json",
+      "passed": true,
+      "groups": 7
+    },
+    {
+      "file": "qa/role-home-api-results.json",
+      "passed": true,
+      "groups": 7
+    },
+    {
+      "file": "qa/role-home-browser-results.json",
+      "passed": true,
+      "groups": 7
+    },
+    {
+      "file": "qa/workspace-preview-browser-results.json",
+      "passed": true,
+      "groups": 7
+    },
+    {
+      "file": "qa/workspace-preservation-results.json",
+      "passed": true,
+      "groups": 12
+    },
+    {
+      "file": "qa/sync-03f-preservation-results.json",
+      "passed": true,
+      "groups": 5
+    }
+  ],
+  "live_services_tested": false,
+  "drive_changed": false,
+  "push_or_deploy": false,
+  "financial_bridge_implemented": false
+}
