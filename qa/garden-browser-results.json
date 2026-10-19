@@ -1,0 +1,162 @@
+{
+  "passed": true,
+  "checks": [
+    "Independent public/noindex route, existing HomeChat initially active, truthful storage notice and global navigation/footer retained",
+    "Both doors work; mouse/Enter/Space disclosure and chat hide/restore preserve focus without a parallel form",
+    "Random pick stays in the actual public pool, avoids immediate repeat and opens/focuses its note",
+    "Actual native-selection and button clipboard contents remain unchanged; quiet acknowledgement expires",
+    "Real topic links have keyboard/pointer ink parity and each note has a working canonical detail page/back path",
+    "24 light/dark folded/expanded layouts from 320–1920px plus 320px/200% text have no horizontal overflow",
+    "Reduced motion disables new animations while random selection and disclosure remain operable",
+    "Reading/hover/copy/random/idle create no POSTs or new popups",
+    "Real empty corpus and absent DB render distinct honest states with disabled random selection",
+    "Explicit send uses the original /api/chat once and renders its answer; no new chat endpoint/diagnostic engine"
+  ],
+  "layouts": [
+    {
+      "theme": "light",
+      "width": 320,
+      "state": "folded"
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "state": "expanded"
+    },
+    {
+      "theme": "light",
+      "width": 375,
+      "state": "folded"
+    },
+    {
+      "theme": "light",
+      "width": 375,
+      "state": "expanded"
+    },
+    {
+      "theme": "light",
+      "width": 768,
+      "state": "folded"
+    },
+    {
+      "theme": "light",
+      "width": 768,
+      "state": "expanded"
+    },
+    {
+      "theme": "light",
+      "width": 1280,
+      "state": "folded"
+    },
+    {
+      "theme": "light",
+      "width": 1280,
+      "state": "expanded"
+    },
+    {
+      "theme": "light",
+      "width": 1440,
+      "state": "folded"
+    },
+    {
+      "theme": "light",
+      "width": 1440,
+      "state": "expanded"
+    },
+    {
+      "theme": "light",
+      "width": 1920,
+      "state": "folded"
+    },
+    {
+      "theme": "light",
+      "width": 1920,
+      "state": "expanded"
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "state": "folded"
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "state": "expanded"
+    },
+    {
+      "theme": "dark",
+      "width": 375,
+      "state": "folded"
+    },
+    {
+      "theme": "dark",
+      "width": 375,
+      "state": "expanded"
+    },
+    {
+      "theme": "dark",
+      "width": 768,
+      "state": "folded"
+    },
+    {
+      "theme": "dark",
+      "width": 768,
+      "state": "expanded"
+    },
+    {
+      "theme": "dark",
+      "width": 1280,
+      "state": "folded"
+    },
+    {
+      "theme": "dark",
+      "width": 1280,
+      "state": "expanded"
+    },
+    {
+      "theme": "dark",
+      "width": 1440,
+      "state": "folded"
+    },
+    {
+      "theme": "dark",
+      "width": 1440,
+      "state": "expanded"
+    },
+    {
+      "theme": "dark",
+      "width": 1920,
+      "state": "folded"
+    },
+    {
+      "theme": "dark",
+      "width": 1920,
+      "state": "expanded"
+    }
+  ],
+  "text_zoom": "200% at 320px",
+  "errors": [],
+  "writes": [
+    [
+      "POST",
+      "https://garden.test/api/chat"
+    ]
+  ],
+  "random_picks": [
+    "garden-qa-flow",
+    "garden-qa-problem",
+    "garden-qa-flow",
+    "garden-qa-experiment",
+    "garden-qa-problem",
+    "garden-qa-experiment",
+    "garden-qa-flow",
+    "garden-qa-experiment",
+    "garden-qa-flow",
+    "garden-qa-problem",
+    "garden-qa-experiment",
+    "garden-qa-flow",
+    "garden-qa-problem",
+    "garden-qa-flow",
+    "garden-qa-problem"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "checks": [
+    "Genuine empty published corpus is live/zero, not unavailable or seeded UI",
+    "Published+public+approved+indexable+linked intersection only, scoped real topics and no internal IDs",
+    "12-note SQL bound, genuine total and 4,000-character excerpts",
+    "No DB: 503 plus unknown count/date and no counterfeit notes",
+    "Public snapshot API is read-only"
+  ]
+}

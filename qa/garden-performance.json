@@ -1,0 +1,113 @@
+{
+  "method": "Cold Chromium, 3 explicit local sample notes; local proxy removes compression; gzip-9 calculated separately, not production transfer timing. Font raw is stored WOFF2 bytes. Existing shared chrome included.",
+  "totals": {
+    "document": {
+      "raw": 56115,
+      "gzip": 11485
+    },
+    "font": {
+      "raw": 127556,
+      "gzip": 127454
+    },
+    "script": {
+      "raw": 556815,
+      "gzip": 170424
+    },
+    "stylesheet": {
+      "raw": 107511,
+      "gzip": 21465
+    }
+  },
+  "assets": [
+    {
+      "path": "/garden-preview",
+      "type": "document",
+      "raw_bytes": 56115,
+      "gzip_bytes": 11485
+    },
+    {
+      "path": "/_next/static/media/IRANSharp_Bold-s.p.0u43d2u7wgw70.woff2",
+      "type": "font",
+      "raw_bytes": 42120,
+      "gzip_bytes": 42109
+    },
+    {
+      "path": "/_next/static/media/IRANSharp_Light-s.p.305gmua87l2bl.woff2",
+      "type": "font",
+      "raw_bytes": 42664,
+      "gzip_bytes": 42616
+    },
+    {
+      "path": "/_next/static/media/IRANSharp_Regular-s.p.3wh0cf20d9d6j.woff2",
+      "type": "font",
+      "raw_bytes": 42772,
+      "gzip_bytes": 42729
+    },
+    {
+      "path": "/_next/static/chunks/0sradrr4vy6ix.css",
+      "type": "stylesheet",
+      "raw_bytes": 98887,
+      "gzip_bytes": 19211
+    },
+    {
+      "path": "/_next/static/chunks/2l9u8xtxv_2lj.css",
+      "type": "stylesheet",
+      "raw_bytes": 8624,
+      "gzip_bytes": 2254
+    },
+    {
+      "path": "/_next/static/chunks/1ckvzn7sfprko.js",
+      "type": "script",
+      "raw_bytes": 5584,
+      "gzip_bytes": 2021
+    },
+    {
+      "path": "/_next/static/chunks/1-nqmp1rl8kqt.js",
+      "type": "script",
+      "raw_bytes": 34043,
+      "gzip_bytes": 8633
+    },
+    {
+      "path": "/_next/static/chunks/209aaqjv6z8gh.js",
+      "type": "script",
+      "raw_bytes": 229597,
+      "gzip_bytes": 71714
+    },
+    {
+      "path": "/_next/static/chunks/34i8ntp0umxq5.js",
+      "type": "script",
+      "raw_bytes": 163051,
+      "gzip_bytes": 44972
+    },
+    {
+      "path": "/_next/static/chunks/turbopack-2c3mg3r-05n1w.js",
+      "type": "script",
+      "raw_bytes": 11255,
+      "gzip_bytes": 4396
+    },
+    {
+      "path": "/_next/static/chunks/2rpe0mhu9rg1m.js",
+      "type": "script",
+      "raw_bytes": 37203,
+      "gzip_bytes": 13516
+    },
+    {
+      "path": "/_next/static/chunks/3yfigggzxh3a8.js",
+      "type": "script",
+      "raw_bytes": 25044,
+      "gzip_bytes": 8583
+    },
+    {
+      "path": "/_next/static/chunks/2h_jf62-70lzb.js",
+      "type": "script",
+      "raw_bytes": 33049,
+      "gzip_bytes": 9781
+    },
+    {
+      "path": "/_next/static/chunks/2e2xbij7x2k_c.js",
+      "type": "script",
+      "raw_bytes": 17989,
+      "gzip_bytes": 6808
+    }
+  ]
+}

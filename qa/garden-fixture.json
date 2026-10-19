@@ -1,0 +1,8 @@
+{
+  "local_only": true,
+  "slugs": [
+    "garden-qa-experiment",
+    "garden-qa-flow",
+    "garden-qa-problem"
+  ]
+}
