@@ -179,15 +179,15 @@ export const BOT_PATH_STAGES: PathStage[] = [
   {
     id: "question",
     titleFa: "سؤال‌ها",
-    hintFa: "متن سؤال جدا، گزینه‌ها اینلاین روی همان پیام، راهنما پیام بعدی با نقل‌قول جمع‌شو. متادیتا داخل متن سؤال نیست.",
+    hintFa: "متن سؤال جدا با HTML تلگرام؛ --- جداکننده؛ گزینه‌ها اینلاین روی همان پیام در یک ردیف ۰–۱۰. راهنما پیام بعدی. متادیتا داخل متن سؤال نیست.",
     lane: "exam",
     services: ["analyzers"],
     texts: ["questionGuide", "saveFailed", "staleButton", "textTooLong"],
     params: [
-      { id: "q:i:v", dir: "in", labelFa: "callback q:{index}:{0–10}", whereFa: "مقیاس؛ ۰ راست، ۱۰ چپ" },
+      { id: "q:i:v", dir: "in", labelFa: "callback q:{index}:{0–10}", whereFa: "یک ردیف؛ ۱۰ چپ، ۰ راست" },
       { id: "c:i:j", dir: "in", labelFa: "callback c:{index}:{option}", whereFa: "سؤال گزینه‌ای" },
       { id: "text", dir: "in", labelFa: "پاسخ متنی", whereFa: "سؤال باز تا maxLength" },
-      { id: "item.text", dir: "out", labelFa: "متن سؤال (bold)", whereFa: "pack سؤال‌ها" },
+      { id: "item.text", dir: "out", labelFa: "متن سؤال", whereFa: "pack؛ **پررنگ** __کج__ `کد` و --- خط جدا" },
       { id: "guide", dir: "out", labelFa: "راهنما زیر گزینه‌ها", whereFa: "عنوان از ربات؛ بدنه از بخش و لنگر pack" },
     ],
     edit: "both",

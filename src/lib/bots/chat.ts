@@ -28,8 +28,9 @@ import { privacyPolicyVersion } from "@/lib/privacy/version";
 import { accountIdByTelegramUserId, linkTelegramContact } from "@/lib/bots/identity";
 import { markBotLastError } from "@/lib/bots/store";
 import { botConsent } from "@/lib/bots/copy";
-import { botVars, interpolateBotText, line, matchBotKey, parseBotScript, type BotKey, type BotScript } from "@/lib/bots/script";
-import { telegramAnswerCallback, telegramDeleteMessages, telegramEditMessage, telegramSendMessage } from "@/lib/bots/telegram";
+import { botVars, interpolateBotText, line, matchBotKey, parseBotScript, type BotButtonStyle, type BotKey, type BotScript } from "@/lib/bots/script";
+import { htmlBold, htmlExpandableQuote, stripTelegramHtml, telegramQuestionHtml } from "@/lib/bots/html";
+import { telegramAnswerCallback, telegramDeleteMessages, telegramSendMessage } from "@/lib/bots/telegram";
 import { absoluteUrl } from "@/lib/site";
 
 const FA = "۰۱۲۳۴۵۶۷۸۹";
@@ -75,10 +76,19 @@ async function say(
   chatId: number,
   text: string,
   replyMarkup?: Record<string, unknown>,
+  parseMode?: "HTML",
 ) {
   try {
-    await telegramSendMessage(token, { chatId, text, replyMarkup });
+    await telegramSendMessage(token, { chatId, text, replyMarkup, parseMode });
   } catch {
+    if (parseMode) {
+      try {
+        await telegramSendMessage(token, { chatId, text: stripTelegramHtml(text), replyMarkup });
+        return;
+      } catch {
+        // fall through
+      }
+    }
     await markBotLastError(botId, "ارسال پیام تلگرام انجام نشد.");
   }
 }
@@ -141,7 +151,7 @@ async function patchSession(botId: string, telegramUserId: string, chatId: strin
 }
 
 function varsOf(titleFa: string, extra?: Record<string, string>) {
-  return botVars({ service: titleFa || "تحلیل‌گر هوشمند", privacy: absoluteUrl("/privacy"), ...extra });
+  return botVars({ service: titleFa || "آینه", privacy: absoluteUrl("/privacy"), ...extra });
 }
 
 function isSkipText(text: string, label: string) {
@@ -149,25 +159,40 @@ function isSkipText(text: string, label: string) {
   return n === "رد" || n === "/skip" || n === label.trim();
 }
 
-function buttonStyle(action: BotKey["action"] | "contact"): string | undefined {
+function buttonStyle(action: BotKey["action"] | "contact"): BotButtonStyle {
   if (action === "start" || action === "exams" || action === "contact") return "primary";
   if (action === "restart") return "success";
   if (action === "clear") return "danger";
-  return undefined;
+  return "";
 }
 
-function replyButton(text: string, action: BotKey["action"] | "contact", extra?: Record<string, unknown>) {
-  const style = buttonStyle(action);
-  return { text: text.slice(0, 64), ...(style ? { style } : {}), ...extra };
+function resolvedKeyStyle(key: BotKey): BotButtonStyle {
+  if (key.style && key.style !== "auto") return key.style;
+  return buttonStyle(key.action);
 }
 
+function withTgStyle(style: BotButtonStyle | undefined) {
+  return style ? { style } : {};
+}
+
+function replyButton(
+  text: string,
+  action: BotKey["action"] | "contact",
+  extra?: Record<string, unknown>,
+  style?: BotButtonStyle,
+) {
+  const resolved = style !== undefined ? style : buttonStyle(action);
+  return { text: text.slice(0, 64), ...withTgStyle(resolved), ...extra };
+}
+
+/** کیبورد پایین چت ثابت است (ناو). گزینه‌های هر سؤال اینلاین و روی همان پیام‌اند. */
 function keysMarkup(script: BotScript) {
   const buttons = script.keys.filter((key) => key.inKeyboard && key.labelFa);
   const rest = buttons.filter((key) => key.action !== "clear");
   const clear = buttons.find((key) => key.action === "clear");
   const rows: Record<string, unknown>[][] = [];
   for (let i = 0; i < rest.length; i += 2) {
-    rows.push(rest.slice(i, i + 2).map((key) => replyButton(key.labelFa, key.action)));
+    rows.push(rest.slice(i, i + 2).map((key) => replyButton(key.labelFa, key.action, undefined, resolvedKeyStyle(key))));
   }
   rows.push([replyButton(clear?.labelFa || "پاک کردن تاریخچه", "clear")]);
   return {
@@ -207,7 +232,7 @@ async function clearTelegramChat(token: string, chatId: number, lastMessageId: n
 
 function rangeRows(itemIndex: number) {
   const btn = (value: number) => ({ text: faNum(value), callback_data: `q:${itemIndex}:${value}` });
-  return [[10, 9, 8, 7, 6].map(btn), [5, 4, 3, 2, 1, 0].map(btn)];
+  return [[10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0].map(btn)];
 }
 
 function choiceRows(itemIndex: number, item: Extract<Item, { kind: "choice" }>) {
@@ -232,20 +257,19 @@ function questionGuideBody(pack: AnalyzerPack, item: Item, index: number) {
   return lines.join("\n");
 }
 
-function questionText(item: Item) {
-  return item.text;
+function questionTextHtml(item: Item) {
+  return telegramQuestionHtml(item.text);
 }
 
-function questionMessage(item: Item, pack: AnalyzerPack, index: number, open: boolean) {
-  if (!open) return questionText(item);
-  return [questionText(item), "", questionGuideBody(pack, item, index)].join("\n");
+function questionGuideHtml(item: Item, pack: AnalyzerPack, index: number, script: BotScript) {
+  const title = htmlBold(script.texts.questionGuide) || "راهنمای این سوال";
+  return `${title}\n${htmlExpandableQuote(questionGuideBody(pack, item, index))}`;
 }
 
-function questionMarkup(itemIndex: number, item: Item, script: BotScript, open: boolean) {
+function questionMarkup(itemIndex: number, item: Item) {
   const rows =
     item.kind === "range" ? rangeRows(itemIndex) : item.kind === "choice" ? choiceRows(itemIndex, item) : [];
-  const label = (open ? script.texts.questionGuideClose : script.texts.questionGuide).slice(0, 64);
-  rows.push([{ text: label, callback_data: `g:${itemIndex}:${open ? "1" : "0"}` }]);
+  if (!rows.length) return undefined;
   return { inline_keyboard: rows };
 }
 
@@ -285,7 +309,7 @@ async function promptExamList(
   }
   await say(token, botId, chatId, line(script, "examPick", varsOf(titleFa)), {
     inline_keyboard: open.map((item) => [
-      { text: item.nameFa.slice(0, 64), callback_data: `exam:${item.slug}`, style: "primary" },
+      { text: item.nameFa.slice(0, 64), callback_data: `exam:${item.slug}`, ...withTgStyle(script.chrome.examPickStyle) },
     ]),
   });
 }
@@ -306,7 +330,8 @@ async function promptQuestion(
   const index = firstUnansweredIndex(pack, attempt.answers);
   const item = items[index];
   if (!item) return;
-  await say(token, botId, chatId, questionMessage(item, pack, index, false), questionMarkup(index, item, script, false));
+  await say(token, botId, chatId, questionTextHtml(item), questionMarkup(index, item), "HTML");
+  await say(token, botId, chatId, questionGuideHtml(item, pack, index, script), undefined, "HTML");
 }
 
 async function continueQuiz(
@@ -366,7 +391,9 @@ async function afterAccount(
   if (script.flow.askPolicy && !flags.policiesAccepted) {
     await patchSession(botId, telegramUserId, String(chatId), { step: "policy" });
     await say(token, botId, chatId, line(script, "policy", v), {
-      inline_keyboard: [[{ text: script.texts.policyButton.slice(0, 64), callback_data: "policyok", style: "success" }]],
+      inline_keyboard: [
+        [{ text: script.texts.policyButton.slice(0, 64), callback_data: "policyok", ...withTgStyle(script.chrome.policyButtonStyle) }],
+      ],
     });
     return;
   }
@@ -391,7 +418,9 @@ async function afterAccount(
   ) {
     await patchSession(botId, telegramUserId, String(chatId), { step: "referral", awaitingReferral: true });
     await say(token, botId, chatId, line(script, "referralPrompt", v), {
-      inline_keyboard: [[{ text: script.texts.referralSkip.slice(0, 64), callback_data: "skipref" }]],
+      inline_keyboard: [
+        [{ text: script.texts.referralSkip.slice(0, 64), callback_data: "skipref", ...withTgStyle(script.chrome.referralSkipStyle) }],
+      ],
     });
     return;
   }
@@ -445,7 +474,9 @@ async function startPack(
     awaitingDiscount: false,
   });
   await say(token, botId, chatId, botConsent(pack), {
-    inline_keyboard: [[{ text: pack.consent.acceptLabelFa, callback_data: "packok", style: "success" }]],
+    inline_keyboard: [
+      [{ text: pack.consent.acceptLabelFa, callback_data: "packok", ...withTgStyle(script.chrome.packAcceptStyle) }],
+    ],
   });
 }
 
@@ -546,7 +577,7 @@ export async function handleTelegramUpdate(input: {
   const text = message?.text?.trim() ?? "";
   const command = commandName(text);
   const script = parseBotScript(input.script);
-  const titleFa = input.titleFa?.trim() || "تحلیل‌گر هوشمند";
+  const titleFa = input.titleFa?.trim() || "آینه";
   const boundSlug = input.analyzerSlug?.trim() || null;
   const v = varsOf(titleFa);
   const lastMessageId = update.message?.message_id;
@@ -659,7 +690,9 @@ export async function handleTelegramUpdate(input: {
     if (script.flow.askDiscount) {
       await patchSession(botId, telegramUserId, String(chatId), { step: "discount", awaitingDiscount: true });
       await say(token, botId, chatId, line(script, "discountPrompt", v), {
-        inline_keyboard: [[{ text: script.texts.discountSkip.slice(0, 64), callback_data: "skipdisc" }]],
+        inline_keyboard: [
+          [{ text: script.texts.discountSkip.slice(0, 64), callback_data: "skipdisc", ...withTgStyle(script.chrome.discountSkipStyle) }],
+        ],
       });
       return;
     }
@@ -697,26 +730,6 @@ export async function handleTelegramUpdate(input: {
     const pack = await livePack(slug);
     if (!pack) return;
     const items = itemsOf(pack);
-    const guideMatch = /^g:(\d+):([01])$/.exec(callback.data);
-    if (guideMatch) {
-      const index = Number(guideMatch[1]);
-      const open = guideMatch[2] === "0";
-      const item = items[index];
-      if (!item) {
-        await say(token, botId, chatId, line(script, "staleButton", v));
-        return;
-      }
-      const text = questionMessage(item, pack, index, open);
-      const markup = questionMarkup(index, item, script, open);
-      const messageId = callback.message?.message_id;
-      try {
-        if (messageId == null) throw new Error("no_message");
-        await telegramEditMessage(token, { chatId, messageId, text, replyMarkup: markup });
-      } catch {
-        await say(token, botId, chatId, text, markup);
-      }
-      return;
-    }
     const rangeMatch = /^q:(\d+):(\d+)$/.exec(callback.data);
     const choiceMatch = /^c:(\d+):(\d+)$/.exec(callback.data);
     let item: Item | undefined;

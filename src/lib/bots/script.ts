@@ -71,6 +71,17 @@ export type BotTexts = {
 export const BOT_KEY_ACTIONS = ["start", "help", "exams", "restart", "clear", "reply"] as const;
 export type BotKeyAction = (typeof BOT_KEY_ACTIONS)[number];
 
+export const BOT_BUTTON_STYLES = ["", "primary", "success", "danger"] as const;
+export type BotButtonStyle = (typeof BOT_BUTTON_STYLES)[number];
+
+export const BOT_BUTTON_STYLE_OPTIONS: { id: BotButtonStyle | "auto"; labelFa: string }[] = [
+  { id: "auto", labelFa: "پیش‌فرض کار" },
+  { id: "", labelFa: "بدون رنگ تلگرام" },
+  { id: "primary", labelFa: "آبی (اصلی)" },
+  { id: "success", labelFa: "سبز (موفق)" },
+  { id: "danger", labelFa: "قرمز (خطر)" },
+];
+
 export type BotKey = {
   id: string;
   labelFa: string;
@@ -80,7 +91,33 @@ export type BotKey = {
   replyFa: string;
   inMenu: boolean;
   inKeyboard: boolean;
+  /** اگر نباشد، رنگ از روی کار کلید است. */
+  style?: BotButtonStyle | "auto";
 };
+
+export type BotChrome = {
+  policyButtonStyle: BotButtonStyle;
+  examPickStyle: BotButtonStyle;
+  packAcceptStyle: BotButtonStyle;
+  referralSkipStyle: BotButtonStyle;
+  discountSkipStyle: BotButtonStyle;
+};
+
+export const DEFAULT_BOT_CHROME: BotChrome = {
+  policyButtonStyle: "success",
+  examPickStyle: "primary",
+  packAcceptStyle: "success",
+  referralSkipStyle: "",
+  discountSkipStyle: "",
+};
+
+export const BOT_CHROME_FIELDS: { id: keyof BotChrome; labelFa: string; services?: BotService[] }[] = [
+  { id: "policyButtonStyle", labelFa: "رنگ دکمهٔ قبول سیاست" },
+  { id: "referralSkipStyle", labelFa: "رنگ دکمهٔ رد معرف" },
+  { id: "examPickStyle", labelFa: "رنگ دکمهٔ هر آزمون", services: ["analyzers"] },
+  { id: "packAcceptStyle", labelFa: "رنگ دکمهٔ رضایت آزمون", services: ["analyzers"] },
+  { id: "discountSkipStyle", labelFa: "رنگ دکمهٔ رد تخفیف", services: ["analyzers"] },
+];
 
 export const BOT_KEY_ACTION_OPTIONS: { id: BotKeyAction; labelFa: string }[] = [
   { id: "start", labelFa: "شروع گفتگو" },
@@ -153,6 +190,7 @@ export type BotScript = {
   flow: BotFlow;
   texts: BotTexts;
   keys: BotKey[];
+  chrome: BotChrome;
 };
 
 const POLICY_DEFAULT = [privacySummary, "", ...privacyUseTerms, "", "جزئیات: {privacy}"].join("\n");
@@ -242,8 +280,7 @@ export const BOT_TEXT_FIELDS: { id: keyof BotTexts; labelFa: string; hintFa: str
   { id: "textTooLong", labelFa: "متن سؤال باز خیلی بلند", hintFa: "{max}" },
   { id: "ready", labelFa: "بعد از ثبت هویت", hintFa: "{service}" },
   { id: "idleReply", labelFa: "پاسخ وقتی کار دیگری نیست", hintFa: "" },
-  { id: "questionGuide", labelFa: "دکمهٔ راهنمای سؤال", hintFa: "" },
-  { id: "questionGuideClose", labelFa: "بستن راهنمای سؤال", hintFa: "" },
+  { id: "questionGuide", labelFa: "عنوان راهنمای سؤال (زیر گزینه‌ها)", hintFa: "" },
   { id: "startDescription", labelFa: "شرح دستور /start در منو", hintFa: "" },
   { id: "helpDescription", labelFa: "شرح دستور /help در منو", hintFa: "" },
 ];
@@ -267,7 +304,6 @@ export const ANALYZER_TEXT_IDS: (keyof BotTexts)[] = [
   "discountBad",
   "textTooLong",
   "questionGuide",
-  "questionGuideClose",
 ];
 
 const CUSTOM_WELCOME =
@@ -283,6 +319,17 @@ function asCommand(value: unknown): string {
     .replace(/^\/+/, "")
     .replace(/[^a-z0-9_]/g, "")
     .slice(0, 32);
+}
+
+function parseButtonStyle(raw: unknown, fallback: BotButtonStyle): BotButtonStyle {
+  if (raw === "" || raw === "primary" || raw === "success" || raw === "danger") return raw;
+  return fallback;
+}
+
+function parseKeyStyle(raw: unknown): BotKey["style"] {
+  if (raw === "auto" || raw === undefined || raw === null) return "auto";
+  if (raw === "" || raw === "primary" || raw === "success" || raw === "danger") return raw;
+  return "auto";
 }
 
 function parseBotKey(raw: unknown, fallbackId: string): BotKey | null {
@@ -301,6 +348,7 @@ function parseBotKey(raw: unknown, fallbackId: string): BotKey | null {
     replyFa: asMultiline(row.replyFa, 500, ""),
     inMenu: row.inMenu !== false,
     inKeyboard: row.inKeyboard !== false,
+    style: parseKeyStyle(row.style),
   };
 }
 
@@ -372,6 +420,7 @@ export function defaultScript(service: BotService = "analyzers"): BotScript {
     service,
     flow,
     texts,
+    chrome: { ...DEFAULT_BOT_CHROME },
     keys: service === "custom" ? DEFAULT_CUSTOM_KEYS.map((key) => ({ ...key })) : DEFAULT_ANALYZER_KEYS.map((key) => ({ ...key })),
   };
 }
@@ -404,7 +453,15 @@ export function parseBotScript(raw: unknown): BotScript {
     const clear = DEFAULT_ANALYZER_KEYS.find((key) => key.action === "clear");
     if (clear) keys.push({ ...clear });
   }
-  return { service, flow, texts, keys };
+  const chromeRaw =
+    row.chrome && typeof row.chrome === "object" && !Array.isArray(row.chrome)
+      ? (row.chrome as Record<string, unknown>)
+      : {};
+  const chrome: BotChrome = { ...DEFAULT_BOT_CHROME };
+  for (const key of Object.keys(DEFAULT_BOT_CHROME) as (keyof BotChrome)[]) {
+    chrome[key] = parseButtonStyle(chromeRaw[key], DEFAULT_BOT_CHROME[key]);
+  }
+  return { service, flow, texts, keys, chrome };
 }
 
 export function botVars(input: {
@@ -415,7 +472,7 @@ export function botVars(input: {
   max?: string;
 }): Record<string, string> {
   return {
-    service: input.service ?? "تحلیل‌گر هوشمند",
+    service: input.service ?? "آینه",
     exam: input.exam ?? "",
     link: input.link ?? "",
     privacy: input.privacy ?? "/privacy",
@@ -424,5 +481,5 @@ export function botVars(input: {
 }
 
 export function line(script: BotScript, key: keyof BotTexts, vars?: Record<string, string>): string {
-  return interpolateBotText(script.texts[key], vars ?? botVars({ service: "تحلیل‌گر هوشمند" })).slice(0, 4096);
+  return interpolateBotText(script.texts[key], vars ?? botVars({ service: "آینه" })).slice(0, 4096);
 }
