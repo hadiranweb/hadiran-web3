@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 export function RoleAssignForm() {
@@ -34,7 +35,11 @@ export function RoleAssignForm() {
       <h2 className="text-lg font-bold text-slate-900">نقش حساب</h2>
       <p className="mt-2 text-sm leading-7 text-slate-500">
         شناسهٔ ۸رقمی را بگذارید و نقش بدهید. آزمون‌ساز میز ساخت آزمون می‌بیند. اعطای دسترسی یک آزمون جداست و نقش را عوض
-        نمی‌کند.
+        نمی‌کند. فهرست، حذف و پاک‌کردن ردپا در{" "}
+        <Link href="/workspace/people" className="text-indigo-700 hover:text-indigo-900">
+          میز اعضا
+        </Link>{" "}
+        است.
       </p>
       <div className="mt-4 flex flex-wrap gap-2">
         <input

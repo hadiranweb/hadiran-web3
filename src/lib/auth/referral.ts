@@ -68,3 +68,34 @@ export async function referredByPublicCode(accountId: number): Promise<string | 
   if (!row?.referredByAccountId) return null;
   return publicCodeByAccountId(row.referredByAccountId);
 }
+
+/** Owner desk: set or clear a referrer even if one is already stored. */
+export async function ownerSetAccountReferrer(
+  accountId: number,
+  rawCode: unknown,
+): Promise<{ ok: true; publicCode: string | null } | { ok: false; error: string }> {
+  await ensureAccountProfileSchema();
+  if (rawCode == null || rawCode === "") {
+    await db
+      .update(accounts)
+      .set({ referredByAccountId: null, updatedAt: new Date() })
+      .where(eq(accounts.id, accountId));
+    return { ok: true, publicCode: null };
+  }
+  const resolved = await resolveReferralCode(rawCode);
+  if (resolved == null) {
+    await db
+      .update(accounts)
+      .set({ referredByAccountId: null, updatedAt: new Date() })
+      .where(eq(accounts.id, accountId));
+    return { ok: true, publicCode: null };
+  }
+  if ("error" in resolved) return { ok: false, error: resolved.error };
+  if (resolved.accountId === accountId) return { ok: false, error: "self_referral" };
+  if (await wouldCycle(accountId, resolved.accountId)) return { ok: false, error: "referral_cycle" };
+  await db
+    .update(accounts)
+    .set({ referredByAccountId: resolved.accountId, updatedAt: new Date() })
+    .where(eq(accounts.id, accountId));
+  return { ok: true, publicCode: resolved.publicCode };
+}
