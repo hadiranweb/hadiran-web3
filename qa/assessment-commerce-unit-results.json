@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "checks": [
+    "Commission is based on original price, before discount",
+    "Partial discount is charged to creator, without reducing the base commission",
+    "100 percent creator coupon leaves buyer at zero and permits signed author debt",
+    "Explicit zero/full commission remain balanced with a free purchase",
+    "Fractional rial commission has no implicit rounding; explicit alternatives are exact",
+    "288 exact conservation cases, including values above safe Number and both explicit rounding modes",
+    "Rejects invalid prices/discounts, floating money and unconfigured or invalid commission",
+    "Coupon must bind the exact service product and its creator; authorization still requires trusted server rows"
+  ],
+  "conservationCases": 288,
+  "scope": "Pure policy only; no API, wallet ledger, fulfillment, payment or balance mutation implemented"
+}
