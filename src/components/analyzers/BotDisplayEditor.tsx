@@ -5,18 +5,18 @@ import type { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { insertAtCursor, TemplateCodeField } from "@/components/analyzers/TemplateCodeField";
 import {
   BOT_QUESTION_TOKENS,
+  botGuideTemplateOf,
   botQuestionTemplateOf,
   interpolateBotQuestion,
   botQuestionVars,
+  DEFAULT_BOT_GUIDE_TEMPLATE,
   DEFAULT_BOT_QUESTION_TEMPLATE,
 } from "@/lib/analyzers/bot-display";
-import { itemsOf, type AnalyzerPack } from "@/lib/analyzers/pack";
+import { itemsOf, type AnalyzerPack, type PackBotDisplay } from "@/lib/analyzers/pack";
 import { TELEGRAM_RULE, telegramQuestionHtml } from "@/lib/bots/html";
 
 function previewMarkup(html: string) {
-  return html
-    .replaceAll(TELEGRAM_RULE, "<hr />")
-    .replaceAll("\n", "<br />");
+  return html.replaceAll(TELEGRAM_RULE, "<hr />").replaceAll("\n", "<br />");
 }
 
 export function BotDisplayEditor({
@@ -26,22 +26,32 @@ export function BotDisplayEditor({
 }: {
   pack: AnalyzerPack;
   canEdit: boolean;
-  onChange: (questionTemplateFa: string) => void;
+  onChange: (next: Partial<PackBotDisplay>) => void;
 }) {
-  const editorRef = useRef<ReactCodeMirrorRef>(null);
+  const questionRef = useRef<ReactCodeMirrorRef>(null);
+  const guideRef = useRef<ReactCodeMirrorRef>(null);
   const items = itemsOf(pack);
   const [previewIndex, setPreviewIndex] = useState(0);
-  const template = botQuestionTemplateOf(pack);
+  const [focus, setFocus] = useState<"question" | "guide">("question");
+  const questionTemplate = botQuestionTemplateOf(pack);
+  const guideTemplate = botGuideTemplateOf(pack);
   const item = items[Math.min(previewIndex, Math.max(0, items.length - 1))] ?? null;
-  const previewHtml = useMemo(() => {
-    if (!item) return "";
-    const markdown = interpolateBotQuestion(template, botQuestionVars(pack, item, items.indexOf(item)));
-    return telegramQuestionHtml(markdown);
-  }, [item, items, pack, template]);
+  const vars = item ? botQuestionVars(pack, item, items.indexOf(item)) : null;
+  const preview = useMemo(() => {
+    if (!item || !vars) return { question: "", guide: "" };
+    return {
+      question: telegramQuestionHtml(interpolateBotQuestion(questionTemplate, vars)),
+      guide: telegramQuestionHtml(interpolateBotQuestion(guideTemplate, vars)),
+    };
+  }, [guideTemplate, item, questionTemplate, vars]);
 
   function insert(token: string) {
     if (!canEdit) return;
-    if (!insertAtCursor(editorRef, token)) onChange(`${template}${token}`);
+    const ref = focus === "guide" ? guideRef : questionRef;
+    const current = focus === "guide" ? guideTemplate : questionTemplate;
+    if (!insertAtCursor(ref, token)) {
+      onChange(focus === "guide" ? { guideTemplateFa: `${current}${token}` } : { questionTemplateFa: `${current}${token}` });
+    }
   }
 
   return (
@@ -49,9 +59,9 @@ export function BotDisplayEditor({
       <div>
         <h2 className="text-base font-bold text-slate-900">نحوه نمایش در ربات</h2>
         <p className="mt-1 text-xs leading-6 text-slate-500">
-          قالب همهٔ سؤال‌های همین آزمون در تلگرام. وب همان متن تب سؤال‌هاست. نشانه‌ها:{" "}
-          <span dir="ltr">**پررنگ**</span> <span dir="ltr">__کج__</span> <span dir="ltr">`کد`</span> و خط{" "}
-          <span dir="ltr">---</span>. دکمهٔ ۰–۱۰ جدا می‌آید، زیر پیام.
+          قالب سؤال و راهنما جداست. نشانه‌ها: <span dir="ltr">**پررنگ**</span> <span dir="ltr">__کج__</span>{" "}
+          <span dir="ltr">`کد`</span> و خط <span dir="ltr">---</span>. دکمه‌های ۰–۱۰ دو ردیف زیر پیام سؤال می‌آیند، نه داخل
+          نقل‌قول. خالی گذاشتن راهنما یعنی پیام دوم فرستاده نمی‌شود.
         </p>
       </div>
       <div className="flex flex-wrap gap-1">
@@ -72,53 +82,80 @@ export function BotDisplayEditor({
         ))}
       </div>
       <div className="flex flex-wrap gap-2 text-xs">
-        <button
-          type="button"
-          disabled={!canEdit}
-          className="rounded-lg border border-slate-200 px-2 py-1"
-          onClick={() => insert("**")}
-        >
+        <button type="button" disabled={!canEdit} className="rounded-lg border border-slate-200 px-2 py-1" onClick={() => insert("**")}>
           پررنگ
         </button>
-        <button
-          type="button"
-          disabled={!canEdit}
-          className="rounded-lg border border-slate-200 px-2 py-1"
-          onClick={() => insert("__")}
-        >
+        <button type="button" disabled={!canEdit} className="rounded-lg border border-slate-200 px-2 py-1" onClick={() => insert("__")}>
           کج
         </button>
-        <button
-          type="button"
-          disabled={!canEdit}
-          className="rounded-lg border border-slate-200 px-2 py-1"
-          onClick={() => insert("\n---\n")}
-        >
+        <button type="button" disabled={!canEdit} className="rounded-lg border border-slate-200 px-2 py-1" onClick={() => insert("\n---\n")}>
           خط جدا
         </button>
-        <button
-          type="button"
-          disabled={!canEdit}
-          className="rounded-lg border border-slate-200 px-2 py-1"
-          onClick={() => onChange(DEFAULT_BOT_QUESTION_TEMPLATE)}
-        >
-          بازگشت به پیش‌فرض
-        </button>
       </div>
-      <TemplateCodeField
-        editorRef={editorRef}
-        value={template}
-        language="text"
-        dir="rtl"
-        height="240px"
-        editable={canEdit}
-        onChange={(value) => {
-          if (canEdit) onChange(value);
-        }}
-      />
+
+      <div className="space-y-2" onFocusCapture={() => setFocus("question")}>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs font-medium text-slate-600">قالب پیام سؤال</p>
+          <button
+            type="button"
+            disabled={!canEdit}
+            className="text-xs text-indigo-700 disabled:opacity-50"
+            onClick={() => onChange({ questionTemplateFa: DEFAULT_BOT_QUESTION_TEMPLATE })}
+          >
+            پیش‌فرض سؤال
+          </button>
+        </div>
+        <TemplateCodeField
+          editorRef={questionRef}
+          value={questionTemplate}
+          language="text"
+          dir="rtl"
+          height="180px"
+          editable={canEdit}
+          onChange={(value) => {
+            if (canEdit) onChange({ questionTemplateFa: value });
+          }}
+        />
+      </div>
+
+      <div className="space-y-2" onFocusCapture={() => setFocus("guide")}>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs font-medium text-slate-600">قالب پیام راهنما</p>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              disabled={!canEdit}
+              className="text-xs text-indigo-700 disabled:opacity-50"
+              onClick={() => onChange({ guideTemplateFa: DEFAULT_BOT_GUIDE_TEMPLATE })}
+            >
+              پیش‌فرض لنگر
+            </button>
+            <button
+              type="button"
+              disabled={!canEdit}
+              className="text-xs text-slate-500 disabled:opacity-50"
+              onClick={() => onChange({ guideTemplateFa: "" })}
+            >
+              بدون پیام راهنما
+            </button>
+          </div>
+        </div>
+        <TemplateCodeField
+          editorRef={guideRef}
+          value={guideTemplate}
+          language="text"
+          dir="rtl"
+          height="160px"
+          editable={canEdit}
+          onChange={(value) => {
+            if (canEdit) onChange({ guideTemplateFa: value });
+          }}
+        />
+      </div>
+
       <div>
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-xs font-medium text-slate-500">پیش‌نمایش با سؤال نمونه</p>
+          <p className="text-xs font-medium text-slate-500">پیش‌نمایش دو پیام</p>
           {items.length > 1 ? (
             <select
               className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs"
@@ -134,16 +171,31 @@ export function BotDisplayEditor({
           ) : null}
         </div>
         {item ? (
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm leading-7 text-slate-800">
-            <div
-              className="[&_code]:rounded [&_code]:bg-white [&_code]:px-1 [&_hr]:my-3 [&_hr]:border-slate-300"
-              dangerouslySetInnerHTML={{ __html: previewMarkup(previewHtml) }}
-            />
-            {item.kind === "range" ? (
-              <p className="mt-3 font-mono text-xs tracking-wide text-slate-500" dir="ltr">
-                ۱۰ ۹ ۸ ۷ ۶ ۵ ۴ ۳ ۲ ۱ ۰
-              </p>
-            ) : null}
+          <div className="space-y-2">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm leading-7 text-slate-800">
+              <p className="mb-2 text-[11px] text-slate-400">پیام سؤال</p>
+              <div
+                className="[&_code]:rounded [&_code]:bg-white [&_code]:px-1 [&_hr]:my-3 [&_hr]:border-slate-300"
+                dangerouslySetInnerHTML={{ __html: previewMarkup(preview.question) }}
+              />
+              {item.kind === "range" ? (
+                <div className="mt-3 space-y-1 font-mono text-xs tracking-wide text-slate-500" dir="ltr">
+                  <p>۱۰ ۹ ۸ ۷ ۶</p>
+                  <p>۵ ۴ ۳ ۲ ۱ ۰</p>
+                </div>
+              ) : null}
+            </div>
+            {preview.guide ? (
+              <div className="rounded-xl border border-slate-200 bg-white p-3 text-sm leading-7 text-slate-800">
+                <p className="mb-2 text-[11px] text-slate-400">پیام راهنما — بدون نقل‌قول</p>
+                <div
+                  className="[&_code]:rounded [&_code]:bg-slate-50 [&_code]:px-1 [&_hr]:my-3 [&_hr]:border-slate-300"
+                  dangerouslySetInnerHTML={{ __html: previewMarkup(preview.guide) }}
+                />
+              </div>
+            ) : (
+              <p className="text-xs text-slate-400">پیام راهنما فرستاده نمی‌شود.</p>
+            )}
           </div>
         ) : (
           <p className="text-sm text-slate-500">اول در تب سؤال‌ها یک سؤال بگذارید.</p>

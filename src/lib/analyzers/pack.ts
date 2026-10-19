@@ -121,6 +121,8 @@ export type Consent = {
 /** نمایش سؤال در تلگرام؛ وب همان item.text می‌ماند. */
 export type PackBotDisplay = {
   questionTemplateFa: string;
+  /** اگر رشته باشد (حتی خالی) همان است؛ اگر نباشد پیش‌فرض لنگر ۰/۵/۱۰ بدون راست/چپ. */
+  guideTemplateFa?: string;
 };
 
 export type AnalyzerScale = {

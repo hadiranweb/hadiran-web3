@@ -10,8 +10,8 @@ import {
   liveSaveAnswer,
   liveSubmitAttempt,
 } from "@/lib/analyzers/live-attempts";
-import { renderBotQuestionMarkdown } from "@/lib/analyzers/bot-display";
-import { itemsOf, sectionOf, type AnalyzerPack, type Item } from "@/lib/analyzers/pack";
+import { renderBotGuideMarkdown, renderBotQuestionMarkdown } from "@/lib/analyzers/bot-display";
+import { itemsOf, type AnalyzerPack, type Item } from "@/lib/analyzers/pack";
 import { applyAttemptCodes } from "@/lib/analyzers/attempt-codes";
 import {
   firstUnansweredIndex,
@@ -30,7 +30,7 @@ import { accountIdByTelegramUserId, linkTelegramContact } from "@/lib/bots/ident
 import { markBotLastError } from "@/lib/bots/store";
 import { botConsent } from "@/lib/bots/copy";
 import { botVars, interpolateBotText, line, matchBotKey, parseBotScript, type BotButtonStyle, type BotKey, type BotScript } from "@/lib/bots/script";
-import { htmlBold, htmlExpandableQuote, stripTelegramHtml, telegramQuestionHtml } from "@/lib/bots/html";
+import { stripTelegramHtml, telegramQuestionHtml } from "@/lib/bots/html";
 import { telegramAnswerCallback, telegramDeleteMessages, telegramSendMessage } from "@/lib/bots/telegram";
 import { absoluteUrl } from "@/lib/site";
 
@@ -233,7 +233,8 @@ async function clearTelegramChat(token: string, chatId: number, lastMessageId: n
 
 function rangeRows(itemIndex: number) {
   const btn = (value: number) => ({ text: faNum(value), callback_data: `q:${itemIndex}:${value}` });
-  return [[10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0].map(btn)];
+  // یک ردیف ۱۱ دکمه را تلگرام به ۸ تا می‌بُرد (۱۰…۳). دو ردیف همه را نشان می‌دهد.
+  return [[10, 9, 8, 7, 6].map(btn), [5, 4, 3, 2, 1, 0].map(btn)];
 }
 
 function choiceRows(itemIndex: number, item: Extract<Item, { kind: "choice" }>) {
@@ -242,29 +243,13 @@ function choiceRows(itemIndex: number, item: Extract<Item, { kind: "choice" }>) 
   ]);
 }
 
-function questionGuideBody(pack: AnalyzerPack, item: Item, index: number) {
-  const all = itemsOf(pack);
-  const section = sectionOf(pack, item.id);
-  const lines = [section?.titleFa ?? pack.nameFa, `سؤال ${faNum(index + 1)} از ${faNum(all.length)}`];
-  if (section?.introFa) lines.push("", section.introFa);
-  if (item.kind === "range") {
-    lines.push("", `۰ (راست) — ${item.anchors[0]}`);
-    if (item.anchors[5]) lines.push(`۵ — ${item.anchors[5]}`);
-    lines.push(`۱۰ (چپ) — ${item.anchors[10]}`);
-  }
-  if (item.kind === "text") {
-    lines.push("", `پاسخ را همین‌جا بنویسید (تا ${faNum(item.maxLength)} نویسه).`);
-  }
-  return lines.join("\n");
-}
-
 function questionTextHtml(item: Item, pack: AnalyzerPack, index: number) {
   return telegramQuestionHtml(renderBotQuestionMarkdown(pack, item, index));
 }
 
-function questionGuideHtml(item: Item, pack: AnalyzerPack, index: number, script: BotScript) {
-  const title = htmlBold(script.texts.questionGuide) || "راهنمای این سوال";
-  return `${title}\n${htmlExpandableQuote(questionGuideBody(pack, item, index))}`;
+function questionGuideHtml(item: Item, pack: AnalyzerPack, index: number) {
+  const markdown = renderBotGuideMarkdown(pack, item, index);
+  return markdown ? telegramQuestionHtml(markdown) : "";
 }
 
 function questionMarkup(itemIndex: number, item: Item) {
@@ -332,7 +317,8 @@ async function promptQuestion(
   const item = items[index];
   if (!item) return;
   await say(token, botId, chatId, questionTextHtml(item, pack, index), questionMarkup(index, item), "HTML");
-  await say(token, botId, chatId, questionGuideHtml(item, pack, index, script), undefined, "HTML");
+  const guide = questionGuideHtml(item, pack, index);
+  if (guide) await say(token, botId, chatId, guide, undefined, "HTML");
 }
 
 async function continueQuiz(

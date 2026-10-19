@@ -385,9 +385,15 @@ function sanitizeFormula(raw: unknown, used: Set<string>): Formula | null {
 function sanitizeBotDisplay(raw: unknown): PackBotDisplay | undefined {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
   const row = raw as Record<string, unknown>;
-  const questionTemplateFa = asMultiline(row.questionTemplateFa, 2500);
-  if (!questionTemplateFa) return undefined;
-  return { questionTemplateFa };
+  const questionTemplateFa = asMultiline(row.questionTemplateFa, 2500) ?? "";
+  const hasGuide = Object.prototype.hasOwnProperty.call(row, "guideTemplateFa");
+  const guideTemplateFa = hasGuide
+    ? typeof row.guideTemplateFa === "string"
+      ? (asMultiline(row.guideTemplateFa, 2500) ?? "")
+      : ""
+    : undefined;
+  if (!questionTemplateFa && guideTemplateFa === undefined) return undefined;
+  return guideTemplateFa === undefined ? { questionTemplateFa } : { questionTemplateFa, guideTemplateFa };
 }
 
 function sanitizeConsent(raw: unknown): Consent {

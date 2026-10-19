@@ -43,7 +43,7 @@ export function AnalyzerBotPath({
   canEdit: boolean;
   onConsent: (patch: { titleFa?: string; acceptLabelFa?: string; bodyFa?: string[] }) => void;
   onSummary: (templateFa: string) => void;
-  onBotDisplay: (questionTemplateFa: string) => void;
+  onBotDisplay: (next: Partial<PackBotDisplay>) => void;
   onOpenItems: () => void;
 }) {
   const examStages = stagesForService("analyzers", "exam");

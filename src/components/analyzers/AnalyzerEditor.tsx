@@ -351,8 +351,15 @@ export function AnalyzerEditor({
           onSummary={(userSummaryTemplateFa) =>
             patch({ ...pack, report: { ...(pack.report ?? emptyReport()), userSummaryTemplateFa } })
           }
-          onBotDisplay={(questionTemplateFa) =>
-            patch({ ...pack, botDisplay: { questionTemplateFa } })
+          onBotDisplay={(next) =>
+            patch({
+              ...pack,
+              botDisplay: {
+                questionTemplateFa: pack.botDisplay?.questionTemplateFa ?? "",
+                guideTemplateFa: pack.botDisplay?.guideTemplateFa,
+                ...next,
+              },
+            })
           }
         />
       ) : null}
