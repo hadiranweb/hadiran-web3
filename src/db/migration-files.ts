@@ -86,5 +86,9 @@ export const MIGRATION_FILES: { id: string; sql: string }[] = [
   {
     "id": "0020_bot_service_script.sql",
     "sql": "-- Bot belongs to a service (analyzers), not a single exam. Script JSON is hub copy + flow flags.\n\nALTER TABLE bots ADD COLUMN IF NOT EXISTS service VARCHAR(32) NOT NULL DEFAULT 'analyzers';\nALTER TABLE bots ADD COLUMN IF NOT EXISTS script JSONB;\n"
+  },
+  {
+    "id": "0021_shop_order_events.sql",
+    "sql": "CREATE TABLE IF NOT EXISTS shop_order_events (\n  id SERIAL PRIMARY KEY,\n  order_id TEXT NOT NULL REFERENCES shop_orders(id) ON DELETE CASCADE,\n  actor_id INTEGER REFERENCES accounts(id) ON DELETE SET NULL,\n  actor_role TEXT NOT NULL,\n  kind TEXT NOT NULL,\n  from_state TEXT,\n  to_state TEXT NOT NULL,\n  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()\n);\nCREATE INDEX IF NOT EXISTS shop_order_events_order_time_idx ON shop_order_events(order_id,created_at,id);\nCREATE INDEX IF NOT EXISTS shop_orders_settled_time_idx ON shop_orders(settled_at,id) WHERE state='settled';\nCREATE INDEX IF NOT EXISTS shop_orders_buyer_created_idx ON shop_orders(buyer_id,created_at,id);\n-- Historical state transitions are unknown: no fabricated event backfill.\n"
   }
 ];

@@ -1,0 +1,32 @@
+{
+  "passed": true,
+  "typecheck": true,
+  "lint": true,
+  "production_build": true,
+  "api_checks": 9,
+  "unit_checks": 6,
+  "browser_checks": 7,
+  "layout_cases": 72,
+  "text_zoom": "200% at 320px",
+  "new_npm_dependencies": false,
+  "migration_count": 23,
+  "protected_paths_unchanged": [
+    "src/app/page.tsx",
+    "src/components/HomeChat.tsx",
+    "src/components/portrait",
+    "assets/portrait",
+    "src/app/fonts",
+    "public/avatars",
+    "src/app/layout.tsx",
+    "src/app/globals.css",
+    "package.json",
+    "package-lock.json",
+    "src/app/workspace/network",
+    "src/app/api/workspace/network",
+    "src/lib/workspace/network.ts",
+    "src/lib/workspace/network-types.ts"
+  ],
+  "review": "/home/user/deliverables/hadiran-orders-finance.html",
+  "open_scope": "No real order/analyzer relation in current data model; analyzer filter deferred, not inferred.",
+  "production_or_drive_mutations": false
+}

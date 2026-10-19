@@ -18,7 +18,7 @@ export function orderStateFa(state: string): string {
   const map: Record<string, string> = {
     awaiting_payment_reference: "در انتظار شمارهٔ پیگیری",
     awaiting_confirmation: "در انتظار تأیید فروشنده",
-    settled: "تسویه‌شده — دسترسی باز است",
+    settled: "تسویه‌شده",
     declined: "دریافت تأیید نشد",
     cancelled: "لغو شده",
   };

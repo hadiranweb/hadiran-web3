@@ -9,8 +9,9 @@ files=subprocess.check_output(['git','ls-tree','-r','--name-only','f132353','--'
 for file in files:assert subprocess.check_output(['git','show','f132353:'+file])==Path(file).read_bytes(),file
 latest=subprocess.check_output(['git','ls-tree','-r','--name-only','cb20276','--','src/db/migrations'],text=True).splitlines()
 for file in latest: assert subprocess.check_output(['git','show','cb20276:'+file])==Path(file).read_bytes(),file
-assert len(list(Path('src/db/migrations').glob('*.sql')))==22
-checks.append('All 22 merged migrations match their original sources')
+assert len(list(Path('src/db/migrations').glob('*.sql')))==23
+assert Path('src/db/migrations/0021_shop_order_events.sql').exists()
+checks.append('All 22 merged migrations match their original sources; one new P05 migration')
 checks.append('All 20 existing migrations retained byte-for-byte, including both 0015 filenames')
 assert subprocess.check_output(['git','show','1ed9ea7:package-lock.json'])==Path('package-lock.json').read_bytes()
 old=json.loads(subprocess.check_output(['git','show','f132353:package.json']));new=json.loads(Path('package.json').read_text());upstream=json.loads(subprocess.check_output(['git','show','1ed9ea7:package.json']))

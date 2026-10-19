@@ -1,0 +1,27 @@
+const fs=require('fs'),path=require('path'),ts=require('typescript'),Module=require('module'),assert=require('node:assert/strict');
+const resolve=Module._resolveFilename,load=Module._load;let calls=0;
+Module._resolveFilename=function(r,p,...a){return resolve.call(this,r.startsWith('@/')?path.join(process.cwd(),'src',r.slice(2)):r,p,...a)};
+Module._load=function(r,p,...a){if(r==='server-only')return{};if(r==='@/db')return{db:{transaction:async()=>{calls++;throw Error('Injected finance failure')}}};return load.call(this,r,p,...a)};
+require.extensions['.ts']=(m,f)=>m._compile(ts.transpileModule(fs.readFileSync(f,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText,f);
+const {reportPeriod,startOfPersianDay,parsePersianDay,persianDay}=require('../src/lib/finance/period.ts');
+const {parseFinanceQuery,financeMoney,financeHref}=require('../src/lib/finance/types.ts');const {loadFinance}=require('../src/lib/finance/read.ts');
+const checks=[];const pass=s=>{checks.push(s);console.log('PASS',s)};
+(async()=>{
+ assert.equal(startOfPersianDay(parsePersianDay('۱۴۰۵/۰۱/۰۱')).toISOString(),'2026-03-20T20:30:00.000Z');
+ assert.equal(startOfPersianDay(parsePersianDay('1403-12-30')).toISOString(),'2025-03-19T20:30:00.000Z');
+ for(const bad of ['1404-12-30','1405-07-31','1405-00-01','1300-02-32','foo','۱۴۰۵-۱-۰۱'])assert.throws(()=>parsePersianDay(bad));
+ const historic=startOfPersianDay(parsePersianDay('1400-01-02'));assert.deepEqual(persianDay(historic),{year:1400,month:1,day:2});assert.equal(persianDay(new Date(historic.getTime()-1)).day,1);
+ pass('Strict Persian leap/day validation, Nowruz UTC boundary and historic midnight DST gap');
+ const p=reportPeriod({period:'custom',from:'1405-01-01',to:'1405-01-01'});assert.equal(p.end,'2026-03-21T20:30:00.000Z');assert.equal(new Date(p.end)-new Date(p.start),86400000);
+ const previous=reportPeriod({period:'previous'},new Date('2026-03-22T00:00:00Z'));assert.equal(previous.from,'1404-12-01');assert.equal(previous.to,'1404-12-29');
+ assert.throws(()=>reportPeriod({period:'custom',from:'1405-01-02',to:'1405-01-01'}));assert.throws(()=>reportPeriod({period:'custom',from:'1402-01-01',to:'1405-01-01'}));assert.equal(reportPeriod({period:'all'}).start,null);pass('Inclusive civil end day becomes exclusive UTC; year rollover and bounded custom ranges');
+ assert.equal(financeMoney('101','IRR','en'),'10.1 toman');assert.equal(financeMoney('90071992547409931','IRR','en'),'9,007,199,254,740,993.1 toman');assert.equal(financeMoney('101','USD','en'),'101 USD');assert.equal(financeMoney('-1','IRR','en'),'−0.1 toman');assert.equal(financeMoney(Number.MAX_SAFE_INTEGER+1,'IRR'),'—');pass('Exact string/BigInt sums and toman tenths; non-IRR never converted or mixed');
+ for(const input of [{state:'fake'},{basis:'foo'},{page:'1.1'},{page:'0'},{page:'10001'},{q:'x'.repeat(81)},{currency:'IRR OR 1=1'}])assert.throws(()=>parseFinanceQuery(input,'orders'));
+ const q=parseFinanceQuery({period:'all',state:'declined',basis:'created'},'report');assert.equal(q.state,'settled');assert.equal(q.basis,'settled');assert(financeHref('/workspace/finance',q,{currency:'USD'}).includes('currency=USD'));pass('Bounded filters; report scope forced to real settlements and settledAt');
+ await assert.rejects(()=>loadFinance({id:1,role:'member'},q,'report'),/forbidden/);assert.equal(calls,0);
+ const old=process.env.DATABASE_URL;delete process.env.DATABASE_URL;const none=await loadFinance({id:1,role:'owner'},q,'report');assert.equal(none.total,null);assert.equal(none.asOf,null);assert.equal(calls,0);
+ process.env.DATABASE_URL='injected-only';const fail=await loadFinance({id:1,role:'owner'},q,'report');assert.equal(fail.source,'error');assert.equal(fail.total,null);assert.equal(fail.asOf,null);assert.deepEqual(fail.totals,[]);assert.equal(calls,1);
+ if(old===undefined)delete process.env.DATABASE_URL;else process.env.DATABASE_URL=old;pass('Server role denial before DB and honest unavailable/injected-failure states');
+ const {MIGRATION_FILES}=require('../src/db/migration-files.ts');assert.equal(MIGRATION_FILES.length,23);assert.equal(new Set(MIGRATION_FILES.map(m=>m.id)).size,23);for(const file of MIGRATION_FILES)assert.equal(file.sql,fs.readFileSync('src/db/migrations/'+file.id,'utf8'));pass('All 23 startup migration entries exactly match their SQL files, including new order events');
+ fs.writeFileSync('qa/finance-unit-results.json',JSON.stringify({passed:true,checks},null,2));
+})().catch(e=>{console.error(e);process.exitCode=1});

@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "checks": [
+    "Strict Persian leap/day validation, Nowruz UTC boundary and historic midnight DST gap",
+    "Inclusive civil end day becomes exclusive UTC; year rollover and bounded custom ranges",
+    "Exact string/BigInt sums and toman tenths; non-IRR never converted or mixed",
+    "Bounded filters; report scope forced to real settlements and settledAt",
+    "Server role denial before DB and honest unavailable/injected-failure states",
+    "All 23 startup migration entries exactly match their SQL files, including new order events"
+  ]
+}

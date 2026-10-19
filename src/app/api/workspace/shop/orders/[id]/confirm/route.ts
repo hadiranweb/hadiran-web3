@@ -14,7 +14,7 @@ export async function POST(_request: Request, { params }: Ctx) {
   if (auth.account.id === 0) return NextResponse.json({ error: "فروشگاه واقعی به دیتابیس نیاز دارد؛ در پیش‌نمایش تراکنش یا کالای جعلی ایجاد نمی‌شود." }, { status: 503 });
   const { id } = await params;
   try {
-    const order = await confirmReceipt({ orderId: id });
+    const order = await confirmReceipt({ orderId: id, actorId: auth.account.id });
     return NextResponse.json({ ok: true, id: order.id, state: order.state });
   } catch (error) {
     if (error instanceof ShopError) {

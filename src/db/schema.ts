@@ -654,6 +654,17 @@ export const shopOrders = pgTable("shop_orders", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
 
+export const shopOrderEvents = pgTable("shop_order_events", {
+  id: serial("id").primaryKey(),
+  orderId: text("order_id").notNull().references(() => shopOrders.id, { onDelete: "cascade" }),
+  actorId: integer("actor_id").references(() => accounts.id, { onDelete: "set null" }),
+  actorRole: text("actor_role").notNull(),
+  kind: text("kind").notNull(),
+  fromState: text("from_state"),
+  toState: text("to_state").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const discountCodes = pgTable("discount_codes", {
   id: serial("id").primaryKey(),
   code: varchar("code", { length: 32 }).notNull().unique(),

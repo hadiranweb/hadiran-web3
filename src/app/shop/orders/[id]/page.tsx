@@ -4,7 +4,8 @@ import { db } from "@/db";
 import { shopListings, shopOrders } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { requirePageAccount } from "@/lib/auth/guard";
-import { formatMoney } from "@/lib/shop/money";
+import { financeMoney as formatMoney } from "@/lib/finance/types";
+import { OrderHistory } from "@/components/finance/OrderHistory";
 import { orderStateFa } from "@/lib/shop/states";
 import { BuyerOrderActions } from "@/components/shop/BuyerOrderActions";
 import { MarkdownReadonly } from "@/components/MarkdownReadonly";
@@ -52,6 +53,8 @@ export default async function ShopOrderPage({ params }: Props) {
         </p>
       </section>
 
+      <Link href="/account/purchases?period=all" className="text-sm text-mark">خریدها و دسترسی‌های من</Link>
+      <OrderHistory orderId={order.id} account={account}/>
       {order.paymentReference ? (
         <p className="text-sm text-slate-600">
           پیگیری ثبت‌شده: <span dir="ltr">{order.paymentReference}</span>

@@ -1,0 +1,1810 @@
+{
+  "passed": true,
+  "scope": "Local PostgreSQL and production-build browser regressions during P05",
+  "results": {
+    "network-api-results.json": {
+      "passed": true,
+      "checks": [
+        "Network requires owner before parsing a root; member and author cannot query it",
+        "Exact active coded totals, uncoded account notice, owner-wide scope and complete stable 20-row directory pagination",
+        "Broad views cap at 120 nodes; depth caps at four; selecting a child retrieves its real subtree",
+        "Every returned edge is backed by the recorded referrer; payload excludes internal IDs, contact, financial and assessment fields",
+        "Server-side name/role search, literal SQL-safe input, Persian public codes and invalid/missing root handling",
+        "Cycles, self-referrals and unavailable parents are explicit; reading does not allocate public codes or rewrite relationships",
+        "Genuine empty filtered directory remains a successful live snapshot"
+      ],
+      "dataset_accounts": 285,
+      "max_nodes_tested": 120,
+      "production_database_tested": false
+    },
+    "network-browser-results.json": {
+      "passed": true,
+      "checks": [
+        "Native SVG edges/nodes, keyboard and pointer pan, zoom/reset and accessible details with focus restoration",
+        "Nested text tree retained; fullscreen view confines focus, respects modal Escape and restores the normal layout",
+        "Bounded large graph, source-backed search/role filter, URL branch navigation, directory pagination and genuine no-match state",
+        "Real cycles and self-links render without recursion failure; unavailable parent is not presented as an invented relationship",
+        "72 layouts across FA/EN, light/dark, branch/large/no-match states and 320–1920px",
+        "200% text reflow at 320 CSS pixels in both languages",
+        "Reduced motion has no perpetual graph movement; zero UI writes, exceptions or HTTP 5xx"
+      ],
+      "layout_cases": 72,
+      "cases": [
+        {
+          "locale": "fa",
+          "theme": "light",
+          "width": 320,
+          "state": "branch"
+        },
+        {
+          "locale": "fa",
+          "theme": "light",
+          "width": 320,
+          "state": "bounded"
+        },
+        {
+          "locale": "fa",
+          "theme": "light",
+          "width": 320,
+          "state": "empty"
+        },
+        {
+          "locale": "fa",
+          "theme": "light",
+          "width": 375,
+          "state": "branch"
+        },
+        {
+          "locale": "fa",
+          "theme": "light",
+          "width": 375,
+          "state": "bounded"
+        },
+        {
+          "locale": "fa",
+          "theme": "light",
+          "width": 375,
+          "state": "empty"
+        },
+        {
+          "locale": "fa",
+          "theme": "light",
+          "width": 768,
+          "state": "branch"
+        },
+        {
+          "locale": "fa",
+          "theme": "light",
+          "width": 768,
+          "state": "bounded"
+        },
+        {
+          "locale": "fa",
+          "theme": "light",
+          "width": 768,
+          "state": "empty"
+        },
+        {
+          "locale": "fa",
+          "theme": "light",
+          "width": 1280,
+          "state": "branch"
+        },
+        {
+          "locale": "fa",
+          "theme": "light",
+          "width": 1280,
+          "state": "bounded"
+        },
+        {
+          "locale": "fa",
+          "theme": "light",
+          "width": 1280,
+          "state": "empty"
+        },
+        {
+          "locale": "fa",
+          "theme": "light",
+          "width": 1440,
+          "state": "branch"
+        },
+        {
+          "locale": "fa",
+          "theme": "light",
+          "width": 1440,
+          "state": "bounded"
+        },
+        {
+          "locale": "fa",
+          "theme": "light",
+          "width": 1440,
+          "state": "empty"
+        },
+        {
+          "locale": "fa",
+          "theme": "light",
+          "width": 1920,
+          "state": "branch"
+        },
+        {
+          "locale": "fa",
+          "theme": "light",
+          "width": 1920,
+          "state": "bounded"
+        },
+        {
+          "locale": "fa",
+          "theme": "light",
+          "width": 1920,
+          "state": "empty"
+        },
+        {
+          "locale": "fa",
+          "theme": "dark",
+          "width": 320,
+          "state": "branch"
+        },
+        {
+          "locale": "fa",
+          "theme": "dark",
+          "width": 320,
+          "state": "bounded"
+        },
+        {
+          "locale": "fa",
+          "theme": "dark",
+          "width": 320,
+          "state": "empty"
+        },
+        {
+          "locale": "fa",
+          "theme": "dark",
+          "width": 375,
+          "state": "branch"
+        },
+        {
+          "locale": "fa",
+          "theme": "dark",
+          "width": 375,
+          "state": "bounded"
+        },
+        {
+          "locale": "fa",
+          "theme": "dark",
+          "width": 375,
+          "state": "empty"
+        },
+        {
+          "locale": "fa",
+          "theme": "dark",
+          "width": 768,
+          "state": "branch"
+        },
+        {
+          "locale": "fa",
+          "theme": "dark",
+          "width": 768,
+          "state": "bounded"
+        },
+        {
+          "locale": "fa",
+          "theme": "dark",
+          "width": 768,
+          "state": "empty"
+        },
+        {
+          "locale": "fa",
+          "theme": "dark",
+          "width": 1280,
+          "state": "branch"
+        },
+        {
+          "locale": "fa",
+          "theme": "dark",
+          "width": 1280,
+          "state": "bounded"
+        },
+        {
+          "locale": "fa",
+          "theme": "dark",
+          "width": 1280,
+          "state": "empty"
+        },
+        {
+          "locale": "fa",
+          "theme": "dark",
+          "width": 1440,
+          "state": "branch"
+        },
+        {
+          "locale": "fa",
+          "theme": "dark",
+          "width": 1440,
+          "state": "bounded"
+        },
+        {
+          "locale": "fa",
+          "theme": "dark",
+          "width": 1440,
+          "state": "empty"
+        },
+        {
+          "locale": "fa",
+          "theme": "dark",
+          "width": 1920,
+          "state": "branch"
+        },
+        {
+          "locale": "fa",
+          "theme": "dark",
+          "width": 1920,
+          "state": "bounded"
+        },
+        {
+          "locale": "fa",
+          "theme": "dark",
+          "width": 1920,
+          "state": "empty"
+        },
+        {
+          "locale": "en",
+          "theme": "light",
+          "width": 320,
+          "state": "branch"
+        },
+        {
+          "locale": "en",
+          "theme": "light",
+          "width": 320,
+          "state": "bounded"
+        },
+        {
+          "locale": "en",
+          "theme": "light",
+          "width": 320,
+          "state": "empty"
+        },
+        {
+          "locale": "en",
+          "theme": "light",
+          "width": 375,
+          "state": "branch"
+        },
+        {
+          "locale": "en",
+          "theme": "light",
+          "width": 375,
+          "state": "bounded"
+        },
+        {
+          "locale": "en",
+          "theme": "light",
+          "width": 375,
+          "state": "empty"
+        },
+        {
+          "locale": "en",
+          "theme": "light",
+          "width": 768,
+          "state": "branch"
+        },
+        {
+          "locale": "en",
+          "theme": "light",
+          "width": 768,
+          "state": "bounded"
+        },
+        {
+          "locale": "en",
+          "theme": "light",
+          "width": 768,
+          "state": "empty"
+        },
+        {
+          "locale": "en",
+          "theme": "light",
+          "width": 1280,
+          "state": "branch"
+        },
+        {
+          "locale": "en",
+          "theme": "light",
+          "width": 1280,
+          "state": "bounded"
+        },
+        {
+          "locale": "en",
+          "theme": "light",
+          "width": 1280,
+          "state": "empty"
+        },
+        {
+          "locale": "en",
+          "theme": "light",
+          "width": 1440,
+          "state": "branch"
+        },
+        {
+          "locale": "en",
+          "theme": "light",
+          "width": 1440,
+          "state": "bounded"
+        },
+        {
+          "locale": "en",
+          "theme": "light",
+          "width": 1440,
+          "state": "empty"
+        },
+        {
+          "locale": "en",
+          "theme": "light",
+          "width": 1920,
+          "state": "branch"
+        },
+        {
+          "locale": "en",
+          "theme": "light",
+          "width": 1920,
+          "state": "bounded"
+        },
+        {
+          "locale": "en",
+          "theme": "light",
+          "width": 1920,
+          "state": "empty"
+        },
+        {
+          "locale": "en",
+          "theme": "dark",
+          "width": 320,
+          "state": "branch"
+        },
+        {
+          "locale": "en",
+          "theme": "dark",
+          "width": 320,
+          "state": "bounded"
+        },
+        {
+          "locale": "en",
+          "theme": "dark",
+          "width": 320,
+          "state": "empty"
+        },
+        {
+          "locale": "en",
+          "theme": "dark",
+          "width": 375,
+          "state": "branch"
+        },
+        {
+          "locale": "en",
+          "theme": "dark",
+          "width": 375,
+          "state": "bounded"
+        },
+        {
+          "locale": "en",
+          "theme": "dark",
+          "width": 375,
+          "state": "empty"
+        },
+        {
+          "locale": "en",
+          "theme": "dark",
+          "width": 768,
+          "state": "branch"
+        },
+        {
+          "locale": "en",
+          "theme": "dark",
+          "width": 768,
+          "state": "bounded"
+        },
+        {
+          "locale": "en",
+          "theme": "dark",
+          "width": 768,
+          "state": "empty"
+        },
+        {
+          "locale": "en",
+          "theme": "dark",
+          "width": 1280,
+          "state": "branch"
+        },
+        {
+          "locale": "en",
+          "theme": "dark",
+          "width": 1280,
+          "state": "bounded"
+        },
+        {
+          "locale": "en",
+          "theme": "dark",
+          "width": 1280,
+          "state": "empty"
+        },
+        {
+          "locale": "en",
+          "theme": "dark",
+          "width": 1440,
+          "state": "branch"
+        },
+        {
+          "locale": "en",
+          "theme": "dark",
+          "width": 1440,
+          "state": "bounded"
+        },
+        {
+          "locale": "en",
+          "theme": "dark",
+          "width": 1440,
+          "state": "empty"
+        },
+        {
+          "locale": "en",
+          "theme": "dark",
+          "width": 1920,
+          "state": "branch"
+        },
+        {
+          "locale": "en",
+          "theme": "dark",
+          "width": 1920,
+          "state": "bounded"
+        },
+        {
+          "locale": "en",
+          "theme": "dark",
+          "width": 1920,
+          "state": "empty"
+        }
+      ],
+      "browser_errors": [],
+      "http_5xx": [],
+      "write_requests": []
+    },
+    "role-home-api-results.json": {
+      "passed": true,
+      "checks": [
+        "Anonymous rejected and ordinary member cannot access author/owner overview APIs",
+        "Personal snapshot is scoped by session, exact counts, no answers/results or cross-account metadata",
+        "Personal orders and current attempts paginate without duplicates; report links do not target historical attempts",
+        "Author/delegated/owner metadata and four full counts match existing access rules, with deterministic pagination",
+        "View-only delegation does not promote member or permit edit, responses, grants or owner data",
+        "Revoked grants take effect without cached cross-account metadata",
+        "Closed instruments do not get misleading report actions; snapshots reflect source changes and multi-source owner activity"
+      ],
+      "database": "disposable local PostgreSQL",
+      "production_database_tested": false
+    },
+    "role-home-browser-results.json": {
+      "passed": true,
+      "checks": [
+        "Personal source list pagination, existing buyer action, persisted refresh and profile/avatar preservation",
+        "Continue and report routes open the existing account-scoped instrument runtime",
+        "Author full counts drill down into editable drafts and a paginated source list",
+        "View-only delegates do not request forbidden responses; response-only delegates see permitted empty responses",
+        "84 account-scoped layouts: four roles, supported FA/EN, light/dark and 320–1920px",
+        "All four role homes reflow at 200% text and 320 CSS pixels",
+        "Genuine empty state renders zero; no browser errors, HTTP 5xx or unexpected authorization failures"
+      ],
+      "layout_cases": 84,
+      "cases": [
+        {
+          "account": "member",
+          "locale": "fa",
+          "theme": "light",
+          "width": 320
+        },
+        {
+          "account": "member",
+          "locale": "fa",
+          "theme": "light",
+          "width": 375
+        },
+        {
+          "account": "member",
+          "locale": "fa",
+          "theme": "light",
+          "width": 768
+        },
+        {
+          "account": "member",
+          "locale": "fa",
+          "theme": "light",
+          "width": 1280
+        },
+        {
+          "account": "member",
+          "locale": "fa",
+          "theme": "light",
+          "width": 1440
+        },
+        {
+          "account": "member",
+          "locale": "fa",
+          "theme": "light",
+          "width": 1920
+        },
+        {
+          "account": "member",
+          "locale": "fa",
+          "theme": "dark",
+          "width": 320
+        },
+        {
+          "account": "member",
+          "locale": "fa",
+          "theme": "dark",
+          "width": 375
+        },
+        {
+          "account": "member",
+          "locale": "fa",
+          "theme": "dark",
+          "width": 768
+        },
+        {
+          "account": "member",
+          "locale": "fa",
+          "theme": "dark",
+          "width": 1280
+        },
+        {
+          "account": "member",
+          "locale": "fa",
+          "theme": "dark",
+          "width": 1440
+        },
+        {
+          "account": "member",
+          "locale": "fa",
+          "theme": "dark",
+          "width": 1920
+        },
+        {
+          "account": "author",
+          "locale": "fa",
+          "theme": "light",
+          "width": 320
+        },
+        {
+          "account": "author",
+          "locale": "fa",
+          "theme": "light",
+          "width": 375
+        },
+        {
+          "account": "author",
+          "locale": "fa",
+          "theme": "light",
+          "width": 768
+        },
+        {
+          "account": "author",
+          "locale": "fa",
+          "theme": "light",
+          "width": 1280
+        },
+        {
+          "account": "author",
+          "locale": "fa",
+          "theme": "light",
+          "width": 1440
+        },
+        {
+          "account": "author",
+          "locale": "fa",
+          "theme": "light",
+          "width": 1920
+        },
+        {
+          "account": "author",
+          "locale": "fa",
+          "theme": "dark",
+          "width": 320
+        },
+        {
+          "account": "author",
+          "locale": "fa",
+          "theme": "dark",
+          "width": 375
+        },
+        {
+          "account": "author",
+          "locale": "fa",
+          "theme": "dark",
+          "width": 768
+        },
+        {
+          "account": "author",
+          "locale": "fa",
+          "theme": "dark",
+          "width": 1280
+        },
+        {
+          "account": "author",
+          "locale": "fa",
+          "theme": "dark",
+          "width": 1440
+        },
+        {
+          "account": "author",
+          "locale": "fa",
+          "theme": "dark",
+          "width": 1920
+        },
+        {
+          "account": "author",
+          "locale": "en",
+          "theme": "light",
+          "width": 320
+        },
+        {
+          "account": "author",
+          "locale": "en",
+          "theme": "light",
+          "width": 375
+        },
+        {
+          "account": "author",
+          "locale": "en",
+          "theme": "light",
+          "width": 768
+        },
+        {
+          "account": "author",
+          "locale": "en",
+          "theme": "light",
+          "width": 1280
+        },
+        {
+          "account": "author",
+          "locale": "en",
+          "theme": "light",
+          "width": 1440
+        },
+        {
+          "account": "author",
+          "locale": "en",
+          "theme": "light",
+          "width": 1920
+        },
+        {
+          "account": "author",
+          "locale": "en",
+          "theme": "dark",
+          "width": 320
+        },
+        {
+          "account": "author",
+          "locale": "en",
+          "theme": "dark",
+          "width": 375
+        },
+        {
+          "account": "author",
+          "locale": "en",
+          "theme": "dark",
+          "width": 768
+        },
+        {
+          "account": "author",
+          "locale": "en",
+          "theme": "dark",
+          "width": 1280
+        },
+        {
+          "account": "author",
+          "locale": "en",
+          "theme": "dark",
+          "width": 1440
+        },
+        {
+          "account": "author",
+          "locale": "en",
+          "theme": "dark",
+          "width": 1920
+        },
+        {
+          "account": "viewer",
+          "locale": "fa",
+          "theme": "light",
+          "width": 320
+        },
+        {
+          "account": "viewer",
+          "locale": "fa",
+          "theme": "light",
+          "width": 375
+        },
+        {
+          "account": "viewer",
+          "locale": "fa",
+          "theme": "light",
+          "width": 768
+        },
+        {
+          "account": "viewer",
+          "locale": "fa",
+          "theme": "light",
+          "width": 1280
+        },
+        {
+          "account": "viewer",
+          "locale": "fa",
+          "theme": "light",
+          "width": 1440
+        },
+        {
+          "account": "viewer",
+          "locale": "fa",
+          "theme": "light",
+          "width": 1920
+        },
+        {
+          "account": "viewer",
+          "locale": "fa",
+          "theme": "dark",
+          "width": 320
+        },
+        {
+          "account": "viewer",
+          "locale": "fa",
+          "theme": "dark",
+          "width": 375
+        },
+        {
+          "account": "viewer",
+          "locale": "fa",
+          "theme": "dark",
+          "width": 768
+        },
+        {
+          "account": "viewer",
+          "locale": "fa",
+          "theme": "dark",
+          "width": 1280
+        },
+        {
+          "account": "viewer",
+          "locale": "fa",
+          "theme": "dark",
+          "width": 1440
+        },
+        {
+          "account": "viewer",
+          "locale": "fa",
+          "theme": "dark",
+          "width": 1920
+        },
+        {
+          "account": "viewer",
+          "locale": "en",
+          "theme": "light",
+          "width": 320
+        },
+        {
+          "account": "viewer",
+          "locale": "en",
+          "theme": "light",
+          "width": 375
+        },
+        {
+          "account": "viewer",
+          "locale": "en",
+          "theme": "light",
+          "width": 768
+        },
+        {
+          "account": "viewer",
+          "locale": "en",
+          "theme": "light",
+          "width": 1280
+        },
+        {
+          "account": "viewer",
+          "locale": "en",
+          "theme": "light",
+          "width": 1440
+        },
+        {
+          "account": "viewer",
+          "locale": "en",
+          "theme": "light",
+          "width": 1920
+        },
+        {
+          "account": "viewer",
+          "locale": "en",
+          "theme": "dark",
+          "width": 320
+        },
+        {
+          "account": "viewer",
+          "locale": "en",
+          "theme": "dark",
+          "width": 375
+        },
+        {
+          "account": "viewer",
+          "locale": "en",
+          "theme": "dark",
+          "width": 768
+        },
+        {
+          "account": "viewer",
+          "locale": "en",
+          "theme": "dark",
+          "width": 1280
+        },
+        {
+          "account": "viewer",
+          "locale": "en",
+          "theme": "dark",
+          "width": 1440
+        },
+        {
+          "account": "viewer",
+          "locale": "en",
+          "theme": "dark",
+          "width": 1920
+        },
+        {
+          "account": "reader",
+          "locale": "fa",
+          "theme": "light",
+          "width": 320
+        },
+        {
+          "account": "reader",
+          "locale": "fa",
+          "theme": "light",
+          "width": 375
+        },
+        {
+          "account": "reader",
+          "locale": "fa",
+          "theme": "light",
+          "width": 768
+        },
+        {
+          "account": "reader",
+          "locale": "fa",
+          "theme": "light",
+          "width": 1280
+        },
+        {
+          "account": "reader",
+          "locale": "fa",
+          "theme": "light",
+          "width": 1440
+        },
+        {
+          "account": "reader",
+          "locale": "fa",
+          "theme": "light",
+          "width": 1920
+        },
+        {
+          "account": "reader",
+          "locale": "fa",
+          "theme": "dark",
+          "width": 320
+        },
+        {
+          "account": "reader",
+          "locale": "fa",
+          "theme": "dark",
+          "width": 375
+        },
+        {
+          "account": "reader",
+          "locale": "fa",
+          "theme": "dark",
+          "width": 768
+        },
+        {
+          "account": "reader",
+          "locale": "fa",
+          "theme": "dark",
+          "width": 1280
+        },
+        {
+          "account": "reader",
+          "locale": "fa",
+          "theme": "dark",
+          "width": 1440
+        },
+        {
+          "account": "reader",
+          "locale": "fa",
+          "theme": "dark",
+          "width": 1920
+        },
+        {
+          "account": "reader",
+          "locale": "en",
+          "theme": "light",
+          "width": 320
+        },
+        {
+          "account": "reader",
+          "locale": "en",
+          "theme": "light",
+          "width": 375
+        },
+        {
+          "account": "reader",
+          "locale": "en",
+          "theme": "light",
+          "width": 768
+        },
+        {
+          "account": "reader",
+          "locale": "en",
+          "theme": "light",
+          "width": 1280
+        },
+        {
+          "account": "reader",
+          "locale": "en",
+          "theme": "light",
+          "width": 1440
+        },
+        {
+          "account": "reader",
+          "locale": "en",
+          "theme": "light",
+          "width": 1920
+        },
+        {
+          "account": "reader",
+          "locale": "en",
+          "theme": "dark",
+          "width": 320
+        },
+        {
+          "account": "reader",
+          "locale": "en",
+          "theme": "dark",
+          "width": 375
+        },
+        {
+          "account": "reader",
+          "locale": "en",
+          "theme": "dark",
+          "width": 768
+        },
+        {
+          "account": "reader",
+          "locale": "en",
+          "theme": "dark",
+          "width": 1280
+        },
+        {
+          "account": "reader",
+          "locale": "en",
+          "theme": "dark",
+          "width": 1440
+        },
+        {
+          "account": "reader",
+          "locale": "en",
+          "theme": "dark",
+          "width": 1920
+        }
+      ],
+      "errors": [],
+      "http_5xx": [],
+      "unexpected_auth_errors": []
+    },
+    "workspace-preview-browser-results.json": {
+      "passed": true,
+      "checks": [
+        "Minimal login opens owner-only sample route; sample badge is explicit",
+        "KPI drill-down, independent filters, search, empty recovery and accessible detail dialog",
+        "Native SVG graph supports zoom, keyboard pan/reset, node details, query and text directory",
+        "108 layout/state cases across FA/EN, light/dark and 320–1920px",
+        "All three views reflow with 200% text at 320 CSS pixels",
+        "Reduced motion; zero preview mutations, browser exceptions or HTTP 5xx",
+        "Exam popup no longer repeats the removed explanation"
+      ],
+      "layout_cases": 108,
+      "cases": [
+        [
+          "home",
+          "fa",
+          "light",
+          320,
+          "ready"
+        ],
+        [
+          "home",
+          "fa",
+          "light",
+          390,
+          "ready"
+        ],
+        [
+          "home",
+          "fa",
+          "light",
+          768,
+          "ready"
+        ],
+        [
+          "home",
+          "fa",
+          "light",
+          1024,
+          "ready"
+        ],
+        [
+          "home",
+          "fa",
+          "light",
+          1440,
+          "ready"
+        ],
+        [
+          "home",
+          "fa",
+          "light",
+          1920,
+          "ready"
+        ],
+        [
+          "home",
+          "fa",
+          "light",
+          320,
+          "loading"
+        ],
+        [
+          "home",
+          "fa",
+          "light",
+          320,
+          "empty"
+        ],
+        [
+          "home",
+          "fa",
+          "light",
+          320,
+          "error"
+        ],
+        [
+          "graph",
+          "fa",
+          "light",
+          320,
+          "ready"
+        ],
+        [
+          "graph",
+          "fa",
+          "light",
+          390,
+          "ready"
+        ],
+        [
+          "graph",
+          "fa",
+          "light",
+          768,
+          "ready"
+        ],
+        [
+          "graph",
+          "fa",
+          "light",
+          1024,
+          "ready"
+        ],
+        [
+          "graph",
+          "fa",
+          "light",
+          1440,
+          "ready"
+        ],
+        [
+          "graph",
+          "fa",
+          "light",
+          1920,
+          "ready"
+        ],
+        [
+          "graph",
+          "fa",
+          "light",
+          320,
+          "loading"
+        ],
+        [
+          "graph",
+          "fa",
+          "light",
+          320,
+          "empty"
+        ],
+        [
+          "graph",
+          "fa",
+          "light",
+          320,
+          "error"
+        ],
+        [
+          "orders",
+          "fa",
+          "light",
+          320,
+          "ready"
+        ],
+        [
+          "orders",
+          "fa",
+          "light",
+          390,
+          "ready"
+        ],
+        [
+          "orders",
+          "fa",
+          "light",
+          768,
+          "ready"
+        ],
+        [
+          "orders",
+          "fa",
+          "light",
+          1024,
+          "ready"
+        ],
+        [
+          "orders",
+          "fa",
+          "light",
+          1440,
+          "ready"
+        ],
+        [
+          "orders",
+          "fa",
+          "light",
+          1920,
+          "ready"
+        ],
+        [
+          "orders",
+          "fa",
+          "light",
+          320,
+          "loading"
+        ],
+        [
+          "orders",
+          "fa",
+          "light",
+          320,
+          "empty"
+        ],
+        [
+          "orders",
+          "fa",
+          "light",
+          320,
+          "error"
+        ],
+        [
+          "home",
+          "fa",
+          "dark",
+          320,
+          "ready"
+        ],
+        [
+          "home",
+          "fa",
+          "dark",
+          390,
+          "ready"
+        ],
+        [
+          "home",
+          "fa",
+          "dark",
+          768,
+          "ready"
+        ],
+        [
+          "home",
+          "fa",
+          "dark",
+          1024,
+          "ready"
+        ],
+        [
+          "home",
+          "fa",
+          "dark",
+          1440,
+          "ready"
+        ],
+        [
+          "home",
+          "fa",
+          "dark",
+          1920,
+          "ready"
+        ],
+        [
+          "home",
+          "fa",
+          "dark",
+          320,
+          "loading"
+        ],
+        [
+          "home",
+          "fa",
+          "dark",
+          320,
+          "empty"
+        ],
+        [
+          "home",
+          "fa",
+          "dark",
+          320,
+          "error"
+        ],
+        [
+          "graph",
+          "fa",
+          "dark",
+          320,
+          "ready"
+        ],
+        [
+          "graph",
+          "fa",
+          "dark",
+          390,
+          "ready"
+        ],
+        [
+          "graph",
+          "fa",
+          "dark",
+          768,
+          "ready"
+        ],
+        [
+          "graph",
+          "fa",
+          "dark",
+          1024,
+          "ready"
+        ],
+        [
+          "graph",
+          "fa",
+          "dark",
+          1440,
+          "ready"
+        ],
+        [
+          "graph",
+          "fa",
+          "dark",
+          1920,
+          "ready"
+        ],
+        [
+          "graph",
+          "fa",
+          "dark",
+          320,
+          "loading"
+        ],
+        [
+          "graph",
+          "fa",
+          "dark",
+          320,
+          "empty"
+        ],
+        [
+          "graph",
+          "fa",
+          "dark",
+          320,
+          "error"
+        ],
+        [
+          "orders",
+          "fa",
+          "dark",
+          320,
+          "ready"
+        ],
+        [
+          "orders",
+          "fa",
+          "dark",
+          390,
+          "ready"
+        ],
+        [
+          "orders",
+          "fa",
+          "dark",
+          768,
+          "ready"
+        ],
+        [
+          "orders",
+          "fa",
+          "dark",
+          1024,
+          "ready"
+        ],
+        [
+          "orders",
+          "fa",
+          "dark",
+          1440,
+          "ready"
+        ],
+        [
+          "orders",
+          "fa",
+          "dark",
+          1920,
+          "ready"
+        ],
+        [
+          "orders",
+          "fa",
+          "dark",
+          320,
+          "loading"
+        ],
+        [
+          "orders",
+          "fa",
+          "dark",
+          320,
+          "empty"
+        ],
+        [
+          "orders",
+          "fa",
+          "dark",
+          320,
+          "error"
+        ],
+        [
+          "home",
+          "en",
+          "light",
+          320,
+          "ready"
+        ],
+        [
+          "home",
+          "en",
+          "light",
+          390,
+          "ready"
+        ],
+        [
+          "home",
+          "en",
+          "light",
+          768,
+          "ready"
+        ],
+        [
+          "home",
+          "en",
+          "light",
+          1024,
+          "ready"
+        ],
+        [
+          "home",
+          "en",
+          "light",
+          1440,
+          "ready"
+        ],
+        [
+          "home",
+          "en",
+          "light",
+          1920,
+          "ready"
+        ],
+        [
+          "home",
+          "en",
+          "light",
+          320,
+          "loading"
+        ],
+        [
+          "home",
+          "en",
+          "light",
+          320,
+          "empty"
+        ],
+        [
+          "home",
+          "en",
+          "light",
+          320,
+          "error"
+        ],
+        [
+          "graph",
+          "en",
+          "light",
+          320,
+          "ready"
+        ],
+        [
+          "graph",
+          "en",
+          "light",
+          390,
+          "ready"
+        ],
+        [
+          "graph",
+          "en",
+          "light",
+          768,
+          "ready"
+        ],
+        [
+          "graph",
+          "en",
+          "light",
+          1024,
+          "ready"
+        ],
+        [
+          "graph",
+          "en",
+          "light",
+          1440,
+          "ready"
+        ],
+        [
+          "graph",
+          "en",
+          "light",
+          1920,
+          "ready"
+        ],
+        [
+          "graph",
+          "en",
+          "light",
+          320,
+          "loading"
+        ],
+        [
+          "graph",
+          "en",
+          "light",
+          320,
+          "empty"
+        ],
+        [
+          "graph",
+          "en",
+          "light",
+          320,
+          "error"
+        ],
+        [
+          "orders",
+          "en",
+          "light",
+          320,
+          "ready"
+        ],
+        [
+          "orders",
+          "en",
+          "light",
+          390,
+          "ready"
+        ],
+        [
+          "orders",
+          "en",
+          "light",
+          768,
+          "ready"
+        ],
+        [
+          "orders",
+          "en",
+          "light",
+          1024,
+          "ready"
+        ],
+        [
+          "orders",
+          "en",
+          "light",
+          1440,
+          "ready"
+        ],
+        [
+          "orders",
+          "en",
+          "light",
+          1920,
+          "ready"
+        ],
+        [
+          "orders",
+          "en",
+          "light",
+          320,
+          "loading"
+        ],
+        [
+          "orders",
+          "en",
+          "light",
+          320,
+          "empty"
+        ],
+        [
+          "orders",
+          "en",
+          "light",
+          320,
+          "error"
+        ],
+        [
+          "home",
+          "en",
+          "dark",
+          320,
+          "ready"
+        ],
+        [
+          "home",
+          "en",
+          "dark",
+          390,
+          "ready"
+        ],
+        [
+          "home",
+          "en",
+          "dark",
+          768,
+          "ready"
+        ],
+        [
+          "home",
+          "en",
+          "dark",
+          1024,
+          "ready"
+        ],
+        [
+          "home",
+          "en",
+          "dark",
+          1440,
+          "ready"
+        ],
+        [
+          "home",
+          "en",
+          "dark",
+          1920,
+          "ready"
+        ],
+        [
+          "home",
+          "en",
+          "dark",
+          320,
+          "loading"
+        ],
+        [
+          "home",
+          "en",
+          "dark",
+          320,
+          "empty"
+        ],
+        [
+          "home",
+          "en",
+          "dark",
+          320,
+          "error"
+        ],
+        [
+          "graph",
+          "en",
+          "dark",
+          320,
+          "ready"
+        ],
+        [
+          "graph",
+          "en",
+          "dark",
+          390,
+          "ready"
+        ],
+        [
+          "graph",
+          "en",
+          "dark",
+          768,
+          "ready"
+        ],
+        [
+          "graph",
+          "en",
+          "dark",
+          1024,
+          "ready"
+        ],
+        [
+          "graph",
+          "en",
+          "dark",
+          1440,
+          "ready"
+        ],
+        [
+          "graph",
+          "en",
+          "dark",
+          1920,
+          "ready"
+        ],
+        [
+          "graph",
+          "en",
+          "dark",
+          320,
+          "loading"
+        ],
+        [
+          "graph",
+          "en",
+          "dark",
+          320,
+          "empty"
+        ],
+        [
+          "graph",
+          "en",
+          "dark",
+          320,
+          "error"
+        ],
+        [
+          "orders",
+          "en",
+          "dark",
+          320,
+          "ready"
+        ],
+        [
+          "orders",
+          "en",
+          "dark",
+          390,
+          "ready"
+        ],
+        [
+          "orders",
+          "en",
+          "dark",
+          768,
+          "ready"
+        ],
+        [
+          "orders",
+          "en",
+          "dark",
+          1024,
+          "ready"
+        ],
+        [
+          "orders",
+          "en",
+          "dark",
+          1440,
+          "ready"
+        ],
+        [
+          "orders",
+          "en",
+          "dark",
+          1920,
+          "ready"
+        ],
+        [
+          "orders",
+          "en",
+          "dark",
+          320,
+          "loading"
+        ],
+        [
+          "orders",
+          "en",
+          "dark",
+          320,
+          "empty"
+        ],
+        [
+          "orders",
+          "en",
+          "dark",
+          320,
+          "error"
+        ]
+      ],
+      "browser_errors": [],
+      "http_5xx": [],
+      "preview_writes": [],
+      "data": "explicit sample fixtures",
+      "production_build": true
+    },
+    "sync-latest-unit-results.json": {
+      "passed": true,
+      "upstream": "1ed9ea7661d766245975654de22377534af53eb4",
+      "checks": [
+        "CASIO member summary renders without full interpretation or gate band",
+        "Summary aliases, unknown/prototype keys, hidden band and nonrecursive interpolation",
+        "Multiline custom summary survives sanitization; generic missing template has honest fallback",
+        "All gate bands/dimensions and missing/invalid snapshots",
+        "Direct/proxied webhook URL and reconnect preserves pending updates",
+        "Inbound Worker forwards exact body/secret and origin denial status",
+        "Outbound Worker destination, invalid paths/method and upstream failure handling"
+      ],
+      "external_http": "fully mocked"
+    },
+    "network-compat-results.json": {
+      "passed": true,
+      "checks": [
+        "Existing owner-only tree API retains its nested public-code contract",
+        "Bounded response remains under 100 KB at the 120-node cap"
+      ],
+      "timing_scope": "local HTTP only; not a production SLA",
+      "dataset_accounts": 289,
+      "requests": 10,
+      "median_ms": 15.7,
+      "max_ms": 19.4,
+      "max_response_bytes": 36891
+    }
+  }
+}

@@ -22,6 +22,7 @@ const workspaceModules = [
   { href: "/workspace/knowledge", fa: "دانشنامه", en: "Knowledge", icon: BookOpen },
   { href: "/workspace/projects", fa: "پروژه‌ها", en: "Projects", icon: FlaskConical },
   { href: "/workspace/collaborations", fa: "همکاری‌ها", en: "Collaborations", icon: Users },
+  { href: "/workspace/finance", fa: "گزارش مالی", en: "Financial report", icon: ReceiptText },
   { href: "/workspace/shop", fa: "فروشگاه", en: "Shop", icon: ShoppingBag },
   { href: "/workspace/analyzers", fa: "تحلیلگرها", en: "Analyzers", icon: ChartNoAxesCombined },
   { href: "/workspace/bots", fa: "ربات‌ها", en: "Bots", icon: Bot },

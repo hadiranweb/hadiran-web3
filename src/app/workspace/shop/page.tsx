@@ -61,6 +61,7 @@ export default async function WorkspaceShopPage() {
   return (
     <main className="ws-page repo-module space-y-8">
       <ModuleHeading title="فروشگاه" en="Shop management" lede="مدیریت کالاها، سفارش‌ها، مقصد دریافت و قیمت‌گذاری دلاری." ledeEn="Manage listings, orders, payout details and USD pricing." action={<Link href="/workspace/shop/listings/new" className="ws-button ws-primary">کالای جدید</Link>} />
+      <div className="flex flex-wrap gap-3"><Link href="/workspace/shop/orders?period=all" className="ws-button">مرکز سفارش و فیلترها</Link><Link href="/workspace/finance" className="ws-button">گزارش تسویه‌ها</Link></div>
       {unavailable ? <p className="integration-notice">{account.id === 0 ? "در پیش‌نمایش، فروشگاه واقعی به دیتابیس متصل نیست. فرم‌های جدید قابل مشاهده‌اند اما ذخیره، تأیید سفارش و پرداخت نمایشی ساخته نمی‌شود." : "اتصال فروشگاه برقرار نیست؛ فهرست خالی زیر به معنی نبود کالا یا سفارش نیست. اتصال و migrationها را بررسی کنید."}</p> : null}
 
 
@@ -76,9 +77,10 @@ export default async function WorkspaceShopPage() {
       </fieldset>
 
       <section>
-        <h2 className="mb-3 text-lg font-bold text-ink">در انتظار تأیید</h2>
+        <Link href="/workspace/shop/orders?period=all&state=awaiting_confirmation" className="ws-text-link">صف کامل بررسی پرداخت‌ها</Link>
+        <h2 className="mb-3 text-lg font-bold text-ink">در انتظار تأیید در میان ۴۰ سفارش اخیر</h2>
         {pending.length === 0 ? (
-          <p className="text-sm text-muted">سفارشی منتظر تأیید نیست.</p>
+          <p className="text-sm text-muted">در این فهرست اخیر، سفارشی منتظر تأیید نیست.</p>
         ) : (
           <ul className="space-y-4">
             {pending.map(({ order, listingTitle, buyerPhone }) => (
@@ -120,7 +122,7 @@ export default async function WorkspaceShopPage() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-lg font-bold text-ink">سفارش‌های اخیر</h2>
+        <h2 className="mb-3 text-lg font-bold text-ink">۴۰ سفارش اخیر</h2>
         {orders.length === 0 ? (
           <p className="text-sm text-muted">سفارشی نیست.</p>
         ) : (

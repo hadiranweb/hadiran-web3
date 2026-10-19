@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "checks": [
+    "Anonymous/role boundaries enforced in APIs; reports owner-only, personal purchases session-scoped",
+    "Tehran/Persian inclusive day boundaries; settlement time not creation; per-currency sums reconcile with drill-down rows",
+    "Complete counts, 20-row stable pagination, buyer isolation/spoof resistance, existing global owner scope and invalid-filter rejection",
+    "Concurrent create/reference/confirm retries produce one order, one grant and one event per transition; reference alone grants nothing",
+    "Injected entitlement failure and audit failure each roll back settlement/access/event together; retry succeeds",
+    "Legacy settled access can be repaired once without duplicating settlement or inventing a timestamp",
+    "Discount capacity contention cannot leave an orphan order; creation failure rolls back order, redemption and counter",
+    "Competing confirm/decline transitions serialize: only one succeeds",
+    "Recorded prices survive repricing/currency edits; sums exceed int32 safely; event actor comes from session, not request body"
+  ],
+  "failure_scope": "Fault triggers only in named local QA DB, all removed"
+}

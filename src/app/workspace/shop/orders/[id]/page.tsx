@@ -4,7 +4,8 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { shopListings, shopOrders } from "@/db/schema";
 import { requirePageOwner } from "@/lib/auth/guard";
-import { formatMoney } from "@/lib/shop/money";
+import { financeMoney as formatMoney } from "@/lib/finance/types";
+import { OrderHistory } from "@/components/finance/OrderHistory";
 import { orderStateFa } from "@/lib/shop/states";
 import Link from "@/components/workspace/WorkspaceLink";
 import { OwnerOrderActions } from "@/components/shop/OwnerOrderActions";
@@ -26,7 +27,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
   }
   if (!unavailable && !item) notFound();
   return <main className="ws-page repo-module space-y-6">
-    <Link className="ws-text-link" href="/workspace/actions?kind=orders">بازگشت به سفارش‌های منتظر بررسی</Link>
+    <Link className="ws-text-link" href="/workspace/shop/orders?period=all">بازگشت به مرکز سفارش</Link>
     <h1 className="text-2xl font-bold text-ink">جزئیات سفارش</h1>
     {unavailable ? <p className="integration-notice" role="status">دادهٔ سفارش در دسترس نیست؛ اطلاعات نمونه جایگزین نشده است.</p> : item ? <section className="ws-panel space-y-5 p-6">
       <h2 className="text-lg font-bold text-ink">{item.title}</h2>
@@ -38,6 +39,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         <div><dt className="text-xs text-muted">علت رد</dt><dd className="mt-1 text-sm text-ink">{item.order.declineReason || "—"}</dd></div>
       </dl>
       <OwnerOrderActions orderId={item.order.id} state={item.order.state} />
+      <OrderHistory orderId={item.order.id} account={account}/>
     </section> : null}
   </main>;
 }

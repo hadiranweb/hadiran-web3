@@ -42,12 +42,13 @@ export async function quoteDiscount(input: {
   scope: "analyzer" | "shop";
   analyzerSlug?: string;
   listingId?: string;
-}): Promise<{ ok: true; quote: DiscountQuote } | { ok: false; error: string } | { ok: true; skipped: true }> {
+}, executor: Pick<typeof db, "select"> = db): Promise<{ ok: true; quote: DiscountQuote } | { ok: false; error: string } | { ok: true; skipped: true }> {
   if (input.code == null || input.code === "") return { ok: true, skipped: true };
   const code = normalizeDiscountCode(input.code);
   if (!code) return { ok: false, error: "invalid_discount" };
-  await ensureAccessSchema();
-  const [row] = await db.select().from(discountCodes).where(eq(discountCodes.code, code)).limit(1);
+  if (executor === db) await ensureAccessSchema();
+  const query = executor.select().from(discountCodes).where(eq(discountCodes.code, code)).limit(1);
+  const [row] = await (executor === db ? query : query.for("update"));
   if (!row || !inWindow(row)) return { ok: false, error: "unknown_discount" };
   if (row.maxUses != null && row.usedCount >= row.maxUses) return { ok: false, error: "discount_exhausted" };
   if (row.scope === "analyzer" && input.scope !== "analyzer") return { ok: false, error: "discount_scope" };
@@ -78,9 +79,9 @@ export async function redeemDiscount(input: {
   source: "analyzer" | "shop";
   analyzerSlug?: string;
   orderId?: string;
-}): Promise<boolean> {
-  await ensureAccessSchema();
-  const [updated] = await db
+}, executor: Pick<typeof db, "update" | "insert"> = db): Promise<boolean> {
+  if (executor === db) await ensureAccessSchema();
+  const [updated] = await executor
     .update(discountCodes)
     .set({
       usedCount: sql`${discountCodes.usedCount} + 1`,
@@ -94,7 +95,7 @@ export async function redeemDiscount(input: {
     )
     .returning({ id: discountCodes.id });
   if (!updated) return false;
-  await db.insert(discountRedemptions).values({
+  await executor.insert(discountRedemptions).values({
     discountId: input.quote.id,
     accountId: input.accountId,
     source: input.source,
