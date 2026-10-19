@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { BotDisplayEditor } from "@/components/analyzers/BotDisplayEditor";
-import type { AnalyzerPack, Item } from "@/lib/analyzers/pack";
+import type { AnalyzerPack, Item, PackBotDisplay } from "@/lib/analyzers/pack";
 import { itemsOf } from "@/lib/analyzers/pack";
 import { summaryPlaceholders } from "@/lib/analyzers/summary-template";
 import { PATH_LANE_LABEL, stagesForService } from "@/lib/bots/path";
