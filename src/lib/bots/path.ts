@@ -179,7 +179,7 @@ export const BOT_PATH_STAGES: PathStage[] = [
   {
     id: "question",
     titleFa: "سؤال‌ها",
-    hintFa: "متن سؤال جدا با HTML تلگرام؛ --- جداکننده؛ گزینه‌ها اینلاین روی همان پیام در یک ردیف ۰–۱۰. راهنما پیام بعدی. متادیتا داخل متن سؤال نیست.",
+    hintFa: "قالب MD آزمون در «نحوه نمایش در ربات». گزینه‌ها اینلاین یک ردیف ۰–۱۰. راهنما پیام بعدی.",
     lane: "exam",
     services: ["analyzers"],
     texts: ["questionGuide", "saveFailed", "staleButton", "textTooLong"],

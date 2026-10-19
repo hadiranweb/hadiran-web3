@@ -16,6 +16,7 @@ import {
   type Item,
   type Keyword,
   type LayerBand,
+  type PackBotDisplay,
   type PackReport,
   type RangeItem,
   type ScaleAnchors,
@@ -381,6 +382,14 @@ function sanitizeFormula(raw: unknown, used: Set<string>): Formula | null {
   return formula;
 }
 
+function sanitizeBotDisplay(raw: unknown): PackBotDisplay | undefined {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+  const row = raw as Record<string, unknown>;
+  const questionTemplateFa = asMultiline(row.questionTemplateFa, 2500);
+  if (!questionTemplateFa) return undefined;
+  return { questionTemplateFa };
+}
+
 function sanitizeConsent(raw: unknown): Consent {
   const fallback: Consent = {
     titleFa: "قبل از شروع",
@@ -505,6 +514,7 @@ export function sanitizePack(raw: unknown, slug: string): SanitizeResult {
     edges,
     formulas,
     report: sanitizeReport(row.report),
+    botDisplay: sanitizeBotDisplay(row.botDisplay),
   };
 
   try {

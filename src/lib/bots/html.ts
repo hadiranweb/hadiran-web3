@@ -36,13 +36,6 @@ function isRuleLine(line: string) {
 export function telegramQuestionHtml(raw: string) {
   const lines = raw.replace(/\r\n/g, "\n").split("\n");
   const hasMarkup = lines.some(isRuleLine) || /\*\*|__|`/.test(raw);
-  if (!hasMarkup) {
-    const bold = htmlBold(raw);
-    return bold ? `${bold}\n${TELEGRAM_RULE}` : "";
-  }
-  const htmlLines = lines.map((line) => (isRuleLine(line) ? TELEGRAM_RULE : inlineMarkdownToHtml(line)));
-  let body = htmlLines.join("\n").trim();
-  if (!body) return "";
-  if (!body.endsWith(TELEGRAM_RULE)) body = `${body}\n${TELEGRAM_RULE}`;
-  return body;
+  if (!hasMarkup) return htmlBold(raw);
+  return lines.map((line) => (isRuleLine(line) ? TELEGRAM_RULE : inlineMarkdownToHtml(line))).join("\n").trim();
 }

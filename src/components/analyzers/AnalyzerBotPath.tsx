@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BotDisplayEditor } from "@/components/analyzers/BotDisplayEditor";
 import type { AnalyzerPack, Item } from "@/lib/analyzers/pack";
 import { itemsOf } from "@/lib/analyzers/pack";
 import { summaryPlaceholders } from "@/lib/analyzers/summary-template";
@@ -34,6 +35,7 @@ export function AnalyzerBotPath({
   canEdit,
   onConsent,
   onSummary,
+  onBotDisplay,
   onOpenItems,
 }: {
   pack: AnalyzerPack;
@@ -41,6 +43,7 @@ export function AnalyzerBotPath({
   canEdit: boolean;
   onConsent: (patch: { titleFa?: string; acceptLabelFa?: string; bodyFa?: string[] }) => void;
   onSummary: (templateFa: string) => void;
+  onBotDisplay: (questionTemplateFa: string) => void;
   onOpenItems: () => void;
 }) {
   const examStages = stagesForService("analyzers", "exam");
@@ -142,12 +145,14 @@ export function AnalyzerBotPath({
         </label>
       </section>
 
+      <BotDisplayEditor pack={pack} canEdit={canEdit} onChange={onBotDisplay} />
+
       <section className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3">
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div>
             <h2 className="text-base font-bold text-slate-900">سؤال‌هایی که ربات می‌فرستد</h2>
             <p className="mt-1 text-xs leading-6 text-slate-500">
-              متن و گزینه از تب سؤال‌ها. راهنما از عنوان بخش، مقدمه، لنگر ۰/۱۰ و عنوان راهنما در ربات.
+              متن وب از تب سؤال‌ها. چیدمان تلگرام از «نحوه نمایش در ربات». راهنما پیام بعدی است.
             </p>
           </div>
           <button type="button" onClick={onOpenItems} className="text-sm text-indigo-700">

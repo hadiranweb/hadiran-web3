@@ -10,6 +10,7 @@ import {
   liveSaveAnswer,
   liveSubmitAttempt,
 } from "@/lib/analyzers/live-attempts";
+import { renderBotQuestionMarkdown } from "@/lib/analyzers/bot-display";
 import { itemsOf, sectionOf, type AnalyzerPack, type Item } from "@/lib/analyzers/pack";
 import { applyAttemptCodes } from "@/lib/analyzers/attempt-codes";
 import {
@@ -257,8 +258,8 @@ function questionGuideBody(pack: AnalyzerPack, item: Item, index: number) {
   return lines.join("\n");
 }
 
-function questionTextHtml(item: Item) {
-  return telegramQuestionHtml(item.text);
+function questionTextHtml(item: Item, pack: AnalyzerPack, index: number) {
+  return telegramQuestionHtml(renderBotQuestionMarkdown(pack, item, index));
 }
 
 function questionGuideHtml(item: Item, pack: AnalyzerPack, index: number, script: BotScript) {
@@ -330,7 +331,7 @@ async function promptQuestion(
   const index = firstUnansweredIndex(pack, attempt.answers);
   const item = items[index];
   if (!item) return;
-  await say(token, botId, chatId, questionTextHtml(item), questionMarkup(index, item), "HTML");
+  await say(token, botId, chatId, questionTextHtml(item, pack, index), questionMarkup(index, item), "HTML");
   await say(token, botId, chatId, questionGuideHtml(item, pack, index, script), undefined, "HTML");
 }
 
