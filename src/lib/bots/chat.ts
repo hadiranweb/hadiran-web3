@@ -10,11 +10,12 @@ import {
   liveSaveAnswer,
   liveSubmitAttempt,
 } from "@/lib/analyzers/live-attempts";
-import { renderBotGuideMarkdown, renderBotQuestionMarkdown } from "@/lib/analyzers/bot-display";
+import { renderBotQuestionMarkdown } from "@/lib/analyzers/bot-display";
 import { itemsOf, type AnalyzerPack, type Item } from "@/lib/analyzers/pack";
 import { applyAttemptCodes } from "@/lib/analyzers/attempt-codes";
 import {
   firstUnansweredIndex,
+  isAnswered,
   isComplete,
   type AttemptView,
 } from "@/lib/analyzers/runtime";
@@ -39,6 +40,15 @@ const START_IDLE_MS = 10 * 60 * 1000;
 
 function faNum(value: number | string) {
   return String(value).replace(/\d/g, (digit) => FA[Number(digit)] ?? digit);
+}
+
+function isQuizStep(step: string | null | undefined) {
+  return Boolean(step && (step === "quiz" || /^quiz:\d+$/.test(step)));
+}
+
+function quizCursor(step: string | null | undefined): number | null {
+  const match = /^quiz:(\d+)$/.exec(step ?? "");
+  return match ? Number(match[1]) : null;
 }
 
 type TgUser = { id: number; first_name?: string; last_name?: string; is_bot?: boolean };
@@ -247,14 +257,12 @@ function questionTextHtml(item: Item, pack: AnalyzerPack, index: number) {
   return telegramQuestionHtml(renderBotQuestionMarkdown(pack, item, index));
 }
 
-function questionGuideHtml(item: Item, pack: AnalyzerPack, index: number) {
-  const markdown = renderBotGuideMarkdown(pack, item, index);
-  return markdown ? telegramQuestionHtml(markdown) : "";
-}
-
 function questionMarkup(itemIndex: number, item: Item) {
   const rows =
     item.kind === "range" ? rangeRows(itemIndex) : item.kind === "choice" ? choiceRows(itemIndex, item) : [];
+  if (itemIndex > 0) {
+    rows.push([{ text: "سؤال قبل", callback_data: `p:${itemIndex - 1}` }]);
+  }
   if (!rows.length) return undefined;
   return { inline_keyboard: rows };
 }
@@ -307,18 +315,20 @@ async function promptQuestion(
   pack: AnalyzerPack,
   attempt: AttemptView,
   script: BotScript,
+  telegramUserId: string,
+  index?: number,
 ) {
   const items = itemsOf(pack);
   if (attempt.status === "submitted" || isComplete(pack, attempt.answers)) {
     await say(token, botId, chatId, doneText(pack, attempt), keysMarkup(script));
     return;
   }
-  const index = firstUnansweredIndex(pack, attempt.answers);
-  const item = items[index];
+  const cursor =
+    index != null && index >= 0 && index < items.length ? index : firstUnansweredIndex(pack, attempt.answers);
+  const item = items[cursor];
   if (!item) return;
-  await say(token, botId, chatId, questionTextHtml(item, pack, index), questionMarkup(index, item), "HTML");
-  const guide = questionGuideHtml(item, pack, index);
-  if (guide) await say(token, botId, chatId, guide, undefined, "HTML");
+  await patchSession(botId, telegramUserId, String(chatId), { step: `quiz:${cursor}` });
+  await say(token, botId, chatId, questionTextHtml(item, pack, cursor), questionMarkup(cursor, item), "HTML");
 }
 
 async function continueQuiz(
@@ -329,6 +339,8 @@ async function continueQuiz(
   pack: AnalyzerPack,
   script: BotScript,
   titleFa: string,
+  telegramUserId: string,
+  index?: number,
 ) {
   let attempt = await liveReadAttempt(accountId, pack.slug);
   if (!attempt?.consentAt) {
@@ -354,7 +366,7 @@ async function continueQuiz(
       return;
     }
   }
-  await promptQuestion(token, botId, chatId, pack, attempt, script);
+  await promptQuestion(token, botId, chatId, pack, attempt, script, telegramUserId, index);
 }
 
 async function afterAccount(
@@ -452,7 +464,7 @@ async function startPack(
   }
   if (accountId && existing?.consentAt && existing.status === "in_progress") {
     await patchSession(botId, telegramUserId, String(chatId), { step: "quiz", analyzerSlug: slug, awaitingDiscount: false });
-    await continueQuiz(token, botId, chatId, accountId, pack, script, titleFa);
+    await continueQuiz(token, botId, chatId, accountId, pack, script, titleFa, telegramUserId);
     return;
   }
   await patchSession(botId, telegramUserId, String(chatId), {
@@ -661,7 +673,7 @@ export async function handleTelegramUpdate(input: {
     }
     await patchSession(botId, telegramUserId, String(chatId), { awaitingDiscount: false, step: "quiz" });
     const pack = await livePack(slug);
-    if (pack) await continueQuiz(token, botId, chatId, accountId, pack, script, titleFa);
+    if (pack) await continueQuiz(token, botId, chatId, accountId, pack, script, titleFa, telegramUserId);
     return;
   }
 
@@ -685,7 +697,7 @@ export async function handleTelegramUpdate(input: {
     }
     await patchSession(botId, telegramUserId, String(chatId), { awaitingDiscount: false, step: "quiz" });
     const pack = await livePack(slug);
-    if (pack) await continueQuiz(token, botId, chatId, accountId, pack, script, titleFa);
+    if (pack) await continueQuiz(token, botId, chatId, accountId, pack, script, titleFa, telegramUserId);
     return;
   }
 
@@ -717,22 +729,35 @@ export async function handleTelegramUpdate(input: {
     const pack = await livePack(slug);
     if (!pack) return;
     const items = itemsOf(pack);
+    const prevMatch = /^p:(\d+)$/.exec(callback.data);
+    if (prevMatch) {
+      const attempt = await liveReadAttempt(accountId, pack.slug);
+      if (!attempt?.consentAt) return;
+      const index = Number(prevMatch[1]);
+      await promptQuestion(token, botId, chatId, pack, attempt, script, telegramUserId, index);
+      return;
+    }
     const rangeMatch = /^q:(\d+):(\d+)$/.exec(callback.data);
     const choiceMatch = /^c:(\d+):(\d+)$/.exec(callback.data);
     let item: Item | undefined;
+    let itemIndex = -1;
     let value: number | string | undefined;
     if (rangeMatch) {
-      item = items[Number(rangeMatch[1])];
+      itemIndex = Number(rangeMatch[1]);
+      item = items[itemIndex];
       value = Number(rangeMatch[2]);
     } else if (choiceMatch) {
-      item = items[Number(choiceMatch[1])];
+      itemIndex = Number(choiceMatch[1]);
+      item = items[itemIndex];
       const optionIndex = Number(choiceMatch[2]);
       if (item?.kind === "choice") value = item.options[optionIndex]?.value;
     }
-    if (!item || value == null) {
+    if (!item || value == null || itemIndex < 0) {
       await say(token, botId, chatId, line(script, "staleButton", v));
       return;
     }
+    const before = await liveReadAttempt(accountId, pack.slug);
+    const wasNew = !before || !isAnswered(item, before.answers);
     const saved = await liveSaveAnswer(accountId, pack.slug, item.id, value);
     if (!saved.ok) {
       if (saved.error === "already_submitted") {
@@ -743,7 +768,17 @@ export async function handleTelegramUpdate(input: {
       await say(token, botId, chatId, line(script, "saveFailed", v));
       return;
     }
-    await continueQuiz(token, botId, chatId, accountId, pack, script, titleFa);
+    await continueQuiz(
+      token,
+      botId,
+      chatId,
+      accountId,
+      pack,
+      script,
+      titleFa,
+      telegramUserId,
+      wasNew ? itemIndex + 1 : undefined,
+    );
     return;
   }
 
@@ -903,7 +938,7 @@ export async function handleTelegramUpdate(input: {
     }
     if (isSkipText(text, script.texts.discountSkip)) {
       await patchSession(botId, telegramUserId, String(chatId), { awaitingDiscount: false, step: "quiz" });
-      await continueQuiz(token, botId, chatId, accountId, pack, script, titleFa);
+      await continueQuiz(token, botId, chatId, accountId, pack, script, titleFa, telegramUserId);
       return;
     }
     const applied = await applyAttemptCodes({ slug: pack.slug, accountId, discountCode: text });
@@ -912,7 +947,7 @@ export async function handleTelegramUpdate(input: {
       return;
     }
     await patchSession(botId, telegramUserId, String(chatId), { awaitingDiscount: false, step: "quiz" });
-    await continueQuiz(token, botId, chatId, accountId, pack, script, titleFa);
+    await continueQuiz(token, botId, chatId, accountId, pack, script, titleFa, telegramUserId);
     return;
   }
 
@@ -922,7 +957,7 @@ export async function handleTelegramUpdate(input: {
     return;
   }
 
-  if (session?.step === "quiz" && session.analyzerSlug && text) {
+  if (isQuizStep(session?.step) && session.analyzerSlug && text) {
     const pack = await livePack(session.analyzerSlug);
     if (!pack) {
       await promptExamList(token, botId, chatId, script, titleFa, boundSlug);
@@ -938,16 +973,17 @@ export async function handleTelegramUpdate(input: {
       return;
     }
     const items = itemsOf(pack);
-    const index = firstUnansweredIndex(pack, attempt.answers);
+    const index = quizCursor(session.step) ?? firstUnansweredIndex(pack, attempt.answers);
     const item = items[index];
     if (!item) {
-      await continueQuiz(token, botId, chatId, accountId, pack, script, titleFa);
+      await continueQuiz(token, botId, chatId, accountId, pack, script, titleFa, telegramUserId);
       return;
     }
     if (item.kind !== "text") {
-      await promptQuestion(token, botId, chatId, pack, attempt, script);
+      await promptQuestion(token, botId, chatId, pack, attempt, script, telegramUserId, index);
       return;
     }
+    const wasNew = !isAnswered(item, attempt.answers);
     const saved = await liveSaveAnswer(accountId, pack.slug, item.id, text);
     if (!saved.ok) {
       await say(
@@ -960,7 +996,17 @@ export async function handleTelegramUpdate(input: {
       );
       return;
     }
-    await continueQuiz(token, botId, chatId, accountId, pack, script, titleFa);
+    await continueQuiz(
+      token,
+      botId,
+      chatId,
+      accountId,
+      pack,
+      script,
+      titleFa,
+      telegramUserId,
+      wasNew ? index + 1 : undefined,
+    );
     return;
   }
 

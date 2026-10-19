@@ -179,7 +179,7 @@ export const BOT_PATH_STAGES: PathStage[] = [
   {
     id: "question",
     titleFa: "سؤال‌ها",
-    hintFa: "قالب MD سؤال و راهنما در «نحوه نمایش در ربات». مقیاس دو ردیف ۰–۱۰. راهنما بدون نقل‌قول.",
+    hintFa: "قالب MD سؤال در «نحوه نمایش در ربات». مقیاس دو ردیف ۰–۱۰. راهنمای جدا فرستاده نمی‌شود. سؤال قبل روی همان پیام.",
     lane: "exam",
     services: ["analyzers"],
     texts: ["questionGuide", "saveFailed", "staleButton", "textTooLong"],
@@ -188,7 +188,7 @@ export const BOT_PATH_STAGES: PathStage[] = [
       { id: "c:i:j", dir: "in", labelFa: "callback c:{index}:{option}", whereFa: "سؤال گزینه‌ای" },
       { id: "text", dir: "in", labelFa: "پاسخ متنی", whereFa: "سؤال باز تا maxLength" },
       { id: "item.text", dir: "out", labelFa: "متن سؤال", whereFa: "pack؛ **پررنگ** __کج__ `کد` و --- خط جدا" },
-      { id: "guide", dir: "out", labelFa: "راهنما زیر گزینه‌ها", whereFa: "قالب MD آزمون؛ پیش‌فرض فقط لنگر ۰/۵/۱۰ بدون راست/چپ" },
+      { id: "p:i", dir: "in", labelFa: "callback p:{index}", whereFa: "سؤال قبل؛ پاسخ قبلی قابل اصلاح است" },
     ],
     edit: "both",
   },

@@ -11,9 +11,7 @@ function faNum(value: number | string) {
 export const DEFAULT_BOT_QUESTION_TEMPLATE = `**{question}**
 ---`;
 
-export const DEFAULT_BOT_GUIDE_TEMPLATE = `۰ — {anchor0}
-۵ — {anchor5}
-۱۰ — {anchor10}`;
+export const DEFAULT_BOT_GUIDE_TEMPLATE = "";
 
 export const BOT_QUESTION_TOKENS: { token: string; hintFa: string }[] = [
   { token: "{question}", hintFa: "متن سؤال از تب سؤال‌ها" },
