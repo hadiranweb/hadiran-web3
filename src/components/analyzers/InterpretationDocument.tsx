@@ -15,7 +15,15 @@ export async function InterpretationDocumentView({ doc }: { doc: InterpretationD
   const chrome = await readDocumentChrome(doc.templateId);
   if (chrome.html.trim()) {
     const rendered = renderChromeDocument(chrome, doc);
-    return <ChromeDocument html={rendered.html} css={rendered.css} className={rendered.className} />;
+    return (
+      <ChromeDocument
+        html={rendered.html}
+        css={rendered.css}
+        className={rendered.className}
+        pageSize={rendered.pageSize}
+        pageMargin={rendered.pageMargin}
+      />
+    );
   }
   if (documentLayoutKey(doc.templateId) === "casio-ss") return <CasioResearchDocument doc={doc} />;
   return <HadiranDocument doc={doc} />;

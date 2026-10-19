@@ -9,11 +9,26 @@ export type DocumentLogos = {
   seal: string;
 };
 
+export const DOCUMENT_PAGE_SIZES = ["A4", "A4 landscape"] as const;
+export type DocumentPageSize = (typeof DOCUMENT_PAGE_SIZES)[number];
+
 export type DocumentChrome = {
   html: string;
   css: string;
   logos: DocumentLogos;
+  pageSize: DocumentPageSize;
+  pageMargin: string;
 };
+
+export function normalizePageSize(value: unknown): DocumentPageSize {
+  return value === "A4 landscape" ? "A4 landscape" : "A4";
+}
+
+export function normalizePageMargin(value: unknown): string {
+  if (typeof value !== "string") return "0";
+  const trimmed = value.trim().slice(0, 32);
+  return trimmed || "0";
+}
 
 export type TemplateVariable = {
   token: string;
@@ -22,7 +37,7 @@ export type TemplateVariable = {
 };
 
 function emptyChrome(): DocumentChrome {
-  return { html: "", css: "", logos: { light: "", dark: "", seal: "" } };
+  return { html: "", css: "", logos: { light: "", dark: "", seal: "" }, pageSize: "A4", pageMargin: "0" };
 }
 
 export function parseChrome(raw: unknown): DocumentChrome {
@@ -31,6 +46,8 @@ export function parseChrome(raw: unknown): DocumentChrome {
   const row = raw as Record<string, unknown>;
   if (typeof row.html === "string") next.html = row.html;
   if (typeof row.css === "string") next.css = row.css;
+  next.pageSize = normalizePageSize(row.pageSize);
+  next.pageMargin = normalizePageMargin(row.pageMargin);
   const logos = row.logos;
   if (logos && typeof logos === "object" && !Array.isArray(logos)) {
     const pack = logos as Record<string, unknown>;
@@ -193,6 +210,9 @@ export function documentVariableCatalog(): TemplateVariable[] {
     { groupFa: "لوگو", token: "{{{logos.dark}}}", hintFa: "SVG روی زمینه روشن" },
     { groupFa: "لوگو", token: "{{{logos.seal}}}", hintFa: "SVG مهر پانوشت" },
     { groupFa: "نمودار", token: "{{{radarSvg}}}", hintFa: "نمودار چندوجهی لایه‌ها" },
+    { groupFa: "صفحه", token: '<section class="doc-page">', hintFa: "شروع یک برگ A4" },
+    { groupFa: "صفحه", token: "</section>", hintFa: "پایان برگ" },
+    { groupFa: "صفحه", token: '<div class="doc-break"></div>', hintFa: "قطع صفحه در میانه" },
     { groupFa: "نام‌های فارسی", token: "{{نام}}", hintFa: "alias نام" },
     { groupFa: "نام‌های فارسی", token: "{{نمره_کل}}", hintFa: "alias نمره" },
     { groupFa: "نام‌های فارسی", token: "{{بلوغ}}", hintFa: "alias بلوغ" },
@@ -206,7 +226,13 @@ export function renderChromeDocument(chrome: DocumentChrome, doc: Interpretation
   const html = stripUnsafeHtml(renderMustache(chrome.html, ctx));
   const css = renderMustache(chrome.css, ctx);
   const layout = canonicalizeTemplateId(doc.templateId) === "casio-ss" ? "doc-casio" : "doc-hadiran";
-  return { html, css, className: `doc-root ${layout}` };
+  return {
+    html,
+    css,
+    className: `doc-root ${layout}`,
+    pageSize: chrome.pageSize,
+    pageMargin: chrome.pageMargin,
+  };
 }
 
 export function sampleInterpretationDocument(templateId: string): InterpretationDocument {

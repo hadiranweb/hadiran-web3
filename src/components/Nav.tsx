@@ -53,7 +53,7 @@ export function Nav() {
 
   return (
     <>
-    <header ref={headerRef} className="sticky top-0 z-50 border-b border-line bg-paper/95">
+    <header ref={headerRef} className="print-hide sticky top-0 z-50 border-b border-line bg-paper/95 print:hidden">
       <div className="relative z-50 mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
         <Link href="/" className="flex items-center gap-2">
           <HadiranWordmark className="text-lg" markClassName="h-8 w-8" />

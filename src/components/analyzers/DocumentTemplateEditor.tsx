@@ -5,11 +5,15 @@ import type { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { ChromeDocument } from "@/components/analyzers/ChromeDocument";
 import { insertAtCursor, TemplateCodeField } from "@/components/analyzers/TemplateCodeField";
 import {
+  DOCUMENT_PAGE_SIZES,
   documentVariableCatalog,
+  normalizePageSize,
   renderChromeDocument,
   sampleInterpretationDocument,
   type DocumentChrome,
 } from "@/lib/analyzers/document-chrome";
+
+const PAGE_BREAK = `\n<section class="doc-page">\n\n</section>\n`;
 
 type TemplateRow = {
   id: string;
@@ -20,7 +24,7 @@ type TemplateRow = {
 type Pane = "html" | "css" | "logo-light" | "logo-dark" | "logo-seal";
 
 const PANES: { id: Pane; label: string }[] = [
-  { id: "html", label: "HTML" },
+  { id: "html", label: "داستان HTML" },
   { id: "css", label: "CSS جای‌گذاری" },
   { id: "logo-light", label: "SVG جلد" },
   { id: "logo-dark", label: "SVG روشن" },
@@ -116,9 +120,8 @@ export function DocumentTemplateEditor({ initial }: { initial: TemplateRow[] }) 
       <div>
         <h2 className="text-lg font-bold text-slate-900">ویرایشگر قالب</h2>
         <p className="mt-1 text-sm leading-7 text-slate-500">
-          کد HTML و CSS قالب است. جای لوگو را با متغیرهای بالای CSS مثل <span dir="ltr">--logo-cover-top</span> عوض
-          کنید. در متن‌ها <span dir="ltr">{"{{نام}}"}</span> یا <span dir="ltr">{"{{personNameFa}}"}</span> را صدا
-          بزنید. SVG را همین‌جا ویرایش کنید.
+          داستان سند را در تب HTML بنویسید. هر <span dir="ltr">section.doc-page</span> یک برگ است؛ پیش‌فرض اندازهٔ چاپ
+          A4 است. هدر و پانوشت سایت در چاپ نمی‌آید. متغیرها را با <span dir="ltr">{"{{نام}}"}</span> صدا بزنید.
         </p>
       </div>
       <label className="block text-sm">
@@ -135,6 +138,32 @@ export function DocumentTemplateEditor({ initial }: { initial: TemplateRow[] }) 
           ))}
         </select>
       </label>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="block text-sm">
+          <span className="mb-1 block text-slate-600">اندازهٔ برگ چاپ</span>
+          <select
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+            value={chrome.pageSize}
+            onChange={(event) => patch({ pageSize: normalizePageSize(event.target.value) })}
+          >
+            {DOCUMENT_PAGE_SIZES.map((size) => (
+              <option key={size} value={size}>
+                {size === "A4" ? "A4 ایستاده (پیش‌فرض)" : "A4 خوابیده"}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block text-sm">
+          <span className="mb-1 block text-slate-600">حاشیهٔ چاپ</span>
+          <input
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+            dir="ltr"
+            value={chrome.pageMargin}
+            onChange={(event) => patch({ pageMargin: event.target.value })}
+            placeholder="0"
+          />
+        </label>
+      </div>
       <div className="flex flex-wrap gap-2">
         {PANES.map((item) => (
           <button
@@ -148,6 +177,19 @@ export function DocumentTemplateEditor({ initial }: { initial: TemplateRow[] }) 
             {item.label}
           </button>
         ))}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => {
+            if (!chrome) return;
+            setPane("html");
+            patch({ html: `${chrome.html}${PAGE_BREAK}` });
+          }}
+          className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700"
+        >
+          درج قطع صفحه
+        </button>
       </div>
       <TemplateCodeField
         key={pane}
@@ -191,7 +233,13 @@ export function DocumentTemplateEditor({ initial }: { initial: TemplateRow[] }) 
       <div>
         <p className="mb-2 text-xs font-medium text-slate-500">پیش‌نمایش با دادهٔ نمونه</p>
         <div className="overflow-auto rounded-xl border border-slate-200 bg-slate-50 p-3">
-          <ChromeDocument html={preview.html} css={preview.css} className={preview.className} />
+          <ChromeDocument
+            html={preview.html}
+            css={preview.css}
+            className={preview.className}
+            pageSize={preview.pageSize}
+            pageMargin={preview.pageMargin}
+          />
         </div>
       </div>
     </section>

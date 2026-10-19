@@ -12,7 +12,7 @@ import { isAnalyzerExamPath } from "@/lib/analyzers/paths";
 
 function ExamChrome() {
   return (
-    <header className="sticky top-0 z-50 border-b border-line bg-paper/95">
+    <header className="print-hide sticky top-0 z-50 border-b border-line bg-paper/95 print:hidden">
       <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-2">
         <Link href="/analyzers" className="inline-flex items-center gap-2 text-muted hover:text-ink" aria-label="آینه‌ها">
           <HadiranMark className="h-7 w-7" />

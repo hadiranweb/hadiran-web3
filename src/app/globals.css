@@ -251,14 +251,32 @@ body {
   }
 }
 
+.doc-break {
+  break-after: page;
+  page-break-after: always;
+}
+
 @media print {
   @page {
     size: A4;
     margin: 0;
   }
 
+  header,
+  footer,
+  nav,
+  dialog,
+  .print-hide {
+    display: none !important;
+  }
+
+  body {
+    background: #fff !important;
+  }
+
   .doc-page {
     break-after: page;
+    page-break-after: always;
     break-inside: avoid;
     min-height: auto;
     border: none !important;
@@ -270,5 +288,6 @@ body {
 
   .doc-page:last-child {
     break-after: auto;
+    page-break-after: auto;
   }
 }

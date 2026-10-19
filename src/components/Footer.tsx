@@ -18,7 +18,7 @@ const links = [
 
 export function Footer() {
   return (
-    <footer className="border-t border-line">
+    <footer className="print-hide border-t border-line print:hidden">
       <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-6 sm:flex-row sm:items-center sm:justify-between">
         <p className="flex items-center gap-2 text-sm text-muted">
           <HadiranMark className="h-5 w-5" />

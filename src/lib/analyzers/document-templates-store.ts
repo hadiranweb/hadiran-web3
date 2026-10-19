@@ -35,6 +35,8 @@ export function defaultChrome(templateId: string): DocumentChrome {
         dark: readPublicSvg("casio-ss/logos/casio_logo_dark.svg"),
         seal: readPublicSvg("casio-ss/logos/casio_seal_red.svg"),
       },
+      pageSize: "A4",
+      pageMargin: "0",
     };
   }
   return {
@@ -45,6 +47,8 @@ export function defaultChrome(templateId: string): DocumentChrome {
       dark: readPublicSvg("brand/hadiran-mark.svg"),
       seal: readPublicSvg("brand/hadiran-mark.svg"),
     },
+    pageSize: "A4",
+    pageMargin: "0",
   };
 }
 
@@ -59,6 +63,8 @@ export function mergeChrome(templateId: string, raw: unknown): DocumentChrome {
       dark: parsed.logos.dark.trim() ? parsed.logos.dark : fallback.logos.dark,
       seal: parsed.logos.seal.trim() ? parsed.logos.seal : fallback.logos.seal,
     },
+    pageSize: parsed.pageSize || fallback.pageSize,
+    pageMargin: parsed.pageMargin || fallback.pageMargin,
   };
 }
 
@@ -115,6 +121,8 @@ export async function updateDocumentTemplateChrome(id: string, chrome: DocumentC
       dark: chrome.logos.dark.slice(0, 40_000),
       seal: chrome.logos.seal.slice(0, 40_000),
     },
+    pageSize: chrome.pageSize,
+    pageMargin: chrome.pageMargin.slice(0, 32),
   };
   const [row] = await db
     .update(analyzerDocumentTemplates)
