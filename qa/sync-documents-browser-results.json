@@ -4,11 +4,52 @@
     "Stored CASIO document renders real respondent, native SVG radar, IRANSharp and A4 page breaks; print targets isolated document",
     "Existing upstream CodeMirror edits and persists a private HTML template; variables render only in sample preview",
     "Live element selection, drag, resize and font change write template styles without baking a sample variable into source",
+    "New visual format bar applies alignment, bold, color and spacing; Escape/Enter/outside click save text inside sandbox while variable text remains locked",
     "Sandbox/CSP blocks script and external image/refresh requests; template CSS does not escape into the application",
     "Author bot-path/template controls and approved public copy/lamp coexist with portrait and persisted three-state theme",
-    "30 new builder/document/home layouts at 320–1920px and 200 percent text reflow"
+    "38 builder/document/home/visual-toolbar layouts at 320–1920px and 200 percent text reflow"
   ],
   "layouts": [
+    [
+      "visual-toolbar",
+      "light",
+      320
+    ],
+    [
+      "visual-toolbar",
+      "light",
+      375
+    ],
+    [
+      "visual-toolbar",
+      "light",
+      768
+    ],
+    [
+      "visual-toolbar",
+      "light",
+      1440
+    ],
+    [
+      "visual-toolbar",
+      "dark",
+      320
+    ],
+    [
+      "visual-toolbar",
+      "dark",
+      375
+    ],
+    [
+      "visual-toolbar",
+      "dark",
+      768
+    ],
+    [
+      "visual-toolbar",
+      "dark",
+      1440
+    ],
     [
       "builder",
       "light",

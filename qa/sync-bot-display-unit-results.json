@@ -1,6 +1,6 @@
 {
   "passed": true,
-  "upstream": "ab290dcf7b6998c5994f5bb3cddc3454565444e5",
+  "upstream": "12362039e94140c9ca0536e3a1842191b4e7afd8",
   "checks": [
     "Per-exam question template preserves Persian numbering, original item text and multiline Markdown",
     "Template interpolation is nonrecursive and rejects inherited/prototype properties",

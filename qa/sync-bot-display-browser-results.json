@@ -1,6 +1,6 @@
 {
   "passed": true,
-  "upstream": "ab290dcf7b6998c5994f5bb3cddc3454565444e5",
+  "upstream": "12362039e94140c9ca0536e3a1842191b4e7afd8",
   "checks": [
     "Same CodeMirror edits, saves and reloads a per-exam Markdown question template; raw HTML stays escaped in preview",
     "New bot editor reflows at ten light/dark 320–1920px layouts and 200% text"

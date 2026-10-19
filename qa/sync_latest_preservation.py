@@ -30,5 +30,5 @@ for file in subprocess.check_output(['git','diff','--name-only','f132353'],text=
   text=p.read_text();assert not any(line.startswith('<' * 7) or line.startswith('>' * 7) for line in text.splitlines()),file
   assert not any('\u4e00'<=c<='\u9fff' for c in text),file
 checks.append('No unresolved markers or unintended CJK in changed source/docs')
-Path('qa/workspace-preservation-results.json').write_text(json.dumps({'passed':True,'upstream':'ab290dcf7b6998c5994f5bb3cddc3454565444e5','checks':checks,'new_npm_dependencies':['@codemirror/lang-css','@codemirror/lang-html','@uiw/react-codemirror'],'dependency_exception_approved':True},indent=2))
+Path('qa/workspace-preservation-results.json').write_text(json.dumps({'passed':True,'upstream':'12362039e94140c9ca0536e3a1842191b4e7afd8','checks':checks,'new_npm_dependencies':['@codemirror/lang-css','@codemirror/lang-html','@uiw/react-codemirror'],'dependency_exception_approved':True},indent=2))
 print('PASS',len(checks),'preservation groups')
