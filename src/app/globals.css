@@ -254,7 +254,7 @@ body {
 @media print {
   @page {
     size: A4;
-    margin: 12mm;
+    margin: 0;
   }
 
   .doc-page {
@@ -264,6 +264,8 @@ body {
     border: none !important;
     margin: 0 !important;
     box-shadow: none !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   .doc-page:last-child {

@@ -19,7 +19,7 @@ import { AnalyzerResponses } from "@/components/analyzers/AnalyzerResponses";
 import { AnalyzerInterpretation } from "@/components/analyzers/AnalyzerInterpretation";
 import { AnalyzerGrants } from "@/components/analyzers/AnalyzerGrants";
 import { AnalyzerBotPath, type AnalyzerBotLink } from "@/components/analyzers/AnalyzerBotPath";
-import { templatesForPack } from "@/lib/analyzers/document-templates";
+import { canonicalizeTemplateId, templatesForPack } from "@/lib/analyzers/document-templates";
 import { summaryPlaceholders } from "@/lib/analyzers/summary-template";
 
 const fieldClass =
@@ -902,8 +902,10 @@ function ReportEditor({
           <select
             className={fieldClass}
             value={
-              report.documentTemplateId ||
-              (pack.slug === "casio-ss" ? "casio-research" : "hadiran")
+              canonicalizeTemplateId(
+                report.documentTemplateId ||
+                  (pack.slug === "casio-ss" ? "casio-ss" : "hadiran"),
+              )
             }
             onChange={(event) => onChange({ ...report, documentTemplateId: event.target.value })}
           >
@@ -915,7 +917,7 @@ function ReportEditor({
           </select>
         </label>
         <p className="text-xs leading-6 text-slate-500">
-          هادیران ظاهر سادهٔ محصول است. پژوهش پنج‌لایه همان منطق نمره را با چیدمان پژوهشی نشان می‌دهد. لوگوی کاسیو در سند نیست.
+          هادیران ظاهر محصول است. کاسیو · پنج‌لایه همان چیدمان پژوهش با لوگوی کاسیو و نمودار چندوجهی لایه‌هاست.
         </p>
         <label className="block text-sm">
           <span className="mb-1 block text-slate-600">خلاصهٔ کاربر (قالب)</span>

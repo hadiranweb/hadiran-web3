@@ -270,7 +270,8 @@ export async function ensureInterpretationDocumentsSchema() {
     INSERT INTO analyzer_document_templates (id, title_fa, layout_key, brand_name_fa, system)
     VALUES
       ('hadiran', 'هادیران', 'hadiran', 'هادیران', TRUE),
-      ('casio-research', 'پژوهش پنج‌لایه', 'casio-research', 'هادیران', TRUE)
+      ('casio-research', 'پژوهش پنج‌لایه', 'casio-ss', 'کاسیو', TRUE),
+      ('casio-ss', 'کاسیو · پنج‌لایه', 'casio-ss', 'کاسیو', TRUE)
     ON CONFLICT (id) DO NOTHING
   `);
   await db.execute(sql`

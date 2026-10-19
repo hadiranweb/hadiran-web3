@@ -344,7 +344,7 @@ export const analyzerGrants = pgTable(
   (t) => [primaryKey({ columns: [t.slug, t.accountId] })],
 );
 
-/** Named HTML layouts for interpretation documents. System rows: hadiran, casio-research. */
+/** Named HTML layouts for interpretation documents. System rows: hadiran, casio-ss. */
 export const analyzerDocumentTemplates = pgTable("analyzer_document_templates", {
   id: varchar("id", { length: 64 }).primaryKey(),
   titleFa: varchar("title_fa", { length: 128 }).notNull(),
