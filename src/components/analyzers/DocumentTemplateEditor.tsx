@@ -3,6 +3,8 @@
 import { useMemo, useRef, useState } from "react";
 import type { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { ChromeDocument } from "@/components/analyzers/ChromeDocument";
+import { DocumentVisualEditor } from "@/components/analyzers/DocumentVisualEditor";
+import { stampHids } from "@/components/analyzers/document-html-edit";
 import { insertAtCursor, TemplateCodeField } from "@/components/analyzers/TemplateCodeField";
 import {
   DOCUMENT_PAGE_SIZES,
@@ -37,6 +39,7 @@ export function DocumentTemplateEditor({ initial }: { initial: TemplateRow[] }) 
   const current = templates.find((row) => row.id === id) ?? templates[0];
   const [chrome, setChrome] = useState<DocumentChrome | null>(current?.chrome ?? null);
   const [pane, setPane] = useState<Pane>("html");
+  const [surface, setSurface] = useState<"code" | "visual">("code");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -46,7 +49,12 @@ export function DocumentTemplateEditor({ initial }: { initial: TemplateRow[] }) 
   function selectTemplate(nextId: string) {
     const row = templates.find((item) => item.id === nextId);
     setId(nextId);
-    setChrome(row?.chrome ?? null);
+    const nextChrome = row?.chrome ?? null;
+    if (surface === "visual" && nextChrome && !nextChrome.html.includes("data-hid")) {
+      setChrome({ ...nextChrome, html: stampHids(nextChrome.html) });
+    } else {
+      setChrome(nextChrome);
+    }
     setSaved(false);
     setError(null);
   }
@@ -120,8 +128,9 @@ export function DocumentTemplateEditor({ initial }: { initial: TemplateRow[] }) 
       <div>
         <h2 className="text-lg font-bold text-slate-900">ویرایشگر قالب</h2>
         <p className="mt-1 text-sm leading-7 text-slate-500">
-          داستان سند را در تب HTML بنویسید. هر <span dir="ltr">section.doc-page</span> یک برگ است؛ پیش‌فرض اندازهٔ چاپ
-          A4 است. هدر و پانوشت سایت در چاپ نمی‌آید. متغیرها را با <span dir="ltr">{"{{نام}}"}</span> صدا بزنید.
+          داستان سند را در تب HTML بنویسید یا روی خود پیش‌نمایش جابه‌جا و بزرگ و کوچک کنید. ادیتور کد سر جایش است.
+          هر <span dir="ltr">section.doc-page</span> یک برگ است؛ پیش‌فرض اندازهٔ چاپ A4 است. هدر و پانوشت سایت در چاپ
+          نمی‌آید. متغیرها را با <span dir="ltr">{"{{نام}}"}</span> صدا بزنید؛ مقدار نمونه جای آن‌ها پخته نمی‌شود.
         </p>
       </div>
       <label className="block text-sm">
@@ -164,6 +173,50 @@ export function DocumentTemplateEditor({ initial }: { initial: TemplateRow[] }) 
           />
         </label>
       </div>
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => setSurface("code")}
+          className={`rounded-full px-3 py-1 text-xs ${
+            surface === "code" ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-700"
+          }`}
+        >
+          ویرایش کد
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setSurface("visual");
+            if (!chrome.html.includes("data-hid")) patch({ html: stampHids(chrome.html) });
+          }}
+          className={`rounded-full px-3 py-1 text-xs ${
+            surface === "visual" ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-700"
+          }`}
+        >
+          ویرایش روی پیش‌نمایش
+        </button>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void save()}
+          className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+        >
+          {busy ? "…" : "ذخیرهٔ قالب"}
+        </button>
+        {saved ? <p className="self-center text-sm text-emerald-700">ذخیره شد.</p> : null}
+        {error ? <p className="self-center text-sm text-red-700">{error}</p> : null}
+      </div>
+      {surface === "visual" ? (
+        <DocumentVisualEditor
+          key={current.id}
+          chrome={chrome}
+          templateId={current.id}
+          onHtml={(html) => patch({ html })}
+        />
+      ) : (
+        <>
       <div className="flex flex-wrap gap-2">
         {PANES.map((item) => (
           <button
@@ -218,18 +271,6 @@ export function DocumentTemplateEditor({ initial }: { initial: TemplateRow[] }) 
           ))}
         </div>
       </div>
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => void save()}
-          className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-        >
-          {busy ? "…" : "ذخیرهٔ قالب"}
-        </button>
-        {saved ? <p className="self-center text-sm text-emerald-700">ذخیره شد.</p> : null}
-        {error ? <p className="self-center text-sm text-red-700">{error}</p> : null}
-      </div>
       <div>
         <p className="mb-2 text-xs font-medium text-slate-500">پیش‌نمایش با دادهٔ نمونه</p>
         <div className="overflow-auto rounded-xl border border-slate-200 bg-slate-50 p-3">
@@ -242,6 +283,8 @@ export function DocumentTemplateEditor({ initial }: { initial: TemplateRow[] }) 
           />
         </div>
       </div>
+        </>
+      )}
     </section>
   );
 }
