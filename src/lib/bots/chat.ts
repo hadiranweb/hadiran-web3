@@ -30,7 +30,17 @@ import { privacyPolicyVersion } from "@/lib/privacy/version";
 import { accountIdByTelegramUserId, linkTelegramContact } from "@/lib/bots/identity";
 import { markBotLastError } from "@/lib/bots/store";
 import { botConsent } from "@/lib/bots/copy";
-import { botVars, interpolateBotText, line, matchBotKey, parseBotScript, type BotButtonStyle, type BotKey, type BotScript } from "@/lib/bots/script";
+import {
+  botVars,
+  interpolateBotText,
+  line,
+  matchBotKey,
+  parseBotScript,
+  type BotButtonStyle,
+  type BotChrome,
+  type BotKey,
+  type BotScript,
+} from "@/lib/bots/script";
 import { stripTelegramHtml, telegramQuestionHtml } from "@/lib/bots/html";
 import { telegramAnswerCallback, telegramDeleteMessages, telegramSendMessage } from "@/lib/bots/telegram";
 import { absoluteUrl } from "@/lib/site";
@@ -241,15 +251,29 @@ async function clearTelegramChat(token: string, chatId: number, lastMessageId: n
   }
 }
 
-function rangeRows(itemIndex: number) {
-  const btn = (value: number) => ({ text: faNum(value), callback_data: `q:${itemIndex}:${value}` });
+function rangeStyle(value: number, chrome: BotChrome): BotButtonStyle {
+  if (value >= 7) return chrome.questionRangeHighStyle;
+  if (value >= 4) return chrome.questionRangeMidStyle;
+  return chrome.questionRangeLowStyle;
+}
+
+function rangeRows(itemIndex: number, chrome: BotChrome) {
+  const btn = (value: number) => ({
+    text: faNum(value),
+    callback_data: `q:${itemIndex}:${value}`,
+    ...withTgStyle(rangeStyle(value, chrome)),
+  });
   // یک ردیف ۱۱ دکمه را تلگرام به ۸ تا می‌بُرد (۱۰…۳). دو ردیف همه را نشان می‌دهد.
   return [[10, 9, 8, 7, 6].map(btn), [5, 4, 3, 2, 1, 0].map(btn)];
 }
 
-function choiceRows(itemIndex: number, item: Extract<Item, { kind: "choice" }>) {
+function choiceRows(itemIndex: number, item: Extract<Item, { kind: "choice" }>, chrome: BotChrome) {
   return item.options.map((option, optionIndex) => [
-    { text: option.label.slice(0, 64), callback_data: `c:${itemIndex}:${optionIndex}` },
+    {
+      text: option.label.slice(0, 64),
+      callback_data: `c:${itemIndex}:${optionIndex}`,
+      ...withTgStyle(chrome.questionChoiceStyle),
+    },
   ]);
 }
 
@@ -257,11 +281,17 @@ function questionTextHtml(item: Item, pack: AnalyzerPack, index: number) {
   return telegramQuestionHtml(renderBotQuestionMarkdown(pack, item, index));
 }
 
-function questionMarkup(itemIndex: number, item: Item) {
+function questionMarkup(itemIndex: number, item: Item, chrome: BotChrome) {
   const rows =
-    item.kind === "range" ? rangeRows(itemIndex) : item.kind === "choice" ? choiceRows(itemIndex, item) : [];
+    item.kind === "range"
+      ? rangeRows(itemIndex, chrome)
+      : item.kind === "choice"
+        ? choiceRows(itemIndex, item, chrome)
+        : [];
   if (itemIndex > 0) {
-    rows.push([{ text: "سؤال قبل", callback_data: `p:${itemIndex - 1}` }]);
+    rows.push([
+      { text: "سؤال قبل", callback_data: `p:${itemIndex - 1}`, ...withTgStyle(chrome.questionPrevStyle) },
+    ]);
   }
   if (!rows.length) return undefined;
   return { inline_keyboard: rows };
@@ -328,7 +358,7 @@ async function promptQuestion(
   const item = items[cursor];
   if (!item) return;
   await patchSession(botId, telegramUserId, String(chatId), { step: `quiz:${cursor}` });
-  await say(token, botId, chatId, questionTextHtml(item, pack, cursor), questionMarkup(cursor, item), "HTML");
+  await say(token, botId, chatId, questionTextHtml(item, pack, cursor), questionMarkup(cursor, item, script.chrome), "HTML");
 }
 
 async function continueQuiz(

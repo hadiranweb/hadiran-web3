@@ -101,6 +101,11 @@ export type BotChrome = {
   packAcceptStyle: BotButtonStyle;
   referralSkipStyle: BotButtonStyle;
   discountSkipStyle: BotButtonStyle;
+  questionChoiceStyle: BotButtonStyle;
+  questionPrevStyle: BotButtonStyle;
+  questionRangeHighStyle: BotButtonStyle;
+  questionRangeMidStyle: BotButtonStyle;
+  questionRangeLowStyle: BotButtonStyle;
 };
 
 export const DEFAULT_BOT_CHROME: BotChrome = {
@@ -109,6 +114,11 @@ export const DEFAULT_BOT_CHROME: BotChrome = {
   packAcceptStyle: "success",
   referralSkipStyle: "",
   discountSkipStyle: "",
+  questionChoiceStyle: "primary",
+  questionPrevStyle: "primary",
+  questionRangeHighStyle: "success",
+  questionRangeMidStyle: "primary",
+  questionRangeLowStyle: "danger",
 };
 
 export const BOT_CHROME_FIELDS: { id: keyof BotChrome; labelFa: string; services?: BotService[] }[] = [
@@ -117,6 +127,11 @@ export const BOT_CHROME_FIELDS: { id: keyof BotChrome; labelFa: string; services
   { id: "examPickStyle", labelFa: "رنگ دکمهٔ هر آزمون", services: ["analyzers"] },
   { id: "packAcceptStyle", labelFa: "رنگ دکمهٔ رضایت آزمون", services: ["analyzers"] },
   { id: "discountSkipStyle", labelFa: "رنگ دکمهٔ رد تخفیف", services: ["analyzers"] },
+  { id: "questionChoiceStyle", labelFa: "رنگ گزینهٔ سؤال چندگزینه‌ای", services: ["analyzers"] },
+  { id: "questionPrevStyle", labelFa: "رنگ دکمهٔ سؤال قبل", services: ["analyzers"] },
+  { id: "questionRangeHighStyle", labelFa: "رنگ مقیاس بالا (۷–۱۰)", services: ["analyzers"] },
+  { id: "questionRangeMidStyle", labelFa: "رنگ مقیاس وسط (۴–۶)", services: ["analyzers"] },
+  { id: "questionRangeLowStyle", labelFa: "رنگ مقیاس پایین (۰–۳)", services: ["analyzers"] },
 ];
 
 export const BOT_KEY_ACTION_OPTIONS: { id: BotKeyAction; labelFa: string }[] = [

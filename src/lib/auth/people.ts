@@ -383,8 +383,6 @@ export async function setPersonReferrer(input: {
   await ready();
   const target = await accountByPublicCode(input.publicCode);
   if (!target) return { ok: false, error: "unknown_code" };
-  const blocked = guardMutable(target, input.actorId);
-  if (blocked) return { ok: false, error: blocked };
   const result = await ownerSetAccountReferrer(target.id, input.referredBy);
   if (!result.ok) return result;
   return { ok: true };
@@ -399,8 +397,6 @@ export async function setChildReferrer(input: {
   await ready();
   const parent = await accountByPublicCode(input.publicCode);
   if (!parent) return { ok: false, error: "unknown_code" };
-  const blocked = guardMutable(parent, input.actorId);
-  if (blocked) return { ok: false, error: blocked };
   const child = await accountByPublicCode(input.childCode);
   if (!child) return { ok: false, error: "unknown_child" };
   if (child.referredByAccountId !== parent.id) return { ok: false, error: "not_referred_by_this" };
@@ -419,8 +415,6 @@ export async function setAttemptReferrer(input: {
   await ready();
   const target = await accountByPublicCode(input.publicCode);
   if (!target) return { ok: false, error: "unknown_code" };
-  const blocked = guardMutable(target, input.actorId);
-  if (blocked) return { ok: false, error: blocked };
 
   let referrerAccountId: number | null = null;
   if (input.referrer != null && input.referrer !== "") {

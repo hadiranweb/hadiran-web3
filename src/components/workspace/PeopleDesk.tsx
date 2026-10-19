@@ -241,38 +241,40 @@ function PersonPanel({
       </div>
 
       {locked ? (
-        <p className="text-sm text-slate-500">حساب مدیر از این میز عوض یا حذف نمی‌شود.</p>
+        <p className="text-sm text-slate-500">
+          نقش، دسترسی و حذف برای حساب مدیر بسته است. پیوند معرف را برای هر نقش می‌توان عوض کرد.
+        </p>
       ) : (
-        <>
-          <div className="flex flex-wrap items-end gap-2">
-            <label className="text-sm text-slate-600">
-              نقش
-              <select
-                className="mt-1 block rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                value={role}
-                onChange={(event) => setRole(event.target.value === "member" ? "member" : "author")}
-              >
-                <option value="author">آزمون‌ساز</option>
-                <option value="member">عضو</option>
-              </select>
-            </label>
-            <button
-              type="button"
-              disabled={busy}
-              className="rounded-xl bg-slate-900 px-4 py-2 text-sm text-white disabled:opacity-60"
-              onClick={() => void onPatch(person.publicCode, { role })}
+        <div className="flex flex-wrap items-end gap-2">
+          <label className="text-sm text-slate-600">
+            نقش
+            <select
+              className="mt-1 block rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              value={role}
+              onChange={(event) => setRole(event.target.value === "member" ? "member" : "author")}
             >
-              ثبت نقش
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 disabled:opacity-60"
-              onClick={() => void onPatch(person.publicCode, { isActive: !person.isActive })}
-            >
-              {person.isActive ? "غیرفعال کردن دسترسی" : "فعال کردن دسترسی"}
-            </button>
-          </div>
+              <option value="author">آزمون‌ساز</option>
+              <option value="member">عضو</option>
+            </select>
+          </label>
+          <button
+            type="button"
+            disabled={busy}
+            className="rounded-xl bg-slate-900 px-4 py-2 text-sm text-white disabled:opacity-60"
+            onClick={() => void onPatch(person.publicCode, { role })}
+          >
+            ثبت نقش
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 disabled:opacity-60"
+            onClick={() => void onPatch(person.publicCode, { isActive: !person.isActive })}
+          >
+            {person.isActive ? "غیرفعال کردن دسترسی" : "فعال کردن دسترسی"}
+          </button>
+        </div>
+      )}
 
           <div>
             <h3 className="text-base font-medium text-slate-800">معرف این حساب</h3>
@@ -382,6 +384,8 @@ function PersonPanel({
             personCode={person.publicCode}
           />
 
+      {!locked ? (
+        <>
           <div>
             <h3 className="text-base font-medium text-slate-800">پاک‌کردن ردپا</h3>
             <p className="mt-1 text-sm leading-7 text-slate-500">
@@ -431,7 +435,7 @@ function PersonPanel({
             </button>
           </div>
         </>
-      )}
+      ) : null}
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
     </section>
   );
