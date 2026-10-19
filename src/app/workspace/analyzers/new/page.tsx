@@ -16,7 +16,7 @@ export default async function NewAnalyzerPage() {
     <main className="mx-auto max-w-3xl space-y-6 px-4 py-8">
       <p className="text-sm">
         <Link href="/workspace/analyzers" className="text-slate-500 hover:text-indigo-700">
-          تحلیلگر‌ها
+          آینه‌ها
         </Link>
       </p>
       <h1 className="text-2xl font-bold text-slate-900">آزمون تازه</h1>

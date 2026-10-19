@@ -139,7 +139,7 @@ export const BOT_PATH_STAGES: PathStage[] = [
   {
     id: "pick",
     titleFa: "انتخاب آزمون",
-    hintFa: "پایان مسیر اصلی ربات تحلیل‌گر. اگر ربات به یک آزمون محدود باشد فقط همان می‌آید.",
+    hintFa: "پایان مسیر اصلی ربات آینه. اگر ربات به یک آزمون محدود باشد فقط همان می‌آید.",
     lane: "main",
     services: ["analyzers"],
     texts: ["examPick", "noExams", "examClosed", "examMissing"],

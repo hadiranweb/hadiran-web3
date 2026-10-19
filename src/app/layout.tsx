@@ -16,7 +16,7 @@ const vazirmatn = Vazirmatn({
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   title: {
-    default: "هادیران | فضای هم‌فکری، شفاف‌سازی مسئله و طراحی سیستم‌ها",
+    default: "هادیران | خانه‌ایست که هر دری در آن به یک سؤال بهتر باز می‌شود",
     template: "%s | هادیران",
   },
   description: siteConfig.description,

@@ -8,7 +8,7 @@ export async function MemberDocument({ pack, accountId }: { pack: AnalyzerPack; 
   if (!doc) return null;
   return (
     <div className="mt-10">
-      <DocumentToolbar backHref="/analyzers" backLabel="تحلیلگر‌ها" />
+      <DocumentToolbar backHref="/analyzers" backLabel="آینه‌ها" />
       <InterpretationDocumentView doc={doc} />
     </div>
   );

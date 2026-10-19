@@ -14,7 +14,7 @@ export default async function WorkspaceCapturePage() {
   return (
     <main className="mx-auto max-w-3xl px-4 py-8">
       <h1 className="mb-2 text-2xl font-bold text-slate-900">ثبت جدید</h1>
-      <p className="mb-8 text-sm text-slate-500">ذخیره فقط captured است؛ برای دانشنامه باید ارتقا بدهید.</p>
+        <p className="mb-8 text-sm text-slate-500">ذخیره فقط captured است؛ برای باغ دانش باید ارتقا بدهید.</p>
       <CaptureEditor />
     </main>
   );

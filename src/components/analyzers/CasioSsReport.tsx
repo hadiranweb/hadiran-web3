@@ -126,7 +126,7 @@ export function CasioSsReport({
       {showHubLink ? (
         <p>
           <Link href="/analyzers" className="text-sm font-medium text-accent hover:text-ink">
-            بازگشت به تحلیلگر‌ها
+            بازگشت به آینه‌ها
           </Link>
         </p>
       ) : null}

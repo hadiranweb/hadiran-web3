@@ -50,7 +50,7 @@ export function AnalyzerPublicScreen({
           onClick={start}
           className="mt-8 inline-flex self-start rounded-[var(--radius-md)] bg-accent px-5 py-2.5 text-sm font-medium text-accent-fg"
         >
-          این تحلیل را شروع کنید
+          شروع کن
         </button>
       </section>
       <SignInDialog open={authOpen} onClose={() => setAuthOpen(false)} onAuthenticated={onAuthenticated} nextPath={pathname} />

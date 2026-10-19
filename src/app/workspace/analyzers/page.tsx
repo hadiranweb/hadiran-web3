@@ -46,7 +46,7 @@ export default async function WorkspaceAnalyzersPage() {
       <section>
         {authored.length === 0 ? (
           <p className="text-sm text-slate-500">
-            {canCreate ? "آزمونی نیست. از «آزمون تازه» شروع کنید." : "هنوز آزمونی به شما سپرده نشده."}
+            {canCreate ? "آزمونی نیست. از «آزمون تازه» شروع کن." : "هنوز آزمونی به شما سپرده نشده."}
           </p>
         ) : (
           <ul className="space-y-2">

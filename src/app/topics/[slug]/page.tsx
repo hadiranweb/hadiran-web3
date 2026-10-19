@@ -23,7 +23,7 @@ interface Props {
 }
 
 function topicFallback(labelFa: string) {
-  return `${labelFa} یکی از موضوعات اتصال‌دهندهٔ دانش، پروژه و دوره در اکوسیستم هادیران است.`;
+  return `${labelFa} یکی از موضوعات اتصال‌دهندهٔ باغ دانش، کارگاه و دوره در خانهٔ هادیران است.`;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

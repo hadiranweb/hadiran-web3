@@ -5,17 +5,17 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { PageShell } from "@/components/ui/PageShell";
 import { analyzerHref, loadAnalyzers } from "@/lib/analyzers/catalog";
 import { absoluteUrl } from "@/lib/site";
+import { mirrorsCopy } from "@/lib/copy";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "تحلیلگر‌ها",
-  description:
-    "خانهٔ آزمون‌ها و عارضه‌یابی هادیران. هر تحلیلگر یک مسیر و یک نیت دارد؛ این صفحه فهرست است نه خودِ آزمون.",
+  title: mirrorsCopy.title,
+  description: mirrorsCopy.lede,
   alternates: { canonical: "/analyzers" },
   openGraph: {
-    title: "تحلیلگر‌ها",
-    description: "فهرست آزمون‌ها و عارضه‌یابی در هادیران.",
+    title: mirrorsCopy.title,
+    description: mirrorsCopy.lede,
     url: "/analyzers",
     locale: "fa_IR",
     type: "website",
@@ -37,16 +37,16 @@ export default async function AnalyzersPage() {
         data={{
           "@context": "https://schema.org",
           "@type": "CollectionPage",
-          name: "تحلیلگر‌ها",
+          name: mirrorsCopy.title,
           url: absoluteUrl("/analyzers"),
           inLanguage: "fa",
-          description: "خانهٔ آزمون‌ها و عارضه‌یابی هادیران. هر تحلیلگر یک مسیر جدا دارد.",
+          description: mirrorsCopy.lede,
         }}
       />
 
       <PageHeader
-        title="تحلیلگر‌ها"
-        lede="زیرساخت آزمون‌ها و عارضه‌یابی در هادیران. هر تحلیلگر یک نیت و یک مسیر دارد؛ این صفحه فهرست است، نه اجرای آزمون."
+        title={mirrorsCopy.title}
+        lede={mirrorsCopy.lede}
       />
 
       <ul className="grid gap-5 md:grid-cols-2">

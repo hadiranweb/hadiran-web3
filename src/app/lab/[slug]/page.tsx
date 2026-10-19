@@ -115,7 +115,7 @@ export default async function ProjectPage({ params }: Props) {
         className="mb-6 inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-indigo-600"
       >
         <ArrowLeft className="h-4 w-4" />
-        بازگشت به آزمایشگاه
+          بازگشت به کارگاه
       </Link>
 
       <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">

@@ -5,20 +5,20 @@ import Link from "next/link";
 import { HadiranMark } from "@/components/HadiranMark";
 import { PageShell } from "@/components/ui/PageShell";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { houseCopy, rooms } from "@/lib/copy";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: {
-    absolute: "اکوسیستم هادیران | دانش، آموزش، آزمایشگاه، هویت",
+    absolute: "خانه هادیران | باغ دانش، کارگاه، دوره‌ها، هادی",
   },
-  description:
-    "نقشهٔ اکوسیستم شخصی هادیران: هویت، دانشنامه، آکادمی و آزمایشگاه پروژه که از طریق موضوع به هم متصل‌اند.",
+  description: houseCopy.lede,
   alternates: { canonical: "/ecosystem" },
   openGraph: {
-    title: "اکوسیستم هادیران",
-    description: "دانش، آموزش، آزمایشگاه و هویت در یک گراف متصل.",
+    title: "خانه هادیران",
+    description: houseCopy.lede,
     url: "/ecosystem",
     type: "website",
     locale: "fa_IR",
@@ -43,30 +43,30 @@ export default async function EcosystemPage() {
 
   const worlds = [
     {
-      href: "/knowledge",
-      label: "دانشنامه",
-      promise: "مقالات، یادداشت‌ها و ایده‌های ثبت‌شده.",
+      href: rooms.knowledge.href,
+      label: rooms.knowledge.label,
+      promise: "فکرهای تازه‌کاشته، در حال رشد و آزموده.",
       count: knowledgeCount.value,
       unit: "مطلب",
     },
     {
-      href: "/lab",
-      label: "آزمایشگاه",
-      promise: "پروژه‌ها؛ همکاری از صفحهٔ همان پروژه.",
+      href: rooms.lab.href,
+      label: rooms.lab.label,
+      promise: "ظرف‌ها و پروژه‌های باز؛ همکاری از صفحهٔ همان کار.",
       count: projectCount.value,
-      unit: "پروژه",
+      unit: "ظرف",
     },
     {
-      href: "/courses",
-      label: "دوره‌ها",
+      href: rooms.courses.href,
+      label: rooms.courses.label,
       promise: "آموزش؛ تا دورهٔ واقعی نیاید خالی می‌ماند.",
       count: courseCount.value,
       unit: "دوره",
     },
     {
-      href: "/hadiran",
+      href: rooms.person.href,
       label: "هادی",
-      promise: "مسیر، دیدگاه و راه‌های ارتباط شخص.",
+      promise: "مسیر، نگاه و راه‌های ارتباط شخص.",
       count: null,
       unit: "",
     },
@@ -74,11 +74,7 @@ export default async function EcosystemPage() {
 
   return (
     <PageShell width="wide">
-      <PageHeader
-        kicker="نقشه"
-        title="چهار جهان، یک اکوسیستم"
-        lede="هادیران فضای کار است نه شعار. دانش، آموزش، آزمایشگاه و هویت از طریق موضوع به هم وصل می‌شوند. هم‌فکری در خانه است؛ نقشه اینجاست."
-      />
+      <PageHeader kicker="نقشه" title={houseCopy.heading} lede={houseCopy.lede} />
 
       <ul className="grid gap-4 sm:grid-cols-2">
         {worlds.map((world) => (

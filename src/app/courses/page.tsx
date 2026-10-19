@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "آکادمی",
-  description: "دوره‌های آموزشی هادیران برای یادگیری وب۳، هوش مصنوعی و اتوماسیون.",
+  description: "دوره‌های هادیران؛ تا دورهٔ واقعی نیاید فهرست خالی می‌ماند.",
   alternates: { canonical: "/courses" },
 };
 

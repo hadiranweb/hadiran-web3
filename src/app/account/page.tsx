@@ -38,7 +38,7 @@ export default async function AccountPage() {
     <PageShell width="narrow">
       <PageHeader
         title="حساب من"
-        lede="نام برای گزارش‌ها و تحلیلگر‌هاست. شناسهٔ هشت‌رقمی همان کد معرف شماست؛ با آن وارد نمی‌شوید."
+        lede="نام برای گزارش‌ها و آینه‌هاست. شناسهٔ هشت‌رقمی همان کد معرف شماست؛ با آن وارد نمی‌شوید."
       />
       <dl className="mb-8 grid gap-4 sm:grid-cols-2">
         <div className="surface p-5">

@@ -62,7 +62,7 @@ export default async function WorkspacePage() {
         />
         <PulseTile
           href="/knowledge"
-          label="دانشنامه"
+          label="باغ دانش"
           value={pulse.knowledgeProjections}
           foot={
             pulse.knowledgeProjections == null
@@ -151,7 +151,7 @@ export default async function WorkspacePage() {
                   </Link>
                   {item.slug ? (
                     <Link href={`/knowledge/${item.slug}`} className="text-indigo-600 hover:text-indigo-800">
-                      نمود دانشنامه
+                      نمود باغ دانش
                     </Link>
                   ) : null}
                 </span>

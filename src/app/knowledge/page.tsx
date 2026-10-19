@@ -9,12 +9,13 @@ import type { Metadata } from "next";
 import { PageShell } from "@/components/ui/PageShell";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { knowledgeCopy } from "@/lib/copy";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "دانشنامه",
-  description: "مقالات، یادداشت‌ها، تحقیق‌ها و ایده‌های هادیران دربارهٔ وب۳، هوش مصنوعی و اتوماسیون.",
+  title: knowledgeCopy.title,
+  description: knowledgeCopy.lede,
   alternates: { canonical: "/knowledge" },
 };
 
@@ -84,7 +85,7 @@ export default async function KnowledgePage({ searchParams }: Props) {
 
   return (
     <PageShell>
-      <PageHeader title="دانشنامه" lede="مقالات، یادداشت‌ها، تحقیق‌ها و ایده‌های هادیران">
+      <PageHeader title={knowledgeCopy.title} lede={knowledgeCopy.lede}>
         {account?.role === "owner" ? (
           <Link
             href="/workspace/capture"
@@ -102,7 +103,7 @@ export default async function KnowledgePage({ searchParams }: Props) {
           type="text"
           name="q"
           defaultValue={q || ""}
-          placeholder="جستجو در دانشنامه..."
+          placeholder="جستجو در باغ دانش..."
           className="flex-1 rounded-[var(--radius-md)] border border-line bg-elev px-4 py-2.5 text-sm text-ink outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
         />
         <button
@@ -116,7 +117,7 @@ export default async function KnowledgePage({ searchParams }: Props) {
 
       {topic ? (
         <div className="mb-6 flex flex-wrap items-center gap-2">
-          <span className="text-sm text-muted">فیلتر دانشنامه:</span>
+          <span className="text-sm text-muted">فیلتر باغ دانش:</span>
           <Link href={`/topics/${topic}`} className="rounded-full border border-line bg-elev px-3 py-1 text-sm text-ink">
             {filterLabel}
           </Link>

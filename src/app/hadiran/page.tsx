@@ -17,12 +17,13 @@ import { absoluteUrl } from "@/lib/site";
 import { HadiranMark } from "@/components/HadiranMark";
 import { PageShell } from "@/components/ui/PageShell";
 import { Surface } from "@/components/ui/Surface";
+import { personCopy, voice } from "@/lib/copy";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "درباره من",
-  description: "هادی؛ مسیر، دیدگاه و مهارت‌ها در هستی‌شناسی سیستم‌ها، حل مسائل پیچیده، هوش خودمختار و معماری وب۳.",
+  description: "اسمم هادی است؛ یعنی راهنما. راه‌حل نمی‌فروشم. اول می‌بینیم، بعد می‌سازیم.",
   alternates: { canonical: "/hadiran" },
 };
 
@@ -32,7 +33,9 @@ export default async function HadiranPage() {
   if (!hadiran) {
     return (
       <PageShell width="narrow">
-        <h1 className="text-2xl font-bold text-ink">پروفایل یافت نشد</h1>
+        <p className="text-sm font-medium text-mark">{voice.altTitle}</p>
+        <h1 className="mt-2 text-2xl font-bold text-ink">هادی</h1>
+        <p className="mt-4 max-w-3xl text-base leading-[1.85] text-ink">{personCopy.missing}</p>
       </PageShell>
     );
   }
@@ -73,7 +76,7 @@ export default async function HadiranPage() {
           "@type": "Person",
           name: hadiran.nameFa,
           alternateName: hadiran.nameEn || undefined,
-          description: hadiran.introFa || undefined,
+          description: personCopy.intro.join(" "),
           url: absoluteUrl("/hadiran"),
           sameAs,
         }}
@@ -101,7 +104,11 @@ export default async function HadiranPage() {
           </div>
         </div>
 
-        {hadiran.introFa ? <p className="max-w-3xl text-base leading-[1.85] text-ink">{hadiran.introFa}</p> : null}
+        <div className="max-w-3xl space-y-4 text-base leading-[1.85] text-ink">
+          {personCopy.intro.map((line) => (
+            <p key={line}>{line}</p>
+          ))}
+        </div>
 
         {hadiran.perspectiveFa ? (
           <section className="mt-10">

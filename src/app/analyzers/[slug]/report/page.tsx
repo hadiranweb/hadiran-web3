@@ -14,7 +14,7 @@ import { requirePageAccount } from "@/lib/auth/guard";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "گزارش تحلیلگر",
+  title: "گزارش آینه",
   robots: { index: false, follow: false },
 };
 
@@ -40,7 +40,7 @@ export default async function AnalyzerReportPage({ params }: Props) {
       <div className="print:hidden">
         <p className="mb-4 text-sm">
           <Link href="/analyzers" className="text-muted hover:text-ink">
-            تحلیلگر‌ها
+            آینه‌ها
           </Link>
           <span className="text-muted"> / {pack.nameFa}</span>
         </p>

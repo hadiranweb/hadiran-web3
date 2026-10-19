@@ -57,7 +57,7 @@ export default async function CasioSsPage() {
           url: absoluteUrl(PATH),
           inLanguage: "fa",
           description: pack.summaryFa,
-          isPartOf: { "@type": "CollectionPage", name: "تحلیلگر‌ها", url: absoluteUrl("/analyzers") },
+          isPartOf: { "@type": "CollectionPage", name: "آینه‌ها", url: absoluteUrl("/analyzers") },
         }}
       />
 

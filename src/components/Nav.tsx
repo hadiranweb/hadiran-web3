@@ -7,15 +7,16 @@ import { useEffect, useRef, useState } from "react";
 import { SessionMenu } from "@/components/auth/SessionMenu";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { HadiranWordmark } from "@/components/HadiranMark";
+import { rooms } from "@/lib/copy";
 
 const primaryLinks = [
-  { href: "/ecosystem", label: "اکوسیستم", icon: Layers },
-  { href: "/hadiran", label: "درباره من", icon: User },
-  { href: "/knowledge", label: "دانشنامه", icon: BookOpen },
-  { href: "/lab", label: "آزمایشگاه", icon: FlaskConical },
-  { href: "/analyzers", label: "تحلیلگر‌ها", icon: ScanSearch },
-  { href: "/courses", label: "دوره‌ها", icon: GraduationCap },
-  { href: "/shop", label: "فروشگاه", icon: ShoppingBag },
+  { href: rooms.house.href, label: rooms.house.label, icon: Layers },
+  { href: rooms.person.href, label: rooms.person.label, icon: User },
+  { href: rooms.knowledge.href, label: rooms.knowledge.label, icon: BookOpen },
+  { href: rooms.lab.href, label: rooms.lab.label, icon: FlaskConical },
+  { href: rooms.mirrors.href, label: rooms.mirrors.label, icon: ScanSearch },
+  { href: rooms.courses.href, label: rooms.courses.label, icon: GraduationCap },
+  { href: rooms.shop.href, label: rooms.shop.label, icon: ShoppingBag },
 ];
 
 export function Nav() {

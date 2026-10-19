@@ -9,7 +9,7 @@ const ownerLinks = [
   { href: "/workspace", label: "نمای کلی", exact: true },
   { href: "/workspace/capture", label: "ثبت جدید", exact: false },
   { href: "/workspace/bots", label: "ربات‌ها", exact: false },
-  { href: "/workspace/analyzers", label: "تحلیلگر‌ها", exact: false },
+  { href: "/workspace/analyzers", label: "آینه‌ها", exact: false },
   { href: "/workspace/documents", label: "سندساز", exact: false },
   { href: "/workspace/shop", label: "فروشگاه", exact: false },
   { href: "/workspace/referrals", label: "معرف‌ها", exact: false },

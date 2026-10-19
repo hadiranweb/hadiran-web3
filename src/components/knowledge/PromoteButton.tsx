@@ -38,7 +38,7 @@ export function PromoteButton({ recordId }: { recordId: string }) {
   return (
     <div className="space-y-2 rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4">
       <p className="text-sm text-slate-700">
-        ذخیره دانش نیست. ارتقا، ادعا و بازبینی می‌سازد و در صورت عمومی بودن، صفحهٔ دانشنامه را به‌عنوان نمود می‌نویسد.
+        ذخیره دانش نیست. ارتقا، ادعا و بازبینی می‌سازد و در صورت عمومی بودن، صفحهٔ باغ دانش را به‌عنوان نمود می‌نویسد.
       </p>
       <label className="flex items-center gap-2 text-sm">
         <input

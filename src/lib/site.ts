@@ -3,7 +3,7 @@ export const siteConfig = {
   nameEn: "Hadiran",
   shortName: "Hadiran",
   description:
-    "ارتباط مستقیم و هم‌فکری با هادی درباره هستی‌شناسی سیستم‌ها، حل مسائل پیچیده، هوش خودمختار و معماری وب۳.",
+    "مسئله‌ات را بگو؛ با هم شفافش می‌کنیم. از گلوگاه روزمره تا معماری سیستم — اول می‌بینیم، بعد می‌سازیم.",
   url: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
 };
 

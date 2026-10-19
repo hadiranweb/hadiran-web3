@@ -34,7 +34,7 @@ export default async function CasioSsReportPage() {
       <div className="print:hidden">
         <p className="mb-4 text-sm">
           <Link href="/analyzers" className="text-muted hover:text-ink">
-            تحلیلگر‌ها
+            آینه‌ها
           </Link>
           <span className="text-muted"> / {pack.nameFa}</span>
         </p>

@@ -11,7 +11,7 @@ import { listBots } from "@/lib/bots/store";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "ویرایش تحلیلگر",
+  title: "ویرایش آینه",
   robots: { index: false, follow: false },
 };
 
@@ -39,7 +39,7 @@ export default async function EditAnalyzerPage({ params }: Props) {
     <main className="mx-auto max-w-3xl space-y-6 px-4 py-8">
       <p className="text-sm">
         <Link href="/workspace/analyzers" className="text-slate-500 hover:text-indigo-700">
-          تحلیلگر‌ها
+          آینه‌ها
         </Link>
       </p>
       <div className="flex flex-wrap items-end justify-between gap-3">

@@ -17,7 +17,7 @@ const COMPOSER_KEY = "home-composer";
 
 const GREETING: ChatMessage = {
   role: "assistant",
-  content: "سلام. مسئله‌ات را بگو تا با هم شفافش کنیم — از بازنمایی ایده تا معماری سیستم، هوش مصنوعی و وب۳.",
+  content: "سلام. مسئله‌ات را بگو تا با هم شفافش کنیم — از گلوگاه روزمره تا معماری سیستم. اول می‌بینیم، بعد می‌سازیم.",
 };
 
 function hasAny(refs?: ChatReferences | null) {
@@ -158,7 +158,7 @@ export function HomeChat() {
                     icon={BookOpen}
                   />
                   <ReferenceGroup
-                    label="پروژه‌های مرتبط"
+                    label="کارگاه"
                     href={(slug) => `/lab/${slug}`}
                     items={msg.references.projects.map((p) => ({ slug: p.slug, label: p.name }))}
                     icon={FlaskConical}

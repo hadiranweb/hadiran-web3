@@ -1,18 +1,19 @@
 import Link from "next/link";
 import { HadiranMark } from "@/components/HadiranMark";
+import { rooms } from "@/lib/copy";
 
 const links = [
   { href: "/", label: "هم‌فکری" },
-  { href: "/ecosystem", label: "اکوسیستم" },
-  { href: "/hadiran", label: "درباره من" },
-  { href: "/knowledge", label: "دانشنامه" },
-  { href: "/lab", label: "آزمایشگاه" },
-  { href: "/analyzers", label: "تحلیلگر‌ها" },
-  { href: "/courses", label: "دوره‌ها" },
-  { href: "/shop", label: "فروشگاه" },
-  { href: "/topics", label: "موضوعات" },
-  { href: "/contact", label: "تماس" },
-  { href: "/privacy", label: "حریم خصوصی" },
+  rooms.house,
+  rooms.person,
+  rooms.knowledge,
+  rooms.lab,
+  rooms.mirrors,
+  rooms.courses,
+  rooms.shop,
+  rooms.topics,
+  rooms.contact,
+  rooms.privacy,
 ];
 
 export function Footer() {
