@@ -52,12 +52,23 @@ export function defaultChrome(templateId: string): DocumentChrome {
   };
 }
 
+function staleCasioChrome(html: string, css: string) {
+  return !html.includes("{{{overallChartSvg}}}") || !html.includes("keywordGraphGroups") || !css.includes("keyword-graph");
+}
+
 export function mergeChrome(templateId: string, raw: unknown): DocumentChrome {
   const fallback = defaultChrome(templateId);
   const parsed = parseChrome(raw);
+  const id = canonicalizeTemplateId(templateId);
+  let html = parsed.html.trim() ? parsed.html : fallback.html;
+  let css = parsed.css.trim() ? parsed.css : fallback.css;
+  if (id === "casio-ss" && staleCasioChrome(html, css)) {
+    html = fallback.html;
+    css = fallback.css;
+  }
   return {
-    html: parsed.html.trim() ? parsed.html : fallback.html,
-    css: parsed.css.trim() ? parsed.css : fallback.css,
+    html,
+    css,
     logos: {
       light: parsed.logos.light.trim() ? parsed.logos.light : fallback.logos.light,
       dark: parsed.logos.dark.trim() ? parsed.logos.dark : fallback.logos.dark,

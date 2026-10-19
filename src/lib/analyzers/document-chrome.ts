@@ -1,4 +1,10 @@
-import { radarSvgHtml } from "@/lib/analyzers/document-radar-svg";
+import {
+  BOTTLENECK_AS_IS_LABEL_FA,
+  KEYWORD_ACCENT_COLORS,
+  KEYWORD_GRAPH_NOTE_FA,
+  casioSummaryCopy,
+} from "@/lib/analyzers/casio-ss/report-copy";
+import { overallChartSvg, radarSvgHtml } from "@/lib/analyzers/document-radar-svg";
 import { faNum, type InterpretationDocument } from "@/lib/analyzers/document-model";
 import { canonicalizeTemplateId } from "@/lib/analyzers/document-templates";
 import { renderMustache, stripUnsafeHtml } from "@/lib/analyzers/mustache";
@@ -103,15 +109,32 @@ export function documentTemplateContext(doc: InterpretationDocument, chrome: Doc
     };
   });
 
-  const radarSvg = radarSvgHtml(
-    layers.map((layer) => ({
-      id: layer.id,
-      labelFa: layer.titleFa,
-      value: layer.score,
-      max: layer.scoreMax || 20,
-      bottleneck: layer.isBottleneck,
-    })),
-  );
+  const radarPoints = layers.map((layer) => ({
+    id: layer.id,
+    labelFa: layer.titleFa,
+    value: layer.score,
+    max: layer.scoreMax || 20,
+    bottleneck: layer.isBottleneck,
+  }));
+  const radarSvg = radarSvgHtml(radarPoints);
+  const chartSvg = overallChartSvg(radarPoints);
+
+  const bottleneckLayer = layers.find((layer) => layer.isBottleneck) ?? layers[0] ?? null;
+  const keywordGraphGroups = (bottleneckLayer?.keywords ?? []).slice(0, 3).map((keyword, index) => ({
+    id: keyword.id,
+    titleFa: keyword.titleFa,
+    childrenFa: keyword.children.map((child) => child.titleFa),
+    accentColor: KEYWORD_ACCENT_COLORS[index % KEYWORD_ACCENT_COLORS.length],
+  }));
+  const bottleneckAsIsFa = bottleneckLayer?.asIsFa ?? "";
+  const summary = casioSummaryCopy({
+    personNameFa: doc.personNameFa,
+    totalScore: doc.totalScore,
+    totalFa: doc.totalFa ?? "—",
+    totalMaxFa: faNum(doc.totalScoreMax ?? 100),
+    bottleneckFa: doc.bottleneckFa ?? bottleneckLayer?.titleFa ?? "",
+    bottleneckAsIsFa,
+  });
 
   return {
     packNameFa: doc.packNameFa,
@@ -140,12 +163,24 @@ export function documentTemplateContext(doc: InterpretationDocument, chrome: Doc
     hasContext: doc.context.length > 0,
     hasPatterns: doc.patterns.length > 0,
     hasPublicCode: Boolean(doc.publicCode),
+    hasSummary: summary.summaryParagraphsFa.length > 0,
+    hasKeywordGraph: keywordGraphGroups.length > 0,
+    hasQr: false,
+    summaryTitleFa: summary.summaryTitleFa,
+    summaryParagraphsFa: summary.summaryParagraphsFa,
+    keywordGraphGroups,
+    bottleneckAsIsLabelFa: BOTTLENECK_AS_IS_LABEL_FA,
+    bottleneckAsIsFa,
+    keywordGraphNoteFa: KEYWORD_GRAPH_NOTE_FA,
+    contactFa: "",
+    qrSvg: "",
     layers,
     context: doc.context,
     patterns: doc.patterns,
     scores: doc.scores,
     logos: chrome.logos,
     radarSvg,
+    overallChartSvg: chartSvg,
     report: {
       cover_title: doc.packNameFa,
       total_score: doc.totalFa,
@@ -210,6 +245,11 @@ export function documentVariableCatalog(): TemplateVariable[] {
     { groupFa: "لوگو", token: "{{{logos.dark}}}", hintFa: "SVG روی زمینه روشن" },
     { groupFa: "لوگو", token: "{{{logos.seal}}}", hintFa: "SVG مهر پانوشت" },
     { groupFa: "نمودار", token: "{{{radarSvg}}}", hintFa: "نمودار چندوجهی لایه‌ها" },
+    { groupFa: "نمودار", token: "{{{overallChartSvg}}}", hintFa: "نمودار حلقه‌ای جلد" },
+    { groupFa: "خلاصه", token: "{{summaryTitleFa}}", hintFa: "عنوان خلاصه بر اساس گلوگاه" },
+    { groupFa: "خلاصه", token: "{{#summaryParagraphsFa}} … {{/summaryParagraphsFa}}", hintFa: "پاراگراف‌های بازهٔ نمره" },
+    { groupFa: "کلیدواژه", token: "{{#keywordGraphGroups}} … {{/keywordGraphGroups}}", hintFa: "شبکهٔ کلیدواژهٔ گلوگاه" },
+    { groupFa: "کلیدواژه", token: "{{bottleneckAsIsFa}}", hintFa: "وضعیت موجودِ مرجع گلوگاه" },
     { groupFa: "صفحه", token: '<section class="doc-page">', hintFa: "شروع یک برگ A4" },
     { groupFa: "صفحه", token: "</section>", hintFa: "پایان برگ" },
     { groupFa: "صفحه", token: '<div class="doc-break"></div>', hintFa: "قطع صفحه در میانه" },
@@ -301,7 +341,23 @@ export function sampleInterpretationDocument(templateId: string): Interpretation
         toBeFa: "اختیار مالی و عملیاتی مکتوب است.",
         actionsFa: "تعیین اختیارات تصمیم‌گیری",
         isBottleneck: true,
-        keywords: [],
+        keywords: [
+          {
+            id: "L3-K1",
+            titleFa: "تعیین اختیارات تصمیم‌گیری",
+            children: ["حدود اختیار مالی", "حدود اختیار عملیاتی", "تفویض نتیجه به‌جای تکلیف"],
+          },
+          {
+            id: "L3-K2",
+            titleFa: "آموزش مبتنی بر سناریو",
+            children: ["سناریوهای پرتکرار", "آزمون مرخصی کوتاه‌مدت"],
+          },
+          {
+            id: "L3-K3",
+            titleFa: "استقلال تیم در غیاب مالک",
+            children: ["پایبندی به دستورالعمل", "کاهش تفویض معکوس"],
+          },
+        ],
       },
       {
         id: "layer-monitor",

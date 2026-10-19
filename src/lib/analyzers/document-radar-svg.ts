@@ -75,3 +75,31 @@ export function radarSvgHtml(points: RadarPoint[], size = 320, caption = "نما
   <figcaption>${caption}${bottleneckNote}<span class="casio-radar-scale"> ${scale}</span></figcaption>
 </figure>`;
 }
+
+const RING_COLORS = ["#a71925", "#176b89", "#c99b53", "#648d79", "#6c7da3"];
+
+/** نمودار حلقه‌ای جلد بستهٔ تحویل کاسیو؛ نسبت نمرهٔ هر لایه روی یک حلقه. */
+export function overallChartSvg(points: RadarPoint[]): string {
+  if (!points.length) return "";
+  const cx = 180;
+  const cy = 180;
+  const outer = 143;
+  const inner = 55;
+  const n = points.length;
+  const step = n > 1 ? (outer - inner) / (n - 1) : 0;
+  const rings = points
+    .map((point, index) => {
+      const r = outer - step * index;
+      const max = point.max > 0 ? point.max : 20;
+      const t = point.value == null ? 0 : Math.max(0, Math.min(1, point.value / max));
+      const c = 2 * Math.PI * r;
+      const dash = t * c;
+      const color = RING_COLORS[index % RING_COLORS.length]!;
+      return [
+        `<circle cx="${cx}" cy="${cy}" r="${r.toFixed(2)}" fill="none" stroke="#ffffff22" stroke-width="12"/>`,
+        `<circle cx="${cx}" cy="${cy}" r="${r.toFixed(2)}" fill="none" stroke="${color}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${dash.toFixed(2)} ${c.toFixed(2)}" transform="rotate(-90 ${cx} ${cy})"/>`,
+      ].join("");
+    })
+    .join("");
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 360" role="img" aria-label="نمای کلی پنج لایه">${rings}</svg>`;
+}
