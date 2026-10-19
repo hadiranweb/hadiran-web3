@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "checks": [
+    "Public-code normalization and strict bounded query parsing",
+    "Only recorded in-view edges; cycles and self-relationships detected without synthetic roots",
+    "Deterministic finite native-SVG placement at the 120-node bound",
+    "Non-owner rejected before touching the database",
+    "No DB and preview states do not fabricate counts, dates or relationships",
+    "Injected database failure cannot claim successful data"
+  ],
+  "failure_test": "injected; not a production outage"
+}

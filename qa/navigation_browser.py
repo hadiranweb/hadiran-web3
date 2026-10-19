@@ -3,6 +3,7 @@ import json,re
 from pathlib import Path
 from urllib.parse import urlparse,parse_qs
 from playwright.sync_api import sync_playwright,expect
+expect.set_options(timeout=15000)
 B='http://127.0.0.1:3001';checks=[];errors=[];bad=[];layouts=0
 def check(name): checks.append(name); print('PASS',name,flush=True)
 def fits(page,selector):

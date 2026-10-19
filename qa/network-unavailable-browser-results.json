@@ -1,0 +1,6 @@
+{
+  "passed": true,
+  "checks": [
+    "Real no-DB owner UI has unknown counts, no synthetic nodes, disabled search and no browser errors"
+  ]
+}

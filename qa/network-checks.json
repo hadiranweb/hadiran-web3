@@ -1,0 +1,58 @@
+{
+  "passed": true,
+  "checks": {
+    "network-api-results.json": {
+      "passed": true,
+      "groups": 7,
+      "layout_cases": 0
+    },
+    "network-unit-results.json": {
+      "passed": true,
+      "groups": 6,
+      "layout_cases": 0
+    },
+    "network-browser-results.json": {
+      "passed": true,
+      "groups": 7,
+      "layout_cases": 72
+    },
+    "network-compat-results.json": {
+      "passed": true,
+      "groups": 2,
+      "layout_cases": 0
+    },
+    "network-unavailable-browser-results.json": {
+      "passed": true,
+      "groups": 1,
+      "layout_cases": 0
+    },
+    "role-home-api-results.json": {
+      "passed": true,
+      "groups": 7,
+      "layout_cases": 0
+    },
+    "role-home-browser-results.json": {
+      "passed": true,
+      "groups": 7,
+      "layout_cases": 84
+    },
+    "workspace-preview-browser-results.json": {
+      "passed": true,
+      "groups": 7,
+      "layout_cases": 108
+    },
+    "navigation-browser-results.json": {
+      "passed": true,
+      "groups": 11,
+      "layout_cases": 59
+    }
+  },
+  "typecheck": "PASS",
+  "lint": "PASS",
+  "production_build": "PASS",
+  "preservation_groups": 12,
+  "production_database_tested": false,
+  "Drive_changed": false,
+  "dependencies_added": 0,
+  "migrations_added": 0
+}

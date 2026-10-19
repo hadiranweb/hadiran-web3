@@ -1,0 +1,450 @@
+{
+  "passed": true,
+  "checks": [
+    "Native SVG edges/nodes, keyboard and pointer pan, zoom/reset and accessible details with focus restoration",
+    "Nested text tree retained; fullscreen view confines focus, respects modal Escape and restores the normal layout",
+    "Bounded large graph, source-backed search/role filter, URL branch navigation, directory pagination and genuine no-match state",
+    "Real cycles and self-links render without recursion failure; unavailable parent is not presented as an invented relationship",
+    "72 layouts across FA/EN, light/dark, branch/large/no-match states and 320–1920px",
+    "200% text reflow at 320 CSS pixels in both languages",
+    "Reduced motion has no perpetual graph movement; zero UI writes, exceptions or HTTP 5xx"
+  ],
+  "layout_cases": 72,
+  "cases": [
+    {
+      "locale": "fa",
+      "theme": "light",
+      "width": 320,
+      "state": "branch"
+    },
+    {
+      "locale": "fa",
+      "theme": "light",
+      "width": 320,
+      "state": "bounded"
+    },
+    {
+      "locale": "fa",
+      "theme": "light",
+      "width": 320,
+      "state": "empty"
+    },
+    {
+      "locale": "fa",
+      "theme": "light",
+      "width": 375,
+      "state": "branch"
+    },
+    {
+      "locale": "fa",
+      "theme": "light",
+      "width": 375,
+      "state": "bounded"
+    },
+    {
+      "locale": "fa",
+      "theme": "light",
+      "width": 375,
+      "state": "empty"
+    },
+    {
+      "locale": "fa",
+      "theme": "light",
+      "width": 768,
+      "state": "branch"
+    },
+    {
+      "locale": "fa",
+      "theme": "light",
+      "width": 768,
+      "state": "bounded"
+    },
+    {
+      "locale": "fa",
+      "theme": "light",
+      "width": 768,
+      "state": "empty"
+    },
+    {
+      "locale": "fa",
+      "theme": "light",
+      "width": 1280,
+      "state": "branch"
+    },
+    {
+      "locale": "fa",
+      "theme": "light",
+      "width": 1280,
+      "state": "bounded"
+    },
+    {
+      "locale": "fa",
+      "theme": "light",
+      "width": 1280,
+      "state": "empty"
+    },
+    {
+      "locale": "fa",
+      "theme": "light",
+      "width": 1440,
+      "state": "branch"
+    },
+    {
+      "locale": "fa",
+      "theme": "light",
+      "width": 1440,
+      "state": "bounded"
+    },
+    {
+      "locale": "fa",
+      "theme": "light",
+      "width": 1440,
+      "state": "empty"
+    },
+    {
+      "locale": "fa",
+      "theme": "light",
+      "width": 1920,
+      "state": "branch"
+    },
+    {
+      "locale": "fa",
+      "theme": "light",
+      "width": 1920,
+      "state": "bounded"
+    },
+    {
+      "locale": "fa",
+      "theme": "light",
+      "width": 1920,
+      "state": "empty"
+    },
+    {
+      "locale": "fa",
+      "theme": "dark",
+      "width": 320,
+      "state": "branch"
+    },
+    {
+      "locale": "fa",
+      "theme": "dark",
+      "width": 320,
+      "state": "bounded"
+    },
+    {
+      "locale": "fa",
+      "theme": "dark",
+      "width": 320,
+      "state": "empty"
+    },
+    {
+      "locale": "fa",
+      "theme": "dark",
+      "width": 375,
+      "state": "branch"
+    },
+    {
+      "locale": "fa",
+      "theme": "dark",
+      "width": 375,
+      "state": "bounded"
+    },
+    {
+      "locale": "fa",
+      "theme": "dark",
+      "width": 375,
+      "state": "empty"
+    },
+    {
+      "locale": "fa",
+      "theme": "dark",
+      "width": 768,
+      "state": "branch"
+    },
+    {
+      "locale": "fa",
+      "theme": "dark",
+      "width": 768,
+      "state": "bounded"
+    },
+    {
+      "locale": "fa",
+      "theme": "dark",
+      "width": 768,
+      "state": "empty"
+    },
+    {
+      "locale": "fa",
+      "theme": "dark",
+      "width": 1280,
+      "state": "branch"
+    },
+    {
+      "locale": "fa",
+      "theme": "dark",
+      "width": 1280,
+      "state": "bounded"
+    },
+    {
+      "locale": "fa",
+      "theme": "dark",
+      "width": 1280,
+      "state": "empty"
+    },
+    {
+      "locale": "fa",
+      "theme": "dark",
+      "width": 1440,
+      "state": "branch"
+    },
+    {
+      "locale": "fa",
+      "theme": "dark",
+      "width": 1440,
+      "state": "bounded"
+    },
+    {
+      "locale": "fa",
+      "theme": "dark",
+      "width": 1440,
+      "state": "empty"
+    },
+    {
+      "locale": "fa",
+      "theme": "dark",
+      "width": 1920,
+      "state": "branch"
+    },
+    {
+      "locale": "fa",
+      "theme": "dark",
+      "width": 1920,
+      "state": "bounded"
+    },
+    {
+      "locale": "fa",
+      "theme": "dark",
+      "width": 1920,
+      "state": "empty"
+    },
+    {
+      "locale": "en",
+      "theme": "light",
+      "width": 320,
+      "state": "branch"
+    },
+    {
+      "locale": "en",
+      "theme": "light",
+      "width": 320,
+      "state": "bounded"
+    },
+    {
+      "locale": "en",
+      "theme": "light",
+      "width": 320,
+      "state": "empty"
+    },
+    {
+      "locale": "en",
+      "theme": "light",
+      "width": 375,
+      "state": "branch"
+    },
+    {
+      "locale": "en",
+      "theme": "light",
+      "width": 375,
+      "state": "bounded"
+    },
+    {
+      "locale": "en",
+      "theme": "light",
+      "width": 375,
+      "state": "empty"
+    },
+    {
+      "locale": "en",
+      "theme": "light",
+      "width": 768,
+      "state": "branch"
+    },
+    {
+      "locale": "en",
+      "theme": "light",
+      "width": 768,
+      "state": "bounded"
+    },
+    {
+      "locale": "en",
+      "theme": "light",
+      "width": 768,
+      "state": "empty"
+    },
+    {
+      "locale": "en",
+      "theme": "light",
+      "width": 1280,
+      "state": "branch"
+    },
+    {
+      "locale": "en",
+      "theme": "light",
+      "width": 1280,
+      "state": "bounded"
+    },
+    {
+      "locale": "en",
+      "theme": "light",
+      "width": 1280,
+      "state": "empty"
+    },
+    {
+      "locale": "en",
+      "theme": "light",
+      "width": 1440,
+      "state": "branch"
+    },
+    {
+      "locale": "en",
+      "theme": "light",
+      "width": 1440,
+      "state": "bounded"
+    },
+    {
+      "locale": "en",
+      "theme": "light",
+      "width": 1440,
+      "state": "empty"
+    },
+    {
+      "locale": "en",
+      "theme": "light",
+      "width": 1920,
+      "state": "branch"
+    },
+    {
+      "locale": "en",
+      "theme": "light",
+      "width": 1920,
+      "state": "bounded"
+    },
+    {
+      "locale": "en",
+      "theme": "light",
+      "width": 1920,
+      "state": "empty"
+    },
+    {
+      "locale": "en",
+      "theme": "dark",
+      "width": 320,
+      "state": "branch"
+    },
+    {
+      "locale": "en",
+      "theme": "dark",
+      "width": 320,
+      "state": "bounded"
+    },
+    {
+      "locale": "en",
+      "theme": "dark",
+      "width": 320,
+      "state": "empty"
+    },
+    {
+      "locale": "en",
+      "theme": "dark",
+      "width": 375,
+      "state": "branch"
+    },
+    {
+      "locale": "en",
+      "theme": "dark",
+      "width": 375,
+      "state": "bounded"
+    },
+    {
+      "locale": "en",
+      "theme": "dark",
+      "width": 375,
+      "state": "empty"
+    },
+    {
+      "locale": "en",
+      "theme": "dark",
+      "width": 768,
+      "state": "branch"
+    },
+    {
+      "locale": "en",
+      "theme": "dark",
+      "width": 768,
+      "state": "bounded"
+    },
+    {
+      "locale": "en",
+      "theme": "dark",
+      "width": 768,
+      "state": "empty"
+    },
+    {
+      "locale": "en",
+      "theme": "dark",
+      "width": 1280,
+      "state": "branch"
+    },
+    {
+      "locale": "en",
+      "theme": "dark",
+      "width": 1280,
+      "state": "bounded"
+    },
+    {
+      "locale": "en",
+      "theme": "dark",
+      "width": 1280,
+      "state": "empty"
+    },
+    {
+      "locale": "en",
+      "theme": "dark",
+      "width": 1440,
+      "state": "branch"
+    },
+    {
+      "locale": "en",
+      "theme": "dark",
+      "width": 1440,
+      "state": "bounded"
+    },
+    {
+      "locale": "en",
+      "theme": "dark",
+      "width": 1440,
+      "state": "empty"
+    },
+    {
+      "locale": "en",
+      "theme": "dark",
+      "width": 1920,
+      "state": "branch"
+    },
+    {
+      "locale": "en",
+      "theme": "dark",
+      "width": 1920,
+      "state": "bounded"
+    },
+    {
+      "locale": "en",
+      "theme": "dark",
+      "width": 1920,
+      "state": "empty"
+    }
+  ],
+  "browser_errors": [],
+  "http_5xx": [],
+  "write_requests": []
+}

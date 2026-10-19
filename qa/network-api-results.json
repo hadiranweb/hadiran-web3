@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "checks": [
+    "Network requires owner before parsing a root; member and author cannot query it",
+    "Exact active coded totals, uncoded account notice, owner-wide scope and complete stable 20-row directory pagination",
+    "Broad views cap at 120 nodes; depth caps at four; selecting a child retrieves its real subtree",
+    "Every returned edge is backed by the recorded referrer; payload excludes internal IDs, contact, financial and assessment fields",
+    "Server-side name/role search, literal SQL-safe input, Persian public codes and invalid/missing root handling",
+    "Cycles, self-referrals and unavailable parents are explicit; reading does not allocate public codes or rewrite relationships",
+    "Genuine empty filtered directory remains a successful live snapshot"
+  ],
+  "dataset_accounts": 285,
+  "max_nodes_tested": 120,
+  "production_database_tested": false
+}

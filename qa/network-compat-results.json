@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "checks": [
+    "Existing owner-only tree API retains its nested public-code contract",
+    "Bounded response remains under 100 KB at the 120-node cap"
+  ],
+  "timing_scope": "local HTTP only; not a production SLA",
+  "dataset_accounts": 289,
+  "requests": 10,
+  "median_ms": 22.5,
+  "max_ms": 30.6,
+  "max_response_bytes": 36923
+}
