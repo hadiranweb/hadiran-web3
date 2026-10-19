@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { ChromeDocument } from "@/components/analyzers/ChromeDocument";
 import {
   canSelectTag,
@@ -14,6 +14,8 @@ import { renderChromeDocument, sampleInterpretationDocument } from "@/lib/analyz
 
 type Box = { x: number; y: number; w: number; h: number };
 
+const COLORS = ["#0f172a", "#1e3a5f", "#354B60", "#b45309", "#7f0000", "#ffffff"];
+
 function frameBox(el: HTMLElement, frame: HTMLElement): Box {
   const a = el.getBoundingClientRect();
   const b = frame.getBoundingClientRect();
@@ -23,6 +25,12 @@ function frameBox(el: HTMLElement, frame: HTMLElement): Box {
     w: a.width,
     h: a.height,
   };
+}
+
+function toHex(color: string) {
+  const match = /rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/.exec(color);
+  if (!match) return "#000000";
+  return `#${[match[1], match[2], match[3]].map((part) => Number(part).toString(16).padStart(2, "0")).join("")}`;
 }
 
 export function DocumentVisualEditor({
@@ -36,9 +44,13 @@ export function DocumentVisualEditor({
 }) {
   const frameRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
   const [hid, setHid] = useState<string | null>(null);
   const [box, setBox] = useState<Box | null>(null);
   const [editing, setEditing] = useState(false);
+  const editingRef = useRef(false);
+  const hidRef = useRef<string | null>(null);
+  const htmlRef = useRef(chrome.html);
   const drag = useRef<{
     kind: "move" | "resize";
     hid: string;
@@ -51,6 +63,10 @@ export function DocumentVisualEditor({
     absolute: boolean;
     startRight: number;
   } | null>(null);
+
+  editingRef.current = editing;
+  hidRef.current = hid;
+  htmlRef.current = chrome.html;
 
   const preview = renderChromeDocument(chrome, sampleInterpretationDocument(templateId));
 
@@ -65,6 +81,29 @@ export function DocumentVisualEditor({
     setBox(frameBox(el, frame));
   }
 
+  function commitStyle(id: string, el: HTMLElement) {
+    onHtml(setElementStyle(htmlRef.current, id, el.getAttribute("style") || ""));
+  }
+
+  function finishTextEdit() {
+    const id = hidRef.current;
+    if (!id) {
+      setEditing(false);
+      editingRef.current = false;
+      return;
+    }
+    const el = liveEl(id);
+    setEditing(false);
+    editingRef.current = false;
+    if (!el) return;
+    el.contentEditable = "false";
+    const locked = sourceHasMustache(htmlRef.current, id);
+    let next = htmlRef.current;
+    if (!locked) next = setElementText(next, id, el.innerText);
+    next = setElementStyle(next, id, el.getAttribute("style") || "");
+    onHtml(next);
+  }
+
   useLayoutEffect(() => {
     if (!hid) return;
     if (!liveEl(hid)) {
@@ -75,8 +114,35 @@ export function DocumentVisualEditor({
     refreshBox(hid);
   }, [hid, preview.html]);
 
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        if (editingRef.current) finishTextEdit();
+        else {
+          setHid(null);
+          setBox(null);
+        }
+        return;
+      }
+      if (event.key === "Enter" && !event.shiftKey && editingRef.current) {
+        event.preventDefault();
+        finishTextEdit();
+      }
+    }
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, []);
+
   function selectFromEvent(event: ReactPointerEvent<HTMLDivElement>) {
-    if (editing) return;
+    if (editingRef.current) {
+      const current = hidRef.current ? liveEl(hidRef.current) : null;
+      const target = event.target as Node;
+      if (current && current.contains(target)) return;
+      if (toolbarRef.current?.contains(target)) return;
+      finishTextEdit();
+      return;
+    }
     const frame = frameRef.current;
     const content = contentRef.current;
     if (!frame || !content) return;
@@ -171,7 +237,7 @@ export function DocumentVisualEditor({
     if (!session) return;
     const el = liveEl(session.hid);
     if (!el) return;
-    onHtml(setElementStyle(chrome.html, session.hid, el.getAttribute("style") || ""));
+    commitStyle(session.hid, el);
   }
 
   function startTextEdit() {
@@ -180,50 +246,138 @@ export function DocumentVisualEditor({
     const el = liveEl(hid);
     if (!el) return;
     setEditing(true);
+    editingRef.current = true;
     el.contentEditable = "true";
     el.focus();
   }
 
-  function finishTextEdit() {
+  function applyCss(patch: Record<string, string>) {
     if (!hid) return;
     const el = liveEl(hid);
-    setEditing(false);
     if (!el) return;
-    el.contentEditable = "false";
-    onHtml(setElementText(chrome.html, hid, el.innerText));
+    Object.assign(el.style, patch);
+    if (!editing) commitStyle(hid, el);
+    refreshBox(hid);
   }
 
   function bumpFont(delta: number) {
     if (!hid) return;
     const el = liveEl(hid);
     if (!el) return;
-    const cs = getComputedStyle(el);
-    const current = Number.parseFloat(cs.fontSize) || 16;
-    el.style.fontSize = `${Math.max(8, current + delta)}px`;
-    onHtml(setElementStyle(chrome.html, hid, el.getAttribute("style") || ""));
+    const current = Number.parseFloat(getComputedStyle(el).fontSize) || 16;
+    applyCss({ fontSize: `${Math.max(8, current + delta)}px` });
+  }
+
+  function toggleBold() {
+    if (!hid) return;
+    const el = liveEl(hid);
+    if (!el) return;
+    const weight = Number.parseInt(getComputedStyle(el).fontWeight, 10) || 400;
+    applyCss({ fontWeight: weight >= 600 ? "400" : "700" });
   }
 
   const locked = hid ? sourceHasMustache(chrome.html, hid) : false;
   const tag = hid ? elementTag(chrome.html, hid) : "";
+  const live = hid ? liveEl(hid) : null;
+  const cs = live ? getComputedStyle(live) : null;
 
   return (
     <div className="space-y-3">
       <p className="text-xs leading-6 text-slate-500">
-        روی عنصر بزنید، بکشید تا جابه‌جا شود، از گوشه اندازه عوض کنید. دوبار کلیک متن ثابت را عوض می‌کند. اگر جعبه
-        متغیر داشته باشد، متن را در داستان HTML ویرایش کنید نه اینجا.
+        انتخاب، کشیدن، گوشه = اندازه. دوبار کلیک = متن آزاد. خروج از ویرایش متن یا پارامتر: Escape، کلیک بیرون، یا Enter
+        (Shift+Enter خط تازه). متغیر <span dir="ltr">{"{{ }}"}</span> قفل است؛ مقدار نمونه پخته نمی‌شود.
       </p>
       {hid ? (
-        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
-          <span className="rounded-lg bg-slate-100 px-2 py-1 font-mono" dir="ltr">
-            {tag} #{hid}
-          </span>
-          {locked ? <span>متغیر دارد — فقط جابه‌جایی و اندازه</span> : <span>متن آزاد است</span>}
-          <button type="button" className="rounded-lg border border-slate-200 px-2 py-1" onClick={() => bumpFont(1)}>
-            متن بزرگ‌تر
-          </button>
-          <button type="button" className="rounded-lg border border-slate-200 px-2 py-1" onClick={() => bumpFont(-1)}>
-            متن کوچک‌تر
-          </button>
+        <div ref={toolbarRef} className="space-y-2 rounded-xl border border-slate-200 bg-white p-3">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
+            <span className="rounded-lg bg-slate-100 px-2 py-1 font-mono" dir="ltr">
+              {tag} #{hid}
+            </span>
+            {editing ? (
+              <span className="rounded-lg bg-indigo-50 px-2 py-1 text-indigo-800">ویرایش متن — Escape خروج</span>
+            ) : locked ? (
+              <span>متغیر دارد — فقط ظاهر</span>
+            ) : (
+              <span>متن آزاد است</span>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button type="button" className="rounded-lg border border-slate-200 px-2 py-1 text-xs" onMouseDown={(event) => event.preventDefault()} onClick={toggleBold}>
+              پررنگ
+            </button>
+            <button type="button" className="rounded-lg border border-slate-200 px-2 py-1 text-xs" onMouseDown={(event) => event.preventDefault()} onClick={() => bumpFont(1)}>
+              بزرگ‌تر
+            </button>
+            <button type="button" className="rounded-lg border border-slate-200 px-2 py-1 text-xs" onMouseDown={(event) => event.preventDefault()} onClick={() => bumpFont(-1)}>
+              کوچک‌تر
+            </button>
+            <button type="button" className="rounded-lg border border-slate-200 px-2 py-1 text-xs" onMouseDown={(event) => event.preventDefault()} onClick={() => applyCss({ textAlign: "right" })}>
+              راست
+            </button>
+            <button type="button" className="rounded-lg border border-slate-200 px-2 py-1 text-xs" onMouseDown={(event) => event.preventDefault()} onClick={() => applyCss({ textAlign: "center" })}>
+              وسط
+            </button>
+            <button type="button" className="rounded-lg border border-slate-200 px-2 py-1 text-xs" onMouseDown={(event) => event.preventDefault()} onClick={() => applyCss({ textAlign: "left" })}>
+              چپ
+            </button>
+            <span className="mx-1 text-[11px] text-slate-400">متن</span>
+            {COLORS.map((color) => (
+              <button
+                key={`fg-${color}`}
+                type="button"
+                title={color}
+                className="h-5 w-5 rounded-full border border-slate-300"
+                style={{ background: color }}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => applyCss({ color })}
+              />
+            ))}
+            <input
+              type="color"
+              aria-label="رنگ متن"
+              className="h-6 w-8 cursor-pointer rounded border border-slate-200"
+              value={cs ? toHex(cs.color) : "#0f172a"}
+              onMouseDown={(event) => event.preventDefault()}
+              onChange={(event) => applyCss({ color: event.target.value })}
+            />
+            <span className="mx-1 text-[11px] text-slate-400">زمینه</span>
+            {COLORS.map((color) => (
+              <button
+                key={`bg-${color}`}
+                type="button"
+                title={color}
+                className="h-5 w-5 rounded-full border border-slate-300"
+                style={{ background: color }}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => applyCss({ backgroundColor: color })}
+              />
+            ))}
+            <input
+              type="color"
+              aria-label="رنگ زمینه"
+              className="h-6 w-8 cursor-pointer rounded border border-slate-200"
+              value={cs ? toHex(cs.backgroundColor === "rgba(0, 0, 0, 0)" ? "#ffffff" : cs.backgroundColor) : "#ffffff"}
+              onMouseDown={(event) => event.preventDefault()}
+              onChange={(event) => applyCss({ backgroundColor: event.target.value })}
+            />
+            <span className="mx-1 text-[11px] text-slate-400">فاصله</span>
+            {["0", "4px", "8px", "16px"].map((pad) => (
+              <button
+                key={pad}
+                type="button"
+                className="rounded-lg border border-slate-200 px-2 py-1 text-xs"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => applyCss({ padding: pad })}
+              >
+                {pad === "0" ? "۰" : pad}
+              </button>
+            ))}
+            {editing ? (
+              <button type="button" className="mr-auto rounded-xl bg-slate-900 px-3 py-1.5 text-xs text-white" onClick={finishTextEdit}>
+                پایان ویرایش
+              </button>
+            ) : null}
+          </div>
         </div>
       ) : (
         <p className="text-xs text-slate-400">هنوز عنصری انتخاب نشده.</p>
@@ -271,11 +425,6 @@ export function DocumentVisualEditor({
           ) : null}
         </div>
       </div>
-      {editing ? (
-        <button type="button" className="rounded-xl bg-slate-900 px-3 py-1.5 text-xs text-white" onClick={finishTextEdit}>
-          پایان ویرایش متن
-        </button>
-      ) : null}
     </div>
   );
 }
