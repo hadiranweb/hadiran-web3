@@ -1,9 +1,0 @@
-{
-  "passed": true,
-  "checks": [
-    "Empty/single-note pools handled without invented fallback",
-    "All other public notes are reachable, no immediate repeat across sizes 2–12",
-    "Random helper clamps invalid entropy without leaving pool bounds",
-    "Injected failure and absent DB never fabricate successful reads or counts"
-  ]
-}
