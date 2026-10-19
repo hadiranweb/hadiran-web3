@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { CasioSsReport } from "@/components/analyzers/CasioSsReport";
+import { ConvertDocumentControls } from "@/components/analyzers/ConvertDocumentControls";
 import { GateChip, GateStatus } from "@/components/analyzers/GateStatus";
 import { GenericReportView } from "@/components/analyzers/GenericReport";
 import { gateOf } from "@/lib/analyzers/gate";
@@ -55,7 +56,7 @@ export function AnalyzerInterpretation({ slug, pack }: { slug: string; pack: Ana
   return (
     <section className="space-y-4">
       <p className="text-sm text-slate-500">
-        تفسیر اولیه همان گزارشی است که قبلاً به عضو نشان داده می‌شد. عضو فقط قالب خلاصه را می‌بیند.
+        تفسیر همان نوبت ثبت‌شده است. سند چندصفحه فقط با تبدیل ساخته می‌شود.
       </p>
       <ul className="space-y-2">
         {submitted.map((row) => {
@@ -80,7 +81,26 @@ export function AnalyzerInterpretation({ slug, pack }: { slug: string; pack: Ana
                   <span>{whenFa(row.submittedAt ?? row.updatedAt)}</span>
                 </span>
               </button>
-              {open ? <AttemptInterpretation pack={pack} row={row} /> : null}
+              {open ? (
+                <div className="border-t border-slate-100">
+                  <ConvertDocumentControls
+                    slug={slug}
+                    pack={pack}
+                    attemptId={row.attemptId}
+                    documentId={row.documentId}
+                    onConverted={(id) =>
+                      setItems((current) =>
+                        current
+                          ? current.map((item) =>
+                              item.attemptId === row.attemptId ? { ...item, documentId: id } : item,
+                            )
+                          : current,
+                      )
+                    }
+                  />
+                  <AttemptInterpretation pack={pack} row={row} />
+                </div>
+              ) : null}
             </li>
           );
         })}
@@ -95,7 +115,7 @@ function AttemptInterpretation({ pack, row }: { pack: AnalyzerPack; row: Workspa
     if (pack.slug === "casio-ss") {
       const report = buildCasioReport(pack, row.rawAnswers, row.rawResults);
       return (
-        <div className="space-y-4 border-t border-slate-100 px-4 py-4">
+        <div className="space-y-4 px-4 py-4">
           {gate ? <GateStatus gate={gate} /> : null}
           <CasioSsReport report={report} showHubLink={false} />
         </div>
@@ -103,14 +123,14 @@ function AttemptInterpretation({ pack, row }: { pack: AnalyzerPack; row: Workspa
     }
     const report = buildGenericReport(pack, row.rawAnswers, row.rawResults);
     return (
-      <div className="space-y-4 border-t border-slate-100 px-4 py-4">
+      <div className="space-y-4 px-4 py-4">
         {gate ? <GateStatus gate={gate} /> : null}
         <GenericReportView report={report} hubHref={null} />
       </div>
     );
   } catch {
     return (
-      <div className="space-y-4 border-t border-slate-100 px-4 py-4">
+      <div className="space-y-4 px-4 py-4">
         {gate ? <GateStatus gate={gate} /> : null}
         <p className="text-sm text-red-700">این تفسیر از پاسخ‌های ثبت‌شده قابل بازتولید نیست.</p>
       </div>

@@ -18,6 +18,8 @@ import { DEFAULT_ANCHORS } from "@/lib/analyzers/sanitize";
 import { AnalyzerResponses } from "@/components/analyzers/AnalyzerResponses";
 import { AnalyzerInterpretation } from "@/components/analyzers/AnalyzerInterpretation";
 import { AnalyzerGrants } from "@/components/analyzers/AnalyzerGrants";
+import { AnalyzerBotPath, type AnalyzerBotLink } from "@/components/analyzers/AnalyzerBotPath";
+import { templatesForPack } from "@/lib/analyzers/document-templates";
 import { summaryPlaceholders } from "@/lib/analyzers/summary-template";
 
 const fieldClass =
@@ -34,13 +36,14 @@ const ops: FormulaOp[] = [
   "matmul",
 ];
 
-type Tab = "meta" | "items" | "score" | "report" | "responses" | "interpret" | "access";
+type Tab = "meta" | "items" | "score" | "report" | "bot" | "responses" | "interpret" | "access";
 
 function emptyReport(): PackReport {
   return {
     hideGateScores: true,
     closingFa: "",
     userSummaryTemplateFa: "",
+    documentTemplateId: "",
     businessNameItemId: "",
     contextFields: [],
     layerBands: [],
@@ -61,11 +64,13 @@ export function AnalyzerEditor({
   canEdit = true,
   canReadResponses = true,
   canGrant = false,
+  bots = [],
 }: {
   initial: AnalyzerPack;
   canEdit?: boolean;
   canReadResponses?: boolean;
   canGrant?: boolean;
+  bots?: AnalyzerBotLink[];
 }) {
   const [pack, setPack] = useState<AnalyzerPack>(() => clonePack(initial));
   const [tab, setTab] = useState<Tab>(canEdit ? "meta" : "responses");
@@ -157,8 +162,9 @@ export function AnalyzerEditor({
                   ["items", `سؤال‌ها (${itemCount})`],
                   ["score", "نمره"],
                   ["report", "گزارش"],
+                  ["bot", "ربات"],
                 ] as [Tab, string][])
-              : []),
+              : ([["bot", "ربات"]] as [Tab, string][])),
             ...(canReadResponses
               ? ([
                   ["responses", "پاسخ‌ها"],
@@ -330,6 +336,21 @@ export function AnalyzerEditor({
           pack={pack}
           report={pack.report ?? emptyReport()}
           onChange={(report) => patch({ ...pack, report })}
+        />
+      ) : null}
+
+      {tab === "bot" ? (
+        <AnalyzerBotPath
+          pack={pack}
+          bots={bots}
+          canEdit={canEdit}
+          onOpenItems={() => setTab("items")}
+          onConsent={(consentPatch) =>
+            patch({ ...pack, consent: { ...pack.consent, ...consentPatch } })
+          }
+          onSummary={(userSummaryTemplateFa) =>
+            patch({ ...pack, report: { ...(pack.report ?? emptyReport()), userSummaryTemplateFa } })
+          }
         />
       ) : null}
 
@@ -873,9 +894,29 @@ function ReportEditor({
   return (
     <section className="space-y-6">
       <p className="text-sm text-slate-500">
-        عضو فقط قالب خلاصه را می‌بیند. تفسیر لایه و گلوگاه در تب «تفسیر اولیه» برای آزمون‌ساز است.
+        خلاصهٔ یک‌پاراگراف برای عضو می‌ماند. قالب زیر پیش‌فرض تبدیل به سند است؛ خود سند فقط با «تبدیل» در تفسیر یا سندساز ساخته می‌شود.
       </p>
       <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4">
+        <label className="block text-sm">
+          <span className="mb-1 block text-slate-600">قالب سند چندصفحه</span>
+          <select
+            className={fieldClass}
+            value={
+              report.documentTemplateId ||
+              (pack.slug === "casio-ss" ? "casio-research" : "hadiran")
+            }
+            onChange={(event) => onChange({ ...report, documentTemplateId: event.target.value })}
+          >
+            {templatesForPack(pack).map((template) => (
+              <option key={template.id} value={template.id}>
+                {template.titleFa}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p className="text-xs leading-6 text-slate-500">
+          هادیران ظاهر سادهٔ محصول است. پژوهش پنج‌لایه همان منطق نمره را با چیدمان پژوهشی نشان می‌دهد. لوگوی کاسیو در سند نیست.
+        </p>
         <label className="block text-sm">
           <span className="mb-1 block text-slate-600">خلاصهٔ کاربر (قالب)</span>
           <textarea

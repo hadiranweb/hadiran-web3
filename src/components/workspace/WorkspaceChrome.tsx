@@ -10,6 +10,7 @@ const ownerLinks = [
   { href: "/workspace/capture", label: "ثبت جدید", exact: false },
   { href: "/workspace/bots", label: "ربات‌ها", exact: false },
   { href: "/workspace/analyzers", label: "تحلیلگر‌ها", exact: false },
+  { href: "/workspace/documents", label: "سندساز", exact: false },
   { href: "/workspace/shop", label: "فروشگاه", exact: false },
   { href: "/workspace/referrals", label: "معرف‌ها", exact: false },
   { href: "/workspace/network", label: "درخت", exact: true },
@@ -18,10 +19,14 @@ const ownerLinks = [
 
 const authorLinks = [
   { href: "/workspace/analyzers", label: "میز آزمون‌ساز", exact: false },
+  { href: "/workspace/documents", label: "سندساز", exact: false },
   { href: "/workspace/referrals", label: "معرف‌های من", exact: false },
 ];
 
-const grantedLinks = [{ href: "/workspace/analyzers", label: "میز آزمون", exact: false }];
+const grantedLinks = [
+  { href: "/workspace/analyzers", label: "میز آزمون", exact: false },
+  { href: "/workspace/documents", label: "سندساز", exact: false },
+];
 
 export function WorkspaceChrome() {
   const pathname = usePathname();
@@ -40,7 +45,7 @@ export function WorkspaceChrome() {
   const showCreate = role === "author" || role === "owner" || role == null;
 
   return (
-    <header className="border-b border-slate-200 bg-white">
+    <header className="print:hidden border-b border-slate-200 bg-white">
       <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 px-4 py-4">
         <div>
           <p className="text-xs text-slate-500">

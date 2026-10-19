@@ -250,3 +250,23 @@ body {
     animation: none;
   }
 }
+
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  .doc-page {
+    break-after: page;
+    break-inside: avoid;
+    min-height: auto;
+    border: none !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .doc-page:last-child {
+    break-after: auto;
+  }
+}

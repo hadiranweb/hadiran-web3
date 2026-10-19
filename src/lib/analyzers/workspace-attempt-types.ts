@@ -16,6 +16,7 @@ export type WorkspaceAttemptRow = {
   businessName: string | null;
   referrerPublicCode: string | null;
   discountCode: string | null;
+  documentId: number | null;
   gate: GateView | null;
   scores: WorkspaceAttemptScore[];
   answers: WorkspaceAttemptAnswer[];

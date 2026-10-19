@@ -240,6 +240,8 @@ function sanitizeReport(raw: unknown): PackReport | undefined {
   if (closingFa) report.closingFa = closingFa;
   const userSummaryTemplateFa = asMultiline(row.userSummaryTemplateFa, 2000);
   if (userSummaryTemplateFa) report.userSummaryTemplateFa = userSummaryTemplateFa;
+  const documentTemplateId = asId(row.documentTemplateId);
+  if (documentTemplateId) report.documentTemplateId = documentTemplateId;
   const businessNameItemId = asId(row.businessNameItemId);
   if (businessNameItemId) report.businessNameItemId = businessNameItemId;
   if (Array.isArray(row.contextFields)) {

@@ -32,6 +32,7 @@ export function buildCasioAuthoredPack(): AnalyzerPack {
   pack.report = {
     hideGateScores: true,
     interpretationVersion: INTERPRETATION_VERSION,
+    documentTemplateId: "casio-research",
     userSummaryTemplateFa: DEFAULT_USER_SUMMARY,
     closingFa: "نتیجهٔ این ارزیابی یک راهنمای کلی است، نه حکم قطعی دربارهٔ شما یا کسب‌وکارتان.",
     businessNameItemId: "BIZ.1",

@@ -344,6 +344,83 @@ export const analyzerGrants = pgTable(
   (t) => [primaryKey({ columns: [t.slug, t.accountId] })],
 );
 
+/** Named HTML layouts for interpretation documents. System rows: hadiran, casio-research. */
+export const analyzerDocumentTemplates = pgTable("analyzer_document_templates", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  titleFa: varchar("title_fa", { length: 128 }).notNull(),
+  layoutKey: varchar("layout_key", { length: 64 }).notNull(),
+  brandNameFa: varchar("brand_name_fa", { length: 128 }).notNull().default("هادیران"),
+  chrome: jsonb("chrome").$type<Record<string, unknown>>().notNull().default({}),
+  system: boolean("system").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** One snapshot per submitted attempt. Layers and actions are child tables. */
+export const analyzerReports = pgTable(
+  "analyzer_reports",
+  {
+    id: serial("id").primaryKey(),
+    slug: varchar("slug", { length: 64 }).notNull(),
+    accountId: integer("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    attemptId: integer("attempt_id").notNull(),
+    attemptKind: varchar("attempt_kind", { length: 16 }).notNull(),
+    templateId: varchar("template_id", { length: 64 })
+      .notNull()
+      .references(() => analyzerDocumentTemplates.id),
+    schemaVersion: varchar("schema_version", { length: 16 }).notNull().default("1.0"),
+    instrumentVersion: varchar("instrument_version", { length: 64 }).notNull().default(""),
+    coverTitle: varchar("cover_title", { length: 256 }).notNull(),
+    totalScore: doublePrecision("total_score"),
+    totalScoreMax: doublePrecision("total_score_max"),
+    maturityLabel: varchar("maturity_label", { length: 128 }),
+    bottleneckId: varchar("bottleneck_id", { length: 64 }),
+    bottleneckName: varchar("bottleneck_name", { length: 256 }),
+    bottleneckScore: doublePrecision("bottleneck_score"),
+    personNameSnapshot: varchar("person_name_snapshot", { length: 256 }),
+    businessNameSnapshot: varchar("business_name_snapshot", { length: 256 }),
+    reportDate: timestamp("report_date", { withTimezone: true }),
+    closingFa: text("closing_fa"),
+    context: jsonb("context").$type<{ labelFa: string; valueFa: string }[]>().notNull().default([]),
+    patterns: jsonb("patterns").$type<{ meaningFa: string; actionFa: string }[]>().notNull().default([]),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [unique("analyzer_reports_attempt_unique").on(t.attemptKind, t.attemptId)],
+);
+
+export const analyzerReportLayers = pgTable("analyzer_report_layers", {
+  id: serial("id").primaryKey(),
+  reportId: integer("report_id")
+    .notNull()
+    .references(() => analyzerReports.id, { onDelete: "cascade" }),
+  layerId: varchar("layer_id", { length: 64 }).notNull(),
+  layerName: varchar("layer_name", { length: 256 }).notNull(),
+  displayOrder: integer("display_order").notNull().default(0),
+  score: doublePrecision("score"),
+  scoreMax: doublePrecision("score_max"),
+  status: varchar("status", { length: 128 }),
+  constructFa: text("construct_fa"),
+  asIsText: text("as_is_text"),
+  toBeText: text("to_be_text"),
+  isBottleneck: boolean("is_bottleneck").notNull().default(false),
+  keywords: jsonb("keywords")
+    .$type<{ id: string; titleFa: string; children: { id: string; titleFa: string }[] }[]>()
+    .notNull()
+    .default([]),
+});
+
+export const analyzerReportActions = pgTable("analyzer_report_actions", {
+  id: serial("id").primaryKey(),
+  reportId: integer("report_id")
+    .notNull()
+    .references(() => analyzerReports.id, { onDelete: "cascade" }),
+  layerId: varchar("layer_id", { length: 64 }).notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  actionTitle: text("action_title").notNull(),
+});
+
 /** Owner-connected bots. Telegram first. Not a login channel. */
 export const bots = pgTable("bots", {
   id: varchar("id", { length: 32 }).primaryKey(),

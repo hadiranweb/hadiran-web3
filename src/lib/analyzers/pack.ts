@@ -62,8 +62,10 @@ export type PackReport = {
   hideGateScores?: boolean;
   interpretationVersion?: string;
   closingFa?: string;
-  /** قالب یک‌پاراگرافی برای عضو. پارامترها داخل {آکولاد}. تفسیر کامل در میز است. */
+  /** قالب یک‌پاراگرافی برای عضو. پارامترها داخل {آکولاد}. سند چندصفحه جداست. */
   userSummaryTemplateFa?: string;
+  /** قالب HTML سند: hadiran | casio-research (و قالب‌های بعدی در جدول). */
+  documentTemplateId?: string;
   businessNameItemId?: string;
   contextFields?: ReportContextFieldDef[];
   layerBands?: LayerBand[];

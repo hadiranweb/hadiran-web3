@@ -2,9 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { requirePageAnalyzerDesk } from "@/lib/auth/guard";
+import { isOwner } from "@/lib/auth/roles";
 import { analyzerAccess } from "@/lib/analyzers/access";
 import { AnalyzerEditor } from "@/components/analyzers/AnalyzerEditor";
 import { readAuthoredPack } from "@/lib/analyzers/authored";
+import { listBots } from "@/lib/bots/store";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +24,16 @@ export default async function EditAnalyzerPage({ params }: Props) {
   if (!pack) notFound();
   const access = await analyzerAccess(account, slug);
   if (!access.view) notFound();
+  const bots = isOwner(account.role)
+    ? (await listBots(account.id))
+        .filter((bot) => bot.service === "analyzers" && (!bot.analyzerSlug || bot.analyzerSlug === pack.slug))
+        .map((bot) => ({
+          id: bot.id,
+          titleFa: bot.titleFa,
+          analyzerSlug: bot.analyzerSlug,
+          telegramUsername: bot.telegramUsername,
+        }))
+    : [];
 
   return (
     <main className="mx-auto max-w-3xl space-y-6 px-4 py-8">
@@ -41,6 +53,7 @@ export default async function EditAnalyzerPage({ params }: Props) {
         canEdit={access.edit}
         canReadResponses={access.responses}
         canGrant={access.grant}
+        bots={bots}
       />
     </main>
   );
