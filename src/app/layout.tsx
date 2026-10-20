@@ -53,7 +53,7 @@ export const viewport: Viewport = {
   ],
 };
 
-const themeBoot = `(()=>{try{var t=localStorage.getItem("hadiran-theme");var d=t==="dark"||(t!=="light"&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.toggle("dark",d);document.documentElement.style.colorScheme=d?"dark":"light"}catch(e){}})();`;
+const themeBoot = `(()=>{try{var t=localStorage.getItem("hadiran-theme");var p=t==="light"||t==="dark"?t:"system";var d=p==="dark"||(p==="system"&&window.matchMedia("(prefers-color-scheme: dark)").matches);var r=document.documentElement;r.dataset.themePreference=p;r.dataset.theme=d?"dark":"light";r.classList.toggle("dark",d);r.style.colorScheme=d?"dark":"light"}catch(e){}})();`;
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (

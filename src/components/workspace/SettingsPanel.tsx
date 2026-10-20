@@ -47,9 +47,9 @@ export function SettingsPanel() {
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
           <div>
             <h2 className="font-medium text-ink">تم سایت</h2>
-            <p className="mt-1 text-sm text-muted">چراغ مطالعه شب یا نور روز.</p>
+            <p className="mt-1 text-sm text-muted">روشن، تاریک، یا مطابق سیستم. چراغ همان کنترل است.</p>
           </div>
-          <ThemeToggle />
+          <ThemeToggle locale={locale} />
         </div>
       </section>
     </div>

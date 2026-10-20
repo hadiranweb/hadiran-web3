@@ -338,7 +338,7 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
             >
               {locale === "fa" ? "EN" : "فا"}
             </button>
-            <ThemeToggle />
+            <ThemeToggle locale={locale} />
           </div>
         </header>
         <div id="workspace-content" className="flex-1" tabIndex={-1}>

@@ -1,19 +1,61 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useRef, useSyncExternalStore } from "react";
+import { DISCLOSURE_EVENT } from "@/components/navigation/useDisclosure";
 
-function isDarkNow() {
-  return document.documentElement.classList.contains("dark");
+const KEY = "hadiran-theme";
+const EVENT = "hadiran-theme-change";
+
+type Preference = "light" | "dark" | "system";
+
+const options = [
+  { value: "light", fa: "روشن", en: "Light" },
+  { value: "dark", fa: "تاریک", en: "Dark" },
+  { value: "system", fa: "مطابق سیستم", en: "System" },
+] as const;
+
+function storedPreference(value: string | null | undefined): Preference {
+  return value === "light" || value === "dark" ? value : "system";
 }
 
-function applyTheme(dark: boolean) {
-  document.documentElement.classList.toggle("dark", dark);
-  document.documentElement.style.colorScheme = dark ? "dark" : "light";
-  try {
-    localStorage.setItem("hadiran-theme", dark ? "dark" : "light");
-  } catch {
-    // ignore
-  }
+function resolvedTheme(preference: Preference): "light" | "dark" {
+  if (preference === "light" || preference === "dark") return preference;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+export function applyThemePreference(preference: Preference) {
+  const root = document.documentElement;
+  const resolved = resolvedTheme(preference);
+  root.dataset.themePreference = preference;
+  root.dataset.theme = resolved;
+  root.classList.toggle("dark", resolved === "dark");
+  root.style.colorScheme = resolved;
+}
+
+function getPreference(): Preference {
+  return storedPreference(document.documentElement.dataset.themePreference);
+}
+
+function subscribe(notify: () => void) {
+  const media = window.matchMedia("(prefers-color-scheme: dark)");
+  const onSystem = () => {
+    applyThemePreference(getPreference());
+    notify();
+  };
+  const onStorage = (event: StorageEvent) => {
+    if (event.key !== KEY && event.key !== null) return;
+    applyThemePreference(storedPreference(event.newValue));
+    notify();
+  };
+  applyThemePreference(getPreference());
+  window.addEventListener(EVENT, notify);
+  window.addEventListener("storage", onStorage);
+  media.addEventListener("change", onSystem);
+  return () => {
+    window.removeEventListener(EVENT, notify);
+    window.removeEventListener("storage", onStorage);
+    media.removeEventListener("change", onSystem);
+  };
 }
 
 function StudyLamp({ on }: { on: boolean }) {
@@ -45,32 +87,103 @@ function StudyLamp({ on }: { on: boolean }) {
   );
 }
 
-export function ThemeToggle({ className }: { className?: string }) {
-  const [dark, setDark] = useState(false);
+export function ThemeToggle({
+  className,
+  locale = "fa",
+}: {
+  className?: string;
+  locale?: "fa" | "en";
+}) {
+  const groupName = useId();
+  const detailsRef = useRef<HTMLDetailsElement>(null);
+  const t = (fa: string, en: string) => (locale === "en" ? en : fa);
+  const preference = useSyncExternalStore(subscribe, getPreference, () => "system" as Preference);
+  const active = options.find((option) => option.value === preference) ?? options[2];
+  const lampOn = preference === "dark";
 
   useEffect(() => {
-    setDark(isDarkNow());
-  }, []);
+    const node = detailsRef.current;
+    if (!node) return;
+    const onPointer = (event: Event) => {
+      if (!node.contains(event.target as Node)) node.removeAttribute("open");
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && node.open) {
+        node.removeAttribute("open");
+        node.querySelector("summary")?.focus();
+      }
+    };
+    const onOther = (event: Event) => {
+      if ((event as CustomEvent).detail !== `theme-${groupName}`) node.removeAttribute("open");
+    };
+    document.addEventListener("focusin", onPointer);
+    window.addEventListener(DISCLOSURE_EVENT, onOther);
+    document.addEventListener("pointerdown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("focusin", onPointer);
+      window.removeEventListener(DISCLOSURE_EVENT, onOther);
+      document.removeEventListener("pointerdown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [groupName]);
 
-  const label = dark ? "چراغ مطالعه شب" : "نور روز";
+  function choose(value: Preference) {
+    applyThemePreference(value);
+    try {
+      localStorage.setItem(KEY, value);
+    } catch {
+      /* Keep the choice for this page if storage is blocked. */
+    }
+    window.dispatchEvent(new Event(EVENT));
+    detailsRef.current?.removeAttribute("open");
+  }
+
+  const selectedLabel = t(active.fa, active.en);
 
   return (
-    <button
-      type="button"
-      aria-label={label}
-      aria-pressed={dark}
-      title={label}
-      onClick={() => {
-        const next = !isDarkNow();
-        applyTheme(next);
-        setDark(next);
+    <details
+      className="theme-switcher"
+      ref={detailsRef}
+      onToggle={(event) => {
+        if (event.currentTarget.open) {
+          window.dispatchEvent(new CustomEvent(DISCLOSURE_EVENT, { detail: `theme-${groupName}` }));
+        }
       }}
-      className={
-        className ??
-        "inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-xl border border-line bg-elev p-2 text-muted transition-colors hover:bg-paper hover:text-ink"
-      }
     >
-      <StudyLamp on={dark} />
-    </button>
+      <summary
+        className={
+          className ??
+          "inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-xl border border-line bg-elev p-2 text-muted transition-colors hover:bg-paper hover:text-ink"
+        }
+        aria-label={t(`تغییر تم؛ انتخاب فعلی: ${active.fa}`, `Change appearance; selected: ${selectedLabel}`)}
+        title={selectedLabel}
+      >
+        <StudyLamp on={lampOn} />
+      </summary>
+      <fieldset className="theme-options">
+        <legend className="sr-only">{t("ظاهر سایت", "Appearance")}</legend>
+        <p className="theme-options-heading" aria-hidden="true">
+          {t("ظاهر سایت", "Appearance")}
+        </p>
+        {options.map((option) => (
+          <label className="theme-option" key={option.value}>
+            <input
+              type="radio"
+              name={groupName}
+              value={option.value}
+              checked={preference === option.value}
+              onChange={() => choose(option.value)}
+            />
+            <span>{t(option.fa, option.en)}</span>
+            {preference === option.value ? (
+              <span className="theme-option-check" aria-hidden="true">
+                ✓
+              </span>
+            ) : null}
+          </label>
+        ))}
+      </fieldset>
+    </details>
   );
 }

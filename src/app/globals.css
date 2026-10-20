@@ -587,6 +587,62 @@ optgroup {
   color: var(--accent-ink);
 }
 
+.theme-switcher {
+  position: relative;
+  display: inline-flex;
+}
+
+.theme-switcher > summary {
+  list-style: none;
+}
+
+.theme-switcher > summary::-webkit-details-marker,
+.theme-switcher > summary::marker {
+  display: none;
+  content: "";
+}
+
+.theme-options {
+  position: absolute;
+  inset-inline-end: 0;
+  z-index: 60;
+  margin-top: 0.35rem;
+  min-width: 12.5rem;
+  padding: 0.45rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md, 0.75rem);
+  background: var(--elev, var(--bg-elev, #fff));
+  box-shadow: var(--shadow-sm, 0 8px 24px rgb(0 0 0 / 0.08));
+}
+
+.theme-options-heading {
+  margin: 0.15rem 0.45rem 0.35rem;
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.theme-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0 0.55rem;
+  border-radius: var(--radius-sm, 0.55rem);
+  color: var(--ink);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.theme-option:hover,
+.theme-option:focus-within {
+  background: var(--paper, var(--bg, #fbf9f5));
+}
+
+.theme-option-check {
+  margin-inline-start: auto;
+  color: var(--accent);
+}
+
 .session-login-button {
   display: inline-flex;
   align-items: center;
