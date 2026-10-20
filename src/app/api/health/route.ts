@@ -1,10 +1,14 @@
+import { probeDisk } from "@/lib/storage/disk";
+
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  const disk = await probeDisk();
   const body = {
     ok: true,
     db: false,
     databaseUrl: Boolean(process.env.DATABASE_URL),
+    disk,
   };
 
   if (!process.env.DATABASE_URL) {

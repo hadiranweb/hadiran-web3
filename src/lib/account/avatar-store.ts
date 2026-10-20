@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { accountAvatars } from "@/db/schema";
 import type { SessionAccount } from "@/lib/auth/session";
+import { avatarPhotoUrl } from "@/lib/storage/disk";
 import { AVATAR_COUNT, defaultAvatarVariant, type AccountAvatar } from "./avatar";
 
 function fallbackAvatar(accountId: number): { avatar: AccountAvatar; imageKey: string | null } {
@@ -33,7 +34,7 @@ export async function readAccountAvatar(
     }
     if (!row) return fallbackAvatar(account.id);
     return {
-      avatar: { variant: row.variant, photoUrl: null },
+      avatar: { variant: row.variant, photoUrl: avatarPhotoUrl(row.imageKey, row.updatedAt) },
       imageKey: row.imageKey,
     };
   } catch {
