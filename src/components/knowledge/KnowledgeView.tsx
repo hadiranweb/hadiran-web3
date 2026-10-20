@@ -20,18 +20,22 @@ export function KnowledgeView({
   return (
     <div className="mt-6">
       {hasSlides && hasBody && (
-        <div className="mb-4 inline-flex rounded-xl border border-slate-200 bg-slate-50 p-1 text-xs">
+        <div className="mb-4 inline-flex rounded-[var(--radius-sm)] border border-line bg-paper p-1 text-xs">
           <button
             type="button"
             onClick={() => setMode("slides")}
-            className={`rounded-lg px-3 py-1.5 ${mode === "slides" ? "bg-white font-medium shadow-sm" : "text-slate-500"}`}
+            className={`rounded-[var(--radius-sm)] px-3 py-1.5 ${
+              mode === "slides" ? "bg-elev font-medium text-ink shadow-[var(--shadow-sm)]" : "text-muted"
+            }`}
           >
             مطالعه اسلایدی
           </button>
           <button
             type="button"
             onClick={() => setMode("article")}
-            className={`rounded-lg px-3 py-1.5 ${mode === "article" ? "bg-white font-medium shadow-sm" : "text-slate-500"}`}
+            className={`rounded-[var(--radius-sm)] px-3 py-1.5 ${
+              mode === "article" ? "bg-elev font-medium text-ink shadow-[var(--shadow-sm)]" : "text-muted"
+            }`}
           >
             متن کامل
           </button>

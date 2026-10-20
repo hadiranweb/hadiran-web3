@@ -59,13 +59,13 @@ export default async function CoursePage({ params }: Props) {
     <main className="mx-auto max-w-4xl px-4 py-10">
       <Link
         href="/courses"
-        className="mb-6 inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-indigo-600"
+        className="mb-6 inline-flex items-center gap-1 text-sm font-medium text-muted hover:text-ink"
       >
         <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
         بازگشت به دوره‌ها
       </Link>
 
-      <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <section className="surface overflow-hidden">
         <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-6 text-white sm:p-10">
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -107,32 +107,29 @@ export default async function CoursePage({ params }: Props) {
 
         <div className="p-6 sm:p-10">
           {shopListing && !entitled ? (
-            <div className="mb-8 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+            <div className="mb-8 rounded-[var(--radius-md)] border border-line bg-paper p-4 text-sm text-ink">
               <p>دسترسی کامل این دوره از فروشگاه و بعد از تأیید دریافت باز می‌شود.</p>
-              <Link href={`/shop/${shopListing.slug}`} className="mt-2 inline-block font-medium text-indigo-700">
+              <Link href={`/shop/${shopListing.slug}`} className="mt-2 inline-block font-medium text-accent">
                 رفتن به {shopListing.titleFa}
               </Link>
             </div>
           ) : null}
           <div className="grid gap-8 md:grid-cols-3">
             <div className="md:col-span-2">
-              <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-slate-900">
-                <BookOpen className="h-5 w-5 text-indigo-600" />
+              <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-ink">
+                <BookOpen className="h-5 w-5 text-mark" />
                 دروس
               </h2>
               <div className="space-y-3">
                 {courseLessons.map((lesson, idx) => (
-                  <div
-                    key={lesson.id}
-                    className="flex items-center gap-4 rounded-2xl border border-slate-200 p-4"
-                  >
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-600">
+                  <div key={lesson.id} className="flex items-center gap-4 rounded-[var(--radius-md)] border border-line p-4">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-paper text-sm font-bold text-muted">
                       {idx + 1}
                     </span>
                     <div className="flex-1">
-                      <p className="font-semibold text-slate-900">{lesson.titleFa}</p>
+                      <p className="font-semibold text-ink">{lesson.titleFa}</p>
                       {lesson.durationMinutes && (
-                        <p className="text-xs text-slate-500">{lesson.durationMinutes} دقیقه</p>
+                        <p className="text-xs text-muted">{lesson.durationMinutes} دقیقه</p>
                       )}
                     </div>
                   </div>
@@ -142,8 +139,8 @@ export default async function CoursePage({ params }: Props) {
 
             <aside className="space-y-8">
               <div>
-                <h3 className="mb-3 flex items-center gap-2 font-bold text-slate-900">
-                  <Layers className="h-4 w-4 text-indigo-600" />
+                <h3 className="mb-3 flex items-center gap-2 font-bold text-ink">
+                  <Layers className="h-4 w-4 text-mark" />
                   موضوعات
                 </h3>
                 <div className="flex flex-wrap gap-2">
@@ -151,7 +148,7 @@ export default async function CoursePage({ params }: Props) {
                     <Link
                       key={topic.slug}
                       href={`/topics/${topic.slug}`}
-                      className="rounded-full bg-indigo-50 px-3 py-1 text-sm text-indigo-700"
+                      className="rounded-full border border-line bg-paper px-3 py-1 text-sm text-ink"
                     >
                       {topic.labelFa}
                     </Link>
@@ -160,15 +157,15 @@ export default async function CoursePage({ params }: Props) {
               </div>
 
               <div>
-                <h3 className="mb-3 flex items-center gap-2 font-bold text-slate-900">
-                  <Wrench className="h-4 w-4 text-emerald-600" />
+                <h3 className="mb-3 flex items-center gap-2 font-bold text-ink">
+                  <Wrench className="h-4 w-4 text-good" />
                   مهارت‌ها
                 </h3>
                 <div className="flex flex-wrap gap-2">
                   {courseSkillsList.map((skill) => (
                     <span
                       key={skill.slug}
-                      className="rounded-lg border border-slate-200 px-3 py-1 text-sm text-slate-700"
+                      className="rounded-[var(--radius-sm)] border border-line px-3 py-1 text-sm text-ink"
                     >
                       {skill.labelFa}
                     </span>
@@ -178,8 +175,8 @@ export default async function CoursePage({ params }: Props) {
 
               {courseProjectsList.length > 0 && (
                 <div>
-                  <h3 className="mb-3 flex items-center gap-2 font-bold text-slate-900">
-                    <FlaskConical className="h-4 w-4 text-violet-600" />
+                  <h3 className="mb-3 flex items-center gap-2 font-bold text-ink">
+                    <FlaskConical className="h-4 w-4 text-mark" />
                     پروژه‌های مرتبط
                   </h3>
                   <div className="space-y-2">
@@ -187,7 +184,7 @@ export default async function CoursePage({ params }: Props) {
                       <Link
                         key={project.slug}
                         href={`/lab/${project.slug}`}
-                        className="block rounded-xl bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                        className="block rounded-[var(--radius-sm)] bg-paper px-3 py-2 text-sm font-medium text-ink"
                       >
                         {project.nameFa}
                       </Link>

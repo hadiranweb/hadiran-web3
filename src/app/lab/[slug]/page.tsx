@@ -110,15 +110,12 @@ export default async function ProjectPage({ params }: Props) {
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-10">
-      <Link
-        href="/lab"
-        className="mb-6 inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-indigo-600"
-      >
+      <Link href="/lab" className="mb-6 inline-flex items-center gap-1 text-sm font-medium text-muted hover:text-ink">
         <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
-          بازگشت به کارگاه
+        بازگشت به کارگاه
       </Link>
 
-      <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <section className="surface overflow-hidden">
         <div className="bg-gradient-to-r from-violet-600 to-indigo-600 p-6 text-white sm:p-10">
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -153,30 +150,30 @@ export default async function ProjectPage({ params }: Props) {
               {(project.problemFa || project.visionFa || project.conceptFa) && (
                 <div className="grid gap-4 sm:grid-cols-3">
                   {project.problemFa && (
-                    <div className="rounded-2xl bg-rose-50 p-4">
-                      <h3 className="mb-2 flex items-center gap-2 text-sm font-bold text-rose-800">
-                        <Target className="h-4 w-4" />
+                    <div className="rounded-[var(--radius-md)] border border-line bg-paper p-4">
+                      <h3 className="mb-2 flex items-center gap-2 text-sm font-bold text-ink">
+                        <Target className="h-4 w-4 text-mark" />
                         مسئله
                       </h3>
-                      <p className="text-sm leading-relaxed text-rose-900">{project.problemFa}</p>
+                      <p className="text-sm leading-relaxed text-ink">{project.problemFa}</p>
                     </div>
                   )}
                   {project.visionFa && (
-                    <div className="rounded-2xl bg-indigo-50 p-4">
-                      <h3 className="mb-2 flex items-center gap-2 text-sm font-bold text-indigo-800">
-                        <Eye className="h-4 w-4" />
+                    <div className="rounded-[var(--radius-md)] border border-line bg-paper p-4">
+                      <h3 className="mb-2 flex items-center gap-2 text-sm font-bold text-ink">
+                        <Eye className="h-4 w-4 text-accent" />
                         چشم‌انداز
                       </h3>
-                      <p className="text-sm leading-relaxed text-indigo-900">{project.visionFa}</p>
+                      <p className="text-sm leading-relaxed text-ink">{project.visionFa}</p>
                     </div>
                   )}
                   {project.conceptFa && (
-                    <div className="rounded-2xl bg-amber-50 p-4">
-                      <h3 className="mb-2 flex items-center gap-2 text-sm font-bold text-amber-800">
-                        <Lightbulb className="h-4 w-4" />
+                    <div className="rounded-[var(--radius-md)] border border-line bg-paper p-4">
+                      <h3 className="mb-2 flex items-center gap-2 text-sm font-bold text-ink">
+                        <Lightbulb className="h-4 w-4 text-mark" />
                         مفهوم
                       </h3>
-                      <p className="text-sm leading-relaxed text-amber-900">{project.conceptFa}</p>
+                      <p className="text-sm leading-relaxed text-ink">{project.conceptFa}</p>
                     </div>
                   )}
                 </div>
@@ -184,8 +181,8 @@ export default async function ProjectPage({ params }: Props) {
 
               {project.objectivesFa && (project.objectivesFa as string[]).length > 0 && (
                 <div>
-                  <h3 className="mb-3 text-lg font-bold text-slate-900">اهداف</h3>
-                  <ul className="list-inside list-disc space-y-1 text-slate-700">
+                  <h3 className="mb-3 text-lg font-bold text-ink">اهداف</h3>
+                  <ul className="list-inside list-disc space-y-1 text-ink">
                     {(project.objectivesFa as string[]).map((obj, idx) => (
                       <li key={idx}>{obj}</li>
                     ))}
@@ -194,8 +191,8 @@ export default async function ProjectPage({ params }: Props) {
               )}
 
               <div>
-                <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-slate-900">
-                  <FileText className="h-5 w-5 text-indigo-600" />
+                <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-ink">
+                  <FileText className="h-5 w-5 text-mark" />
                   مستندات پروژه
                 </h3>
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -205,18 +202,14 @@ export default async function ProjectPage({ params }: Props) {
                       <Link
                         key={docType}
                         href={`/lab/${project.slug}/${docType}`}
-                        className={`flex flex-col rounded-2xl border p-4 transition ${
+                        className={`flex flex-col rounded-[var(--radius-md)] border p-4 transition ${
                           doc
-                            ? "border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/50"
-                            : "border-slate-100 bg-slate-50 opacity-60"
+                            ? "border-line bg-paper hover:border-accent"
+                            : "border-line bg-paper opacity-60"
                         }`}
                       >
-                        <span className="text-sm font-bold text-slate-900">
-                          {docLabels[docType]}
-                        </span>
-                        <span className="mt-1 text-xs text-slate-500">
-                          {doc ? doc.titleFa : "هنوز ثبت نشده"}
-                        </span>
+                        <span className="text-sm font-bold text-ink">{docLabels[docType]}</span>
+                        <span className="mt-1 text-xs text-muted">{doc ? doc.titleFa : "هنوز ثبت نشده"}</span>
                       </Link>
                     );
                   })}
@@ -226,8 +219,8 @@ export default async function ProjectPage({ params }: Props) {
 
             <aside className="space-y-8">
               <div>
-                <h3 className="mb-3 flex items-center gap-2 font-bold text-slate-900">
-                  <Hash className="h-4 w-4 text-indigo-600" />
+                <h3 className="mb-3 flex items-center gap-2 font-bold text-ink">
+                  <Hash className="h-4 w-4 text-mark" />
                   موضوعات
                 </h3>
                 <div className="flex flex-wrap gap-2">
@@ -235,7 +228,7 @@ export default async function ProjectPage({ params }: Props) {
                     <Link
                       key={topic.slug}
                       href={`/topics/${topic.slug}`}
-                      className="rounded-full bg-indigo-50 px-3 py-1 text-sm text-indigo-700"
+                      className="rounded-full border border-line bg-paper px-3 py-1 text-sm text-ink"
                     >
                       {topic.labelFa}
                     </Link>
@@ -244,16 +237,13 @@ export default async function ProjectPage({ params }: Props) {
               </div>
 
               <div>
-                <h3 className="mb-3 flex items-center gap-2 font-bold text-slate-900">
-                  <Wrench className="h-4 w-4 text-emerald-600" />
+                <h3 className="mb-3 flex items-center gap-2 font-bold text-ink">
+                  <Wrench className="h-4 w-4 text-good" />
                   فناوری‌ها و مهارت‌ها
                 </h3>
                 <div className="flex flex-wrap gap-2">
                   {projectSkillsList.map((skill) => (
-                    <span
-                      key={skill.slug}
-                      className="rounded-lg border border-slate-200 px-3 py-1 text-sm text-slate-700"
-                    >
+                    <span key={skill.slug} className="rounded-[var(--radius-sm)] border border-line px-3 py-1 text-sm text-ink">
                       {skill.labelFa}
                     </span>
                   ))}
@@ -261,24 +251,24 @@ export default async function ProjectPage({ params }: Props) {
               </div>
 
               <div>
-                <h3 className="mb-3 flex items-center gap-2 font-bold text-slate-900">
-                  <Users className="h-4 w-4 text-violet-600" />
+                <h3 className="mb-3 flex items-center gap-2 font-bold text-ink">
+                  <Users className="h-4 w-4 text-mark" />
                   نقش‌های موردنیاز
                 </h3>
                 <div className="space-y-2">
                   {projectRolesList.map((role) => (
                     <div
                       key={role.slug}
-                      className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-sm"
+                      className="flex items-center justify-between rounded-[var(--radius-sm)] bg-paper px-3 py-2 text-sm"
                     >
-                      <span className="text-slate-700">{role.labelFa}</span>
-                      <span className="text-xs text-slate-500">{role.count} نفر</span>
+                      <span className="text-ink">{role.labelFa}</span>
+                      <span className="text-xs text-muted">{role.count} نفر</span>
                     </div>
                   ))}
                 </div>
                 <Link
                   href={`/lab/${project.slug}/collaborate`}
-                  className="mt-3 block rounded-xl bg-indigo-600 px-4 py-2 text-center text-sm font-medium text-white transition hover:bg-indigo-700"
+                  className="mt-3 block rounded-[var(--radius-sm)] bg-accent px-4 py-2.5 text-center text-sm font-medium text-accent-fg"
                 >
                   درخواست همکاری
                 </Link>
@@ -286,8 +276,8 @@ export default async function ProjectPage({ params }: Props) {
 
               {projectKnowledgeList.length > 0 && (
                 <div>
-                  <h3 className="mb-3 flex items-center gap-2 font-bold text-slate-900">
-                    <BookOpen className="h-4 w-4 text-amber-600" />
+                  <h3 className="mb-3 flex items-center gap-2 font-bold text-ink">
+                    <BookOpen className="h-4 w-4 text-mark" />
                     دانش مرتبط
                   </h3>
                   <div className="space-y-2">
@@ -295,7 +285,7 @@ export default async function ProjectPage({ params }: Props) {
                       <Link
                         key={k.slug}
                         href={`/knowledge/${k.slug}`}
-                        className="block rounded-xl bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                        className="block rounded-[var(--radius-sm)] bg-paper px-3 py-2 text-sm font-medium text-ink hover:border-accent"
                       >
                         {k.titleFa}
                       </Link>
@@ -306,8 +296,8 @@ export default async function ProjectPage({ params }: Props) {
 
               {projectCoursesList.length > 0 && (
                 <div>
-                  <h3 className="mb-3 flex items-center gap-2 font-bold text-slate-900">
-                    <GraduationCap className="h-4 w-4 text-pink-600" />
+                  <h3 className="mb-3 flex items-center gap-2 font-bold text-ink">
+                    <GraduationCap className="h-4 w-4 text-mark" />
                     دوره‌های مرتبط
                   </h3>
                   <div className="space-y-2">
@@ -315,7 +305,7 @@ export default async function ProjectPage({ params }: Props) {
                       <Link
                         key={c.slug}
                         href={`/courses/${c.slug}`}
-                        className="block rounded-xl bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                        className="block rounded-[var(--radius-sm)] bg-paper px-3 py-2 text-sm font-medium text-ink"
                       >
                         {c.titleFa}
                       </Link>

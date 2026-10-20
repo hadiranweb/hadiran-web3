@@ -100,51 +100,43 @@ export default async function TopicHubPage({ params }: Props) {
         }}
       />
 
-      <nav className="mb-6 flex flex-wrap items-center gap-2 text-sm text-slate-500">
-        <Link href="/" className="hover:text-indigo-600">
+      <nav className="mb-6 flex flex-wrap items-center gap-2 text-sm text-muted">
+        <Link href="/" className="hover:text-ink">
           خانه
         </Link>
         <span>/</span>
-        <Link href="/topics" className="hover:text-indigo-600">
+        <Link href="/topics" className="hover:text-ink">
           موضوعات
         </Link>
         <span>/</span>
-        <span className="text-slate-700">{topic.labelFa}</span>
+        <span className="text-ink">{topic.labelFa}</span>
       </nav>
 
       <Link
         href="/topics"
-        className="mb-6 inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-indigo-600"
+        className="mb-6 inline-flex items-center gap-1 text-sm font-medium text-muted hover:text-ink"
       >
         <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
         بازگشت به موضوعات
       </Link>
 
-      <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-10">
-        <span
-          className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold"
-          style={{
-            backgroundColor: topic.color ? `${topic.color}22` : "#eef2ff",
-            color: topic.color || "#4338ca",
-          }}
-        >
+      <article className="surface p-6 sm:p-10">
+        <span className="inline-flex items-center gap-1 rounded-full border border-line bg-paper px-3 py-1 text-xs font-bold text-mark">
           <Hash className="h-3.5 w-3.5" />
           موضوع
         </span>
-        <h1 className="mt-4 text-3xl font-bold text-slate-900">{topic.labelFa}</h1>
+        <h1 className="mt-4 text-3xl font-bold text-ink">{topic.labelFa}</h1>
         {topic.labelEn && (
-          <p className="mt-1 text-sm text-slate-500" dir="ltr">
+          <p className="mt-1 text-sm text-muted" dir="ltr">
             {topic.labelEn}
           </p>
         )}
-        <p className="mt-6 rounded-2xl bg-slate-50 p-4 text-base leading-relaxed text-slate-700">
-          {description}
-        </p>
+        <p className="mt-6 rounded-[var(--radius-md)] bg-paper p-4 text-base leading-[1.85] text-ink">{description}</p>
 
         {knowledgeItems.length > 0 && (
           <section className="mt-10">
-            <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-slate-900">
-              <BookOpen className="h-5 w-5 text-indigo-600" />
+            <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-ink">
+              <BookOpen className="h-5 w-5 text-mark" />
               دانش مرتبط
             </h2>
             <div className="space-y-3">
@@ -152,12 +144,10 @@ export default async function TopicHubPage({ params }: Props) {
                 <Link
                   key={item.slug}
                   href={`/knowledge/${item.slug}`}
-                  className="block rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 hover:border-indigo-200 hover:bg-indigo-50/40"
+                  className="block rounded-[var(--radius-md)] border border-line bg-paper px-4 py-3 hover:border-accent"
                 >
-                  <p className="font-semibold text-slate-900">{item.titleFa}</p>
-                  {item.summaryFa && (
-                    <p className="mt-1 line-clamp-2 text-sm text-slate-600">{item.summaryFa}</p>
-                  )}
+                  <p className="font-semibold text-ink">{item.titleFa}</p>
+                  {item.summaryFa && <p className="mt-1 line-clamp-2 text-sm text-muted">{item.summaryFa}</p>}
                 </Link>
               ))}
             </div>
@@ -166,8 +156,8 @@ export default async function TopicHubPage({ params }: Props) {
 
         {projectItems.length > 0 && (
           <section className="mt-10">
-            <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-slate-900">
-              <FlaskConical className="h-5 w-5 text-violet-600" />
+            <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-ink">
+              <FlaskConical className="h-5 w-5 text-mark" />
               پروژه‌های مرتبط
             </h2>
             <div className="space-y-3">
@@ -175,11 +165,11 @@ export default async function TopicHubPage({ params }: Props) {
                 <Link
                   key={item.slug}
                   href={`/lab/${item.slug}`}
-                  className="block rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 hover:border-violet-200 hover:bg-violet-50/40"
+                  className="block rounded-[var(--radius-md)] border border-line bg-paper px-4 py-3 hover:border-accent"
                 >
-                  <p className="font-semibold text-slate-900">{item.nameFa}</p>
+                  <p className="font-semibold text-ink">{item.nameFa}</p>
                   {item.descriptionFa && (
-                    <p className="mt-1 line-clamp-2 text-sm text-slate-600">{item.descriptionFa}</p>
+                    <p className="mt-1 line-clamp-2 text-sm text-muted">{item.descriptionFa}</p>
                   )}
                 </Link>
               ))}
@@ -189,8 +179,8 @@ export default async function TopicHubPage({ params }: Props) {
 
         {courseItems.length > 0 && (
           <section className="mt-10">
-            <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-slate-900">
-              <GraduationCap className="h-5 w-5 text-amber-600" />
+            <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-ink">
+              <GraduationCap className="h-5 w-5 text-mark" />
               دوره‌های مرتبط
             </h2>
             <div className="space-y-3">
@@ -198,11 +188,11 @@ export default async function TopicHubPage({ params }: Props) {
                 <Link
                   key={item.slug}
                   href={`/courses/${item.slug}`}
-                  className="block rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 hover:border-amber-200 hover:bg-amber-50/40"
+                  className="block rounded-[var(--radius-md)] border border-line bg-paper px-4 py-3 hover:border-accent"
                 >
-                  <p className="font-semibold text-slate-900">{item.titleFa}</p>
+                  <p className="font-semibold text-ink">{item.titleFa}</p>
                   {item.descriptionFa && (
-                    <p className="mt-1 line-clamp-2 text-sm text-slate-600">{item.descriptionFa}</p>
+                    <p className="mt-1 line-clamp-2 text-sm text-muted">{item.descriptionFa}</p>
                   )}
                 </Link>
               ))}

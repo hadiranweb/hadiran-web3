@@ -14,7 +14,7 @@ export function MarkdownReadonly({
   emptyLabel = "محتوایی ثبت نشده است.",
 }: MarkdownReadonlyProps) {
   if (!source?.trim()) {
-    return <p className={`text-sm text-slate-400 ${className}`}>{emptyLabel}</p>;
+    return <p className={`text-sm text-muted ${className}`}>{emptyLabel}</p>;
   }
 
   return (

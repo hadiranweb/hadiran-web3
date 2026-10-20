@@ -70,38 +70,34 @@ export default async function ProjectDocumentPage({ params }: Props) {
     <main className="mx-auto max-w-3xl px-4 py-10">
       <Link
         href={`/lab/${project.slug}`}
-        className="mb-6 inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-indigo-600"
+        className="mb-6 inline-flex items-center gap-1 text-sm font-medium text-muted hover:text-ink"
       >
         <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
         بازگشت به {project.nameFa}
       </Link>
 
-      <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-10">
+      <article className="surface p-6 sm:p-10">
         <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
+          <div className="flex h-12 w-12 items-center justify-center rounded-[var(--radius-md)] bg-paper text-mark">
             <FileText className="h-6 w-6" />
           </div>
           <div>
-            <span className="text-xs font-bold text-indigo-600">{docLabels[docType as (typeof validDocs)[number]]}</span>
-            <h1 className="text-2xl font-bold text-slate-900">{doc?.titleFa || project.nameFa}</h1>
-            <p className="text-sm text-slate-500">
-              {docDescriptions[docType as (typeof validDocs)[number]]}
-            </p>
+            <span className="text-xs font-bold text-mark">{docLabels[docType as (typeof validDocs)[number]]}</span>
+            <h1 className="text-2xl font-bold text-ink">{doc?.titleFa || project.nameFa}</h1>
+            <p className="text-sm text-muted">{docDescriptions[docType as (typeof validDocs)[number]]}</p>
           </div>
         </div>
 
         {doc?.bodyFa ? (
-          <div className="prose prose-slate max-w-none">
+          <div className="max-w-none">
             {doc.bodyFa.split("\n\n").map((paragraph, idx) => (
-              <p key={idx} className="leading-relaxed text-slate-700">
+              <p key={idx} className="leading-[1.85] text-ink">
                 {paragraph}
               </p>
             ))}
           </div>
         ) : (
-          <div className="rounded-2xl bg-slate-50 p-6 text-center text-slate-500">
-            این سند هنوز ثبت نشده است.
-          </div>
+          <div className="rounded-[var(--radius-md)] bg-paper p-6 text-center text-muted">این سند هنوز ثبت نشده است.</div>
         )}
       </article>
     </main>

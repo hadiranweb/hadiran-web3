@@ -66,27 +66,27 @@ export function BuyerOrderActions({
       {canReference ? (
         <form onSubmit={(event) => void submit(event)} className="space-y-2">
           <label className="block text-sm">
-            <span className="mb-1 block font-medium text-slate-700">شمارهٔ پیگیری پرداخت بیرونی</span>
+            <span className="mb-1 block font-medium text-ink">شمارهٔ پیگیری پرداخت بیرونی</span>
             <input
               required
               minLength={4}
               value={reference}
               onChange={(e) => setReference(e.target.value)}
               dir="ltr"
-              className="w-full rounded-xl border border-slate-200 px-3 py-2"
+              className="w-full rounded-[var(--radius-md)] border border-line bg-elev px-3 py-2 text-ink outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
             />
           </label>
           <button
             type="submit"
             disabled={busy}
-            className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+            className="min-h-11 rounded-[var(--radius-sm)] bg-accent px-4 py-2 text-sm font-medium text-accent-fg disabled:opacity-60"
           >
             {busy ? <Loader2 className="inline h-4 w-4 animate-spin" /> : "ارسال برای تأیید"}
           </button>
         </form>
       ) : null}
       {canAbandon ? (
-        <button type="button" disabled={busy} onClick={() => void abandon()} className="text-sm text-slate-500">
+        <button type="button" disabled={busy} onClick={() => void abandon()} className="text-sm text-muted">
           انصراف از سفارش
         </button>
       ) : null}

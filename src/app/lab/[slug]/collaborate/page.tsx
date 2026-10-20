@@ -3,7 +3,7 @@ import { projects, projectRequiredRoles, roles } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Users, Send } from "lucide-react";
+import { ArrowLeft, Users } from "lucide-react";
 import { CollaborationForm } from "@/components/CollaborationForm";
 import type { Metadata } from "next";
 
@@ -37,31 +37,31 @@ export default async function CollaboratePage({ params }: Props) {
     <main className="mx-auto max-w-2xl px-4 py-10">
       <Link
         href={`/lab/${project.slug}`}
-        className="mb-6 inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-indigo-600"
+        className="mb-6 inline-flex items-center gap-1 text-sm font-medium text-muted hover:text-ink"
       >
         <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
         بازگشت به {project.nameFa}
       </Link>
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-10">
+      <section className="surface p-6 sm:p-10">
         <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-50 text-violet-600">
+          <div className="flex h-12 w-12 items-center justify-center rounded-[var(--radius-md)] bg-paper text-mark">
             <Users className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">درخواست همکاری</h1>
-            <p className="text-sm text-slate-500">{project.nameFa}</p>
+            <h1 className="text-2xl font-bold text-ink">درخواست همکاری</h1>
+            <p className="text-sm text-muted">{project.nameFa}</p>
           </div>
         </div>
 
         {projectRolesList.length > 0 && (
-          <div className="mb-6 rounded-2xl bg-slate-50 p-4">
-            <h3 className="mb-2 text-sm font-bold text-slate-700">نقش‌های باز:</h3>
+          <div className="mb-6 rounded-[var(--radius-md)] bg-paper p-4">
+            <h3 className="mb-2 text-sm font-bold text-ink">نقش‌های باز:</h3>
             <div className="flex flex-wrap gap-2">
               {projectRolesList.map((role) => (
                 <span
                   key={role.id}
-                  className="rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-700 shadow-sm"
+                  className="rounded-full border border-line bg-elev px-3 py-1 text-xs font-medium text-ink"
                 >
                   {role.labelFa} ({role.count})
                 </span>
