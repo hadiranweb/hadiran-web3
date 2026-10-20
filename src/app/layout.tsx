@@ -4,12 +4,16 @@ import "./globals.css";
 import { SiteChrome } from "@/components/SiteChrome";
 import { OnboardingDialog } from "@/components/auth/OnboardingDialog";
 import { ReferralCapture } from "@/components/auth/ReferralCapture";
-import { Vazirmatn } from "next/font/google";
+import localFont from "next/font/local";
 import { siteConfig } from "@/lib/site";
 
-const vazirmatn = Vazirmatn({
-  subsets: ["arabic"],
-  variable: "--font-vazirmatn",
+const iranSharp = localFont({
+  src: [
+    { path: "./fonts/IRANSharp-Light.woff2", weight: "300", style: "normal" },
+    { path: "./fonts/IRANSharp-Regular.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/IRANSharp-Bold.woff2", weight: "700", style: "normal" },
+  ],
+  variable: "--font-iran-sharp",
   display: "swap",
 });
 
@@ -39,11 +43,11 @@ const themeBoot = `(()=>{try{var t=localStorage.getItem("hadiran-theme");var d=t
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="fa" dir="rtl" className={vazirmatn.variable} suppressHydrationWarning>
+    <html lang="fa" dir="rtl" className={iranSharp.variable} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeBoot }} />
       </head>
-      <body className="flex min-h-screen flex-col bg-paper text-ink antialiased">
+      <body className={`${iranSharp.className} flex min-h-screen flex-col bg-paper text-ink antialiased`}>
         <SiteChrome>{children}</SiteChrome>
         <Suspense fallback={null}>
           <ReferralCapture />

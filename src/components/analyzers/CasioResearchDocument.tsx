@@ -345,7 +345,7 @@ const CASIO_DOC_CSS = `
   --cover-card-bg: #1F374E;
   --cover-text-muted: #C3CFDC;
   --cover-subtitle: #D7DFE7;
-  font-family: "Abar Low", Vazirmatn, sans-serif;
+  font-family: "Abar Low", Abar, Tahoma, sans-serif;
   color: var(--navy);
   background: var(--document-white);
 }
