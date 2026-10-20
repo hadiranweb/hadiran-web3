@@ -38,6 +38,10 @@ const LOCALE_COOKIE = "hadiran-workspace-locale";
 const ownerModules: ModuleLink[] = [
   { href: "/workspace", fa: "نمای کلی", en: "Overview", icon: Layers, exact: true },
   { href: "/workspace/capture", fa: "ثبت جدید", en: "New capture", icon: PenLine },
+  { href: "/workspace/knowledge", fa: "دانش میز", en: "Knowledge desk", icon: BookOpen },
+  { href: "/workspace/projects", fa: "پروژه‌ها", en: "Projects", icon: Layers },
+  { href: "/workspace/collaborations", fa: "همکاری‌ها", en: "Collaborations", icon: Users },
+  { href: "/workspace/actions", fa: "اقدام‌ها", en: "Work queue", icon: PenLine },
   { href: "/workspace/analyzers", fa: "آینه‌ها", en: "Mirrors", icon: ScanSearch },
   { href: "/workspace/documents", fa: "سندساز", en: "Documents", icon: BookOpen },
   { href: "/workspace/bots", fa: "ربات‌ها", en: "Bots", icon: Wrench },
@@ -45,7 +49,9 @@ const ownerModules: ModuleLink[] = [
   { href: "/workspace/referrals", fa: "معرف‌ها", en: "Referrals", icon: Users },
   { href: "/workspace/network", fa: "درخت", en: "Referral tree", icon: Hash, exact: true },
   { href: "/workspace/shop", fa: "فروشگاه", en: "Shop", icon: ShoppingBag },
+  { href: "/workspace/finance", fa: "گزارش مالی", en: "Finance", icon: Hash },
   { href: "/workspace/discounts", fa: "تخفیف", en: "Discounts", icon: Hash },
+  { href: "/workspace/settings", fa: "تنظیمات", en: "Settings", icon: User },
   { href: "/account", fa: "حساب من", en: "My account", icon: User },
 ];
 
@@ -53,12 +59,14 @@ const authorModules: ModuleLink[] = [
   { href: "/workspace/analyzers", fa: "میز آزمون‌ساز", en: "Exam desk", icon: ScanSearch },
   { href: "/workspace/documents", fa: "سندساز", en: "Documents", icon: BookOpen },
   { href: "/workspace/referrals", fa: "معرف‌های من", en: "My referrals", icon: Users },
+  { href: "/workspace/settings", fa: "تنظیمات", en: "Settings", icon: User },
   { href: "/account", fa: "حساب من", en: "My account", icon: User },
 ];
 
 const grantedModules: ModuleLink[] = [
   { href: "/workspace/analyzers", fa: "میز آزمون", en: "Exam desk", icon: ScanSearch },
   { href: "/workspace/documents", fa: "سندساز", en: "Documents", icon: BookOpen },
+  { href: "/workspace/settings", fa: "تنظیمات", en: "Settings", icon: User },
   { href: "/account", fa: "حساب من", en: "My account", icon: User },
 ];
 

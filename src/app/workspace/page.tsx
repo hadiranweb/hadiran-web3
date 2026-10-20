@@ -127,7 +127,12 @@ export default async function WorkspacePage() {
       </section>
 
       <section>
-        <h2 className={`mb-3 ${heading}`}>صف اقدام</h2>
+        <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+          <h2 className={heading}>صف اقدام</h2>
+          <Link href="/workspace/actions" className={`text-sm ${link}`}>
+            همه اقدام‌ها
+          </Link>
+        </div>
         {queueHasItems(queue) ? (
           <div className="space-y-6">
             <QueueGroup title="یادداشت" group={queue.notes} />

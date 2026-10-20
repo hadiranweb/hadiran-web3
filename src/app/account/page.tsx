@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { accounts } from "@/db/schema";
@@ -65,6 +66,11 @@ export default async function AccountPage() {
       <AccountReferralForm referredBy={referredBy} />
       <AccountProfileForm givenName={row?.givenName ?? ""} familyName={row?.familyName ?? ""} />
       {session.needsPassword ? <AccountPasswordForm /> : null}
+      <p className="mt-8 text-sm">
+        <Link href="/account/purchases" className="text-accent">
+          خریدهای من
+        </Link>
+      </p>
     </PageShell>
   );
 }

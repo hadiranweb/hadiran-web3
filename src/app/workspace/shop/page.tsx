@@ -56,11 +56,19 @@ export default async function WorkspaceShopPage() {
 
   return (
     <main className="mx-auto max-w-3xl space-y-10 px-4 py-8">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-slate-900">فروشگاه</h1>
-        <Link href="/workspace/shop/listings/new" className="rounded-xl bg-slate-900 px-4 py-2 text-sm text-white">
-          کالای جدید
-        </Link>
+        <div className="flex flex-wrap gap-3 text-sm">
+          <Link href="/workspace/shop/orders" className="text-accent">
+            مرکز سفارش
+          </Link>
+          <Link href="/workspace/finance" className="text-accent">
+            گزارش مالی
+          </Link>
+          <Link href="/workspace/shop/listings/new" className="rounded-xl bg-slate-900 px-4 py-2 text-white">
+            کالای جدید
+          </Link>
+        </div>
       </div>
 
       {!payout ? (
