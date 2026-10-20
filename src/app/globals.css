@@ -57,9 +57,15 @@ html.dark {
 html {
   font-family: var(--font-sans);
   scroll-behavior: smooth;
+  scroll-padding-top: 5.5rem;
   color-scheme: light dark;
   background: var(--bg);
   color: var(--ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
 }
 
 .hadiran-mark {
