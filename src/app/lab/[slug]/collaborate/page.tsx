@@ -39,7 +39,7 @@ export default async function CollaboratePage({ params }: Props) {
         href={`/lab/${project.slug}`}
         className="mb-6 inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-indigo-600"
       >
-        <ArrowLeft className="h-4 w-4" />
+        <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
         بازگشت به {project.nameFa}
       </Link>
 

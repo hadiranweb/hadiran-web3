@@ -80,7 +80,7 @@ export default async function KnowledgeItemPage({ params }: Props) {
     <main className="mx-auto max-w-3xl px-4 py-10">
       <div className="mb-6 flex items-center justify-between gap-3">
         <Link href="/knowledge" className="inline-flex items-center gap-1 text-sm font-medium text-muted hover:text-ink">
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
           بازگشت به باغ دانش
         </Link>
         {account?.role === "owner" && (
