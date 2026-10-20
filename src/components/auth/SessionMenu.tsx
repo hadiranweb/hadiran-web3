@@ -1,178 +1,186 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogIn, LogOut, PenLine, User } from "lucide-react";
-import { clearDraftsByPrefix, subscribeAccount } from "@/lib/ui/draft";
+import { ChevronDown, LogIn } from "lucide-react";
+import { defaultAvatarVariant, type AccountAvatar } from "@/lib/account/avatar";
+import { roleFa } from "@/lib/auth/roles";
+import { subscribeAccount } from "@/lib/ui/draft";
+import { useDisclosure } from "@/components/navigation/useDisclosure";
+import { UserAvatar } from "./UserAvatar";
 
-type Account = {
+type MeAccount = {
   id: number;
+  givenName: string | null;
+  familyName: string | null;
   displayName: string | null;
-  givenName?: string | null;
-  familyName?: string | null;
-  phone: string;
   role: string;
-  needsPassword?: boolean;
+  needsPassword: boolean;
   analyzerDesk?: boolean;
+  avatar?: AccountAvatar;
 };
 
-const itemClass =
-  "flex w-full items-center gap-2 rounded-[var(--radius-sm)] px-3 py-2 text-right text-sm font-medium text-ink hover:bg-elev";
-
-function initialsOf(account: Account) {
-  const given = account.givenName?.trim()?.[0];
-  const family = account.familyName?.trim()?.[0];
-  if (given && family) return `${given}${family}`;
-  const fromDisplay = account.displayName?.trim().replace(/\s+/g, "");
-  if (fromDisplay && fromDisplay.length >= 2) return fromDisplay.slice(0, 2);
-  if (fromDisplay) return fromDisplay;
-  return "";
+function accountLabel(account: MeAccount) {
+  const parts = [account.givenName, account.familyName].filter(Boolean).join(" ").trim();
+  return parts || account.displayName || "حساب";
 }
 
 export function SessionMenu() {
   const pathname = usePathname();
   const router = useRouter();
-  const [account, setAccount] = useState<Account | null | undefined>(undefined);
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
+  const [account, setAccount] = useState<MeAccount | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
+  const { id, open, visible, panel, trigger, toggle, close } = useDisclosure();
 
   useEffect(() => {
     let cancelled = false;
-    function load() {
-      fetch("/api/auth/me", { cache: "no-store" })
-        .then(async (res) => {
-          if (!res.ok) return null;
-          const data = (await res.json()) as { account: Account | null };
-          return data.account;
-        })
-        .then((next) => {
-          if (!cancelled) setAccount(next);
-        })
-        .catch(() => {
-          if (!cancelled) setAccount(null);
-        });
-    }
-    load();
-    const stop = subscribeAccount(() => load());
+    fetch("/api/auth/me")
+      .then((res) => res.json())
+      .then((data: { account: MeAccount | null }) => {
+        if (!cancelled) setAccount(data.account);
+      })
+      .catch(() => {
+        if (!cancelled) setAccount(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoaded(true);
+      });
     return () => {
       cancelled = true;
-      stop();
     };
-  }, [pathname]);
+  }, []);
 
   useEffect(() => {
-    setOpen(false);
-  }, [pathname]);
+    return subscribeAccount((detail) => {
+      setAccount((current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          givenName: detail.givenName ?? current.givenName,
+          familyName: detail.familyName ?? current.familyName,
+          displayName: detail.displayName !== undefined ? detail.displayName : current.displayName,
+          needsPassword: detail.needsPassword ?? current.needsPassword,
+          avatar: detail.avatar ?? current.avatar,
+        };
+      });
+    });
+  }, []);
 
   useEffect(() => {
-    if (!open) return;
-    function onPointerDown(event: PointerEvent) {
-      const root = rootRef.current;
-      if (root && event.target instanceof Node && root.contains(event.target)) return;
-      setOpen(false);
-    }
-    function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
-    }
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
+    close();
+  }, [pathname, close]);
 
   async function logout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    clearDraftsByPrefix("account");
-    clearDraftsByPrefix("onboarding");
-    clearDraftsByPrefix("casio");
-    setAccount(null);
-    setOpen(false);
-    router.refresh();
+    if (loggingOut) return;
+    setLoggingOut(true);
+    setLogoutError("");
+    try {
+      const res = await fetch("/api/auth/logout", { method: "POST" });
+      if (!res.ok) throw new Error("logout_failed");
+      close();
+      setAccount(null);
+      router.refresh();
+    } catch {
+      setLoggingOut(false);
+      setLogoutError("خروج انجام نشد. دوباره تلاش کنید.");
+    }
   }
 
-  if (pathname === "/signin") return null;
-  if (account === undefined) return <span className="h-9 w-9" />;
+  if (!loaded) {
+    return <span className="inline-block h-10 w-10 rounded-full bg-elev" aria-hidden="true" />;
+  }
 
   if (!account) {
-    const next = pathname.startsWith("/") ? pathname : "/";
+    if (pathname === "/signin") return null;
     return (
       <Link
-        href={`/signin?next=${encodeURIComponent(next)}`}
-        className="inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] px-3 py-2 text-sm font-medium text-muted hover:bg-elev hover:text-ink"
+        href="/signin"
+        className="inline-flex min-h-11 items-center gap-1.5 rounded-[var(--radius-sm)] px-2.5 text-sm font-medium text-ink hover:bg-elev"
+        aria-label="ورود"
       >
         <LogIn className="h-4 w-4" strokeWidth={1.5} />
-        ورود
+        <span className="hidden sm:inline">ورود</span>
       </Link>
     );
   }
 
-  const initials = initialsOf(account);
-  const needsPassword = account.needsPassword === true;
+  const name = accountLabel(account);
+  const avatar = account.avatar ?? { variant: defaultAvatarVariant(account.id), photoUrl: null };
+  const showDesk = account.role === "owner" || account.role === "author" || account.analyzerDesk;
+  const deskHref = account.role === "owner" ? "/workspace" : "/workspace/analyzers";
 
   return (
-    <div ref={rootRef} className="relative">
+    <div className="relative">
       <button
+        ref={trigger}
         type="button"
-        onClick={() => setOpen((value) => !value)}
+        className="inline-flex min-h-11 min-w-11 items-center gap-1 rounded-full pe-1 hover:bg-elev"
         aria-expanded={open}
-        aria-haspopup="menu"
-        aria-label={needsPassword ? "حساب — رمز ثابت هنوز تنظیم نشده" : "حساب"}
-        className="relative flex h-9 w-9 items-center justify-center rounded-full bg-accent-soft text-sm font-semibold text-ink"
+        aria-controls={id}
+        onClick={toggle}
       >
-        {initials ? (
-          <span>{initials}</span>
-        ) : (
-          <User className="h-4 w-4" strokeWidth={1.5} />
-        )}
-        {needsPassword ? (
-          <span
-            className="absolute top-0 end-0 h-2.5 w-2.5 rounded-full bg-mark ring-2 ring-paper"
-            aria-hidden
-          />
-        ) : null}
+        <UserAvatar variant={avatar.variant} photoUrl={avatar.photoUrl} size={40} />
+        <ChevronDown className={`h-4 w-4 text-muted transition ${open ? "rotate-180" : ""}`} strokeWidth={1.5} />
+        <span className="sr-only">{open ? "بستن منوی حساب" : `حساب ${name}`}</span>
       </button>
-      {open ? (
-        <div
-          role="menu"
-          className="absolute end-0 z-50 mt-2 w-52 overflow-hidden rounded-[var(--radius-md)] border border-line bg-paper py-1 shadow-[var(--shadow-sm)]"
-        >
-          <Link href="/account" role="menuitem" className={itemClass} onClick={() => setOpen(false)}>
-            <User className="h-4 w-4" strokeWidth={1.5} />
-            حساب
+      <div
+        id={id}
+        ref={panel}
+        hidden={!visible}
+        inert={!open || undefined}
+        className="absolute end-0 z-50 mt-2 w-64 max-h-[min(28rem,calc(100dvh-5rem))] overflow-y-auto rounded-[var(--radius-md)] border border-line bg-paper p-2 shadow-[var(--shadow-sm)]"
+      >
+        <div className="flex items-center gap-3 rounded-[var(--radius-sm)] px-2 py-2">
+          <UserAvatar variant={avatar.variant} photoUrl={avatar.photoUrl} size={44} />
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-ink">{name}</p>
+            <p className="text-xs text-muted">{roleFa(account.role)}</p>
+          </div>
+        </div>
+        <nav className="mt-1 flex flex-col gap-0.5 border-t border-line pt-2" aria-label="حساب">
+          <Link
+            href="/account"
+            className="rounded-[var(--radius-sm)] px-3 py-2.5 text-sm text-ink hover:bg-elev"
+            onClick={() => close()}
+          >
+            حساب من
           </Link>
-          {needsPassword ? (
+          {account.needsPassword ? (
             <Link
               href="/account#password"
-              role="menuitem"
-              className={itemClass}
-              onClick={() => setOpen(false)}
+              className="rounded-[var(--radius-sm)] px-3 py-2.5 text-sm text-ink hover:bg-elev"
+              onClick={() => close()}
             >
-              <span className="inline-flex h-4 w-4 items-center justify-center">
-                <span className="h-2 w-2 rounded-full bg-mark" />
-              </span>
-              تنظیم رمز ثابت
+              تعیین رمز عبور
             </Link>
           ) : null}
-          {account.role === "owner" || account.role === "author" || account.analyzerDesk ? (
+          {showDesk ? (
             <Link
-              href={account.role === "owner" ? "/workspace" : "/workspace/analyzers"}
-              role="menuitem"
-              className={itemClass}
-              onClick={() => setOpen(false)}
+              href={deskHref}
+              className="rounded-[var(--radius-sm)] px-3 py-2.5 text-sm text-ink hover:bg-elev"
+              onClick={() => close()}
             >
-              <PenLine className="h-4 w-4" strokeWidth={1.5} />
-              {account.role === "owner" ? "میز کار" : "میز آزمون‌ساز"}
+              میزکار
             </Link>
           ) : null}
-          <button type="button" role="menuitem" onClick={() => void logout()} className={itemClass}>
-            <LogOut className="h-4 w-4" strokeWidth={1.5} />
-            خروج
+          <button
+            type="button"
+            className="rounded-[var(--radius-sm)] px-3 py-2.5 text-start text-sm text-muted hover:bg-elev hover:text-ink disabled:opacity-60"
+            disabled={loggingOut}
+            onClick={() => void logout()}
+          >
+            {loggingOut ? "در حال خروج…" : "خروج"}
           </button>
-        </div>
-      ) : null}
+        </nav>
+        {logoutError ? (
+          <p className="mt-2 px-3 text-xs text-red-700 dark:text-red-300" role="status">
+            {logoutError}
+          </p>
+        ) : null}
+      </div>
     </div>
   );
 }

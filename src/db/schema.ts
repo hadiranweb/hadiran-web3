@@ -473,6 +473,15 @@ export const botChatSessions = pgTable(
   (t) => [primaryKey({ columns: [t.botId, t.telegramUserId] })],
 );
 
+export const accountAvatars = pgTable("account_avatars", {
+  accountId: integer("account_id")
+    .primaryKey()
+    .references(() => accounts.id, { onDelete: "cascade" }),
+  variant: integer("variant").notNull(),
+  imageKey: varchar("image_key", { length: 160 }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const accountPublicCodes = pgTable("account_public_codes", {
   accountId: integer("account_id")
     .primaryKey()
@@ -1068,6 +1077,17 @@ export const accountsRelations = relations(accounts, ({ many, one }) => ({
   publicCode: one(accountPublicCodes, {
     fields: [accounts.id],
     references: [accountPublicCodes.accountId],
+  }),
+  avatar: one(accountAvatars, {
+    fields: [accounts.id],
+    references: [accountAvatars.accountId],
+  }),
+}));
+
+export const accountAvatarsRelations = relations(accountAvatars, ({ one }) => ({
+  account: one(accounts, {
+    fields: [accountAvatars.accountId],
+    references: [accounts.id],
   }),
 }));
 

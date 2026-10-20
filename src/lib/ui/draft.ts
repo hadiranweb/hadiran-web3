@@ -1,6 +1,8 @@
 const PREFIX = "hadiran-draft:";
 const MAX_CHARS = 400_000;
 
+import type { AccountAvatar } from "@/lib/account/avatar";
+
 export const ACCOUNT_CHANGED = "hadiran:account";
 
 export type AccountChangedDetail = {
@@ -8,6 +10,7 @@ export type AccountChangedDetail = {
   familyName?: string;
   displayName?: string | null;
   needsPassword?: boolean;
+  avatar?: AccountAvatar;
 };
 
 function fullKey(key: string) {

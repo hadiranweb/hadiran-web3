@@ -9,8 +9,10 @@ import { maskPhone } from "@/lib/auth/phone";
 import { AccountReferralForm } from "@/components/auth/AccountReferralForm";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PageShell } from "@/components/ui/PageShell";
+import { AccountAvatarPanel } from "@/components/auth/AccountAvatarPanel";
 import { AccountPasswordForm } from "@/components/auth/AccountPasswordForm";
 import { AccountProfileForm } from "@/components/auth/AccountProfileForm";
+import { readAccountAvatar } from "@/lib/account/avatar-store";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +26,7 @@ export default async function AccountPage() {
   const session = await requirePageAccount("/account");
   const publicCode = await ensureAccountPublicCode(session.id);
   const referredBy = await referredByPublicCode(session.id);
+  const { avatar } = await readAccountAvatar(session);
   const [row] = await db
     .select({
       givenName: accounts.givenName,
@@ -55,6 +58,10 @@ export default async function AccountPage() {
           <dd className="mt-1 text-xs text-muted">موبایل تأییدشده. ایمیل و تلگرام هنوز روشن نیستند.</dd>
         </div>
       </dl>
+      <AccountAvatarPanel
+        initial={avatar}
+        name={[row?.givenName, row?.familyName].filter(Boolean).join(" ") || session.displayName || "عضو"}
+      />
       <AccountReferralForm referredBy={referredBy} />
       <AccountProfileForm givenName={row?.givenName ?? ""} familyName={row?.familyName ?? ""} />
       {session.needsPassword ? <AccountPasswordForm /> : null}

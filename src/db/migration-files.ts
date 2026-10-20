@@ -90,5 +90,9 @@ export const MIGRATION_FILES: { id: string; sql: string }[] = [
   {
     "id": "0022_casio_ss_document_template.sql",
     "sql": "INSERT INTO analyzer_document_templates (id, title_fa, layout_key, brand_name_fa, system)\nVALUES\n  ('casio-ss', 'کاسیو · پنج‌لایه', 'casio-ss', 'کاسیو', TRUE)\nON CONFLICT (id) DO NOTHING;\n\nUPDATE analyzer_document_templates\nSET layout_key = 'casio-ss',\n    brand_name_fa = 'کاسیو',\n    updated_at = NOW()\nWHERE id = 'casio-research';\n"
+  },
+  {
+    "id": "0023_account_avatars.sql",
+    "sql": "-- SVG avatar choice per account. image_key is reserved; photo upload is off.\nCREATE TABLE IF NOT EXISTS account_avatars (\n  account_id INTEGER PRIMARY KEY REFERENCES accounts(id) ON DELETE CASCADE,\n  variant INTEGER NOT NULL CHECK (variant >= 0 AND variant < 8),\n  image_key VARCHAR(160),\n  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()\n);\n"
   }
 ];
