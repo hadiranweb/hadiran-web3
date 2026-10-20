@@ -13,7 +13,7 @@ export async function POST(_request: Request, { params }: Ctx) {
   if (auth.error) return auth.error;
   const { id } = await params;
   try {
-    const order = await confirmReceipt({ orderId: id });
+    const order = await confirmReceipt({ orderId: id, actorId: auth.account.id });
     return NextResponse.json({ ok: true, id: order.id, state: order.state });
   } catch (error) {
     if (error instanceof ShopError) {

@@ -94,5 +94,9 @@ export const MIGRATION_FILES: { id: string; sql: string }[] = [
   {
     "id": "0023_account_avatars.sql",
     "sql": "-- SVG avatar choice per account. image_key is reserved; photo upload is off.\nCREATE TABLE IF NOT EXISTS account_avatars (\n  account_id INTEGER PRIMARY KEY REFERENCES accounts(id) ON DELETE CASCADE,\n  variant INTEGER NOT NULL CHECK (variant >= 0 AND variant < 8),\n  image_key VARCHAR(160),\n  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()\n);\n"
+  },
+  {
+    "id": "0024_shop_order_events.sql",
+    "sql": "CREATE TABLE IF NOT EXISTS shop_order_events (\n  id SERIAL PRIMARY KEY,\n  order_id TEXT NOT NULL REFERENCES shop_orders(id) ON DELETE CASCADE,\n  actor_id INTEGER REFERENCES accounts(id) ON DELETE SET NULL,\n  actor_role TEXT NOT NULL,\n  kind TEXT NOT NULL,\n  from_state TEXT,\n  to_state TEXT NOT NULL,\n  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()\n);\nCREATE INDEX IF NOT EXISTS shop_order_events_order_time_idx ON shop_order_events(order_id,created_at,id);\nCREATE INDEX IF NOT EXISTS shop_orders_settled_time_idx ON shop_orders(settled_at,id) WHERE state='settled';\nCREATE INDEX IF NOT EXISTS shop_orders_buyer_created_idx ON shop_orders(buyer_id,created_at,id);\n-- Historical state transitions are unknown: no fabricated event backfill.\n"
   }
 ];

@@ -790,6 +790,19 @@ export const shopEntitlements = pgTable(
   (t) => [unique().on(t.accountId, t.listingId)]
 );
 
+export const shopOrderEvents = pgTable("shop_order_events", {
+  id: serial("id").primaryKey(),
+  orderId: text("order_id")
+    .notNull()
+    .references(() => shopOrders.id, { onDelete: "cascade" }),
+  actorId: integer("actor_id").references(() => accounts.id, { onDelete: "set null" }),
+  actorRole: text("actor_role").notNull(),
+  kind: text("kind").notNull(),
+  fromState: text("from_state"),
+  toState: text("to_state").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const conversations = pgTable("conversations", {
   id: serial("id").primaryKey(),
   title: varchar("title", { length: 256 }),

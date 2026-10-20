@@ -15,7 +15,7 @@ export async function POST(request: Request, { params }: Ctx) {
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   const reason = typeof body.reason === "string" ? body.reason : "";
   try {
-    const order = await declineReceipt({ orderId: id, reason });
+    const order = await declineReceipt({ orderId: id, actorId: auth.account.id, reason });
     return NextResponse.json({ ok: true, id: order.id, state: order.state });
   } catch (error) {
     if (error instanceof ShopError) {

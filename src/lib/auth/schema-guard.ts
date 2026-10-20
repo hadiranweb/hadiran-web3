@@ -248,6 +248,30 @@ export async function ensureAccessSchema() {
   await db.execute(sql`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS discount_code VARCHAR(32)`);
   await db.execute(sql`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS discount_amount INTEGER NOT NULL DEFAULT 0`);
   await db.execute(sql`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS original_amount INTEGER`);
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS shop_order_events (
+      id SERIAL PRIMARY KEY,
+      order_id TEXT NOT NULL REFERENCES shop_orders(id) ON DELETE CASCADE,
+      actor_id INTEGER REFERENCES accounts(id) ON DELETE SET NULL,
+      actor_role TEXT NOT NULL,
+      kind TEXT NOT NULL,
+      from_state TEXT,
+      to_state TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS shop_order_events_order_time_idx
+    ON shop_order_events (order_id, created_at, id)
+  `);
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS shop_orders_settled_time_idx
+    ON shop_orders (settled_at, id) WHERE state = 'settled'
+  `);
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS shop_orders_buyer_created_idx
+    ON shop_orders (buyer_id, created_at, id)
+  `);
   accessReady = true;
 }
 
