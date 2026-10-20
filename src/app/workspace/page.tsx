@@ -6,6 +6,7 @@ import { loadWorkspaceDesk, recordStatusFa } from "@/lib/workspace/pulse";
 import { loadActionQueue, queueHasItems, type ActionGroup } from "@/lib/workspace/queue";
 import { getWorkspaceData } from "@/lib/workspace/data";
 import { Overview } from "@/components/workspace/Overview";
+import { RecordRowActions } from "@/components/workspace/RecordRowActions";
 import { RoleAssignForm } from "@/components/workspace/RoleAssignForm";
 import type { Metadata } from "next";
 
@@ -40,15 +41,18 @@ function QueueGroup({ title: label, group }: { title: string; group: ActionGroup
       <ul>
         {group.items.map((item) => (
           <li key={`${item.kind}-${item.id}`}>
-            <Link href={item.href} className="ws-recent-row">
-              <span>
-                <strong>{item.titleFa}</strong>
-                <small>
-                  {item.reason}
-                  {item.at ? ` · ${whenFa(item.at)}` : ""}
-                </small>
-              </span>
-            </Link>
+            <div className="ws-recent-row">
+              <Link href={item.href} className="min-w-0 flex-1">
+                <span>
+                  <strong>{item.titleFa}</strong>
+                  <small>
+                    {item.reason}
+                    {item.at ? ` · ${whenFa(item.at)}` : ""}
+                  </small>
+                </span>
+              </Link>
+              {item.kind === "note" ? <RecordRowActions id={item.id} title={item.titleFa} /> : null}
+            </div>
           </li>
         ))}
       </ul>
@@ -140,14 +144,17 @@ export default async function WorkspacePage() {
             <ul>
               {desk.openWork.map((item) => (
                 <li key={item.id}>
-                  <Link href={`/workspace/records/${item.id}`} className="ws-recent-row">
-                    <span>
-                      <strong>{item.titleFa}</strong>
-                      <small>
-                        {recordStatusFa(item.status)} · {whenFa(item.updatedAt)}
-                      </small>
-                    </span>
-                  </Link>
+                  <div className="ws-recent-row">
+                    <Link href={`/workspace/records/${item.id}`} className="min-w-0 flex-1">
+                      <span>
+                        <strong>{item.titleFa}</strong>
+                        <small>
+                          {recordStatusFa(item.status)} · {whenFa(item.updatedAt)}
+                        </small>
+                      </span>
+                    </Link>
+                    <RecordRowActions id={item.id} title={item.titleFa} />
+                  </div>
                 </li>
               ))}
             </ul>
@@ -167,7 +174,7 @@ export default async function WorkspacePage() {
                   <span>
                     <strong>{item.titleFa}</strong>
                   </span>
-                  <span className="flex gap-3 text-xs">
+                  <span className="flex items-center gap-3 text-xs">
                     <Link href={`/workspace/records/${item.recordId}`} className="ws-text-link">
                       ثبت مبدأ
                     </Link>
@@ -176,6 +183,7 @@ export default async function WorkspacePage() {
                         نمود باغ دانش
                       </Link>
                     ) : null}
+                    <RecordRowActions id={item.recordId} title={item.titleFa} />
                   </span>
                 </li>
               ))}
@@ -193,12 +201,15 @@ export default async function WorkspacePage() {
             <ul>
               {desk.allRecords.map((item) => (
                 <li key={item.id}>
-                  <Link href={`/workspace/records/${item.id}`} className="ws-recent-row">
-                    <span>
-                      <strong>{item.titleFa}</strong>
-                      <small>{recordStatusFa(item.status)}</small>
-                    </span>
-                  </Link>
+                  <div className="ws-recent-row">
+                    <Link href={`/workspace/records/${item.id}`} className="min-w-0 flex-1">
+                      <span>
+                        <strong>{item.titleFa}</strong>
+                        <small>{recordStatusFa(item.status)}</small>
+                      </span>
+                    </Link>
+                    <RecordRowActions id={item.id} title={item.titleFa} />
+                  </div>
                 </li>
               ))}
             </ul>

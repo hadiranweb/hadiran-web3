@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import type { ModuleKind, WorkspaceData, WorkspaceItem } from "@/lib/workspace/types";
 import { useWorkspaceLocale } from "./useWorkspaceLocale";
+import { RecordRowActions } from "./RecordRowActions";
 
 const labels: Record<string, [string, string]> = {
   article: ["مقاله", "Article"],
@@ -164,9 +165,12 @@ export function RecordManager({
         ) : null}
         <div className="ws-record-card-bottom">
           <span>{label(item.category)}</span>
-          <button type="button" className="ws-icon-button" onClick={() => openDetails(item)} aria-label={`${t("جزئیات", "Details")}: ${titleOf(item)}`}>
-            <ArrowUpLeft size={17} />
-          </button>
+          <span className="flex items-center gap-1">
+            {kind === "knowledge" ? <RecordRowActions id={item.id} title={titleOf(item)} /> : null}
+            <button type="button" className="ws-icon-button" onClick={() => openDetails(item)} aria-label={`${t("جزئیات", "Details")}: ${titleOf(item)}`}>
+              <ArrowUpLeft size={17} />
+            </button>
+          </span>
         </div>
       </article>
     );
@@ -261,6 +265,7 @@ export function RecordManager({
                 <th>{t("وضعیت", "Status")}</th>
                 <th>{kind === "collaborations" ? t("پروژه", "Project") : t("نوع", "Type")}</th>
                 <th>{t("تاریخ", "Updated")}</th>
+                {kind === "knowledge" ? <th>{t("اقدام", "Actions")}</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -282,6 +287,11 @@ export function RecordManager({
                   </td>
                   <td>{label(item.category)}</td>
                   <td className="ws-nowrap">{date(item.updated)}</td>
+                  {kind === "knowledge" ? (
+                    <td>
+                      <RecordRowActions id={item.id} title={titleOf(item)} />
+                    </td>
+                  ) : null}
                 </tr>
               ))}
             </tbody>
@@ -352,6 +362,7 @@ export function RecordManager({
                   {t("بازکردن صفحه", "Open page")}
                 </Link>
               ) : null}
+              {kind === "knowledge" ? <RecordRowActions id={selected.id} title={titleOf(selected)} /> : null}
             </div>
           </div>
         ) : null}

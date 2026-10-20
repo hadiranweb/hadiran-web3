@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { BookOpen, ChevronLeft, FileText, FolderKanban, Handshake, Package } from "lucide-react";
+import { BookOpen, FileText, FolderKanban, Handshake, Package } from "lucide-react";
 import type { PulseCounts } from "@/lib/workspace/pulse";
 import { recordStatusFa } from "@/lib/workspace/pulse";
 import type { WorkspaceData } from "@/lib/workspace/types";
+import { RecordRowActions } from "./RecordRowActions";
 
 function whenFa(value: string): string {
   if (!value) return "";
@@ -149,19 +150,21 @@ export function Overview({
             <p className="ws-empty">هنوز ثبتی نیست.</p>
           ) : (
             recent.map((item) => (
-              <Link key={item.id} href={item.editUrl || `/workspace/records/${item.id}`} className="ws-recent-row">
-                <span className="ws-record-icon">
-                  <FileText className="h-4 w-4" strokeWidth={1.5} />
-                </span>
-                <span>
-                  <strong>{item.title}</strong>
-                  <small>
-                    {recordStatusFa(item.status)}
-                    {item.updated ? ` · ${whenFa(item.updated)}` : ""}
-                  </small>
-                </span>
-                <ChevronLeft className="h-4 w-4" strokeWidth={1.5} />
-              </Link>
+              <div key={item.id} className="ws-recent-row">
+                <Link href={item.editUrl || `/workspace/records/${item.id}`} className="flex min-w-0 flex-1 items-center gap-3">
+                  <span className="ws-record-icon">
+                    <FileText className="h-4 w-4" strokeWidth={1.5} />
+                  </span>
+                  <span>
+                    <strong>{item.title}</strong>
+                    <small>
+                      {recordStatusFa(item.status)}
+                      {item.updated ? ` · ${whenFa(item.updated)}` : ""}
+                    </small>
+                  </span>
+                </Link>
+                <RecordRowActions id={item.id} title={item.title} />
+              </div>
             ))
           )}
         </section>

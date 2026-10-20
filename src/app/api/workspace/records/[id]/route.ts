@@ -41,3 +41,16 @@ export async function PATCH(request: Request, { params }: Ctx) {
 
   return NextResponse.json({ ok: true, id: updated.id });
 }
+
+export async function DELETE(_request: Request, { params }: Ctx) {
+  const auth = await requireOwner();
+  if (auth.error) return auth.error;
+  const { id } = await params;
+  const [existing] = await db.select({ id: semanticRecords.id, ownerId: semanticRecords.ownerId }).from(semanticRecords).where(eq(semanticRecords.id, id));
+  if (!existing) return NextResponse.json({ error: "not_found" }, { status: 404 });
+  if (existing.ownerId && existing.ownerId !== auth.account.id) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
+  await db.delete(semanticRecords).where(eq(semanticRecords.id, id));
+  return NextResponse.json({ ok: true, id });
+}

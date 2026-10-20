@@ -5,12 +5,13 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import {
   BookOpen,
-  ChevronLeft,
-  ChevronRight,
   Hash,
+  Home,
   Layers,
   Menu,
   PenLine,
+  Pin,
+  PinOff,
   Plus,
   ScanSearch,
   Search,
@@ -25,6 +26,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { SessionMenu } from "@/components/auth/SessionMenu";
 
 type Locale = "fa" | "en";
+type NavMode = "expanded" | "minimal";
 type ModuleLink = {
   href: string;
   fa: string;
@@ -34,6 +36,7 @@ type ModuleLink = {
 };
 
 const LOCALE_COOKIE = "hadiran-workspace-locale";
+const NAV_STORAGE = "hadiran-workspace-nav";
 
 const ownerModules: ModuleLink[] = [
   { href: "/workspace", fa: "نمای کلی", en: "Overview", icon: Layers, exact: true },
@@ -83,6 +86,22 @@ function writeLocale(value: Locale) {
   document.cookie = `${LOCALE_COOKIE}=${value}; Path=/; Max-Age=31536000; SameSite=Lax`;
 }
 
+function readNavMode(): NavMode {
+  try {
+    return localStorage.getItem(NAV_STORAGE) === "minimal" ? "minimal" : "expanded";
+  } catch {
+    return "expanded";
+  }
+}
+
+function writeNavMode(value: NavMode) {
+  try {
+    localStorage.setItem(NAV_STORAGE, value);
+  } catch {
+    /* ignore */
+  }
+}
+
 function isActive(pathname: string, link: ModuleLink) {
   return link.exact ? pathname === link.href : pathname === link.href || pathname.startsWith(`${link.href}/`);
 }
@@ -91,14 +110,15 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
   const pathname = usePathname();
   const [account, setAccount] = useState<{ role?: string; analyzerDesk?: boolean } | null>(null);
   const [locale, setLocale] = useState<Locale>("fa");
-  const [collapsed, setCollapsed] = useState(false);
-  const [mobile, setMobile] = useState(false);
+  const [navMode, setNavMode] = useState<NavMode>("expanded");
+  const [drawer, setDrawer] = useState(false);
   const [query, setQuery] = useState("");
   const searchDialog = useRef<HTMLDialogElement>(null);
   const menuButton = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     setLocale(readLocale());
+    setNavMode(readNavMode());
   }, []);
 
   useEffect(() => {
@@ -111,16 +131,16 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
   }, [pathname]);
 
   useEffect(() => {
-    setMobile(false);
+    setDrawer(false);
   }, [pathname]);
 
   useEffect(() => {
-    if (!mobile) return;
+    if (!drawer) return;
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setMobile(false);
+        setDrawer(false);
         menuButton.current?.focus();
       }
     };
@@ -129,7 +149,7 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
       document.body.style.overflow = previous;
       document.removeEventListener("keydown", onKey);
     };
-  }, [mobile]);
+  }, [drawer]);
 
   const role = account?.role ?? null;
   const modules = role === "author" ? authorModules : role === "member" ? grantedModules : ownerModules;
@@ -139,6 +159,8 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
   const dir = locale === "fa" ? "rtl" : "ltr";
   const matches = modules.filter((item) => `${item.fa} ${item.en}`.toLowerCase().includes(query.trim().toLowerCase()));
   const current = modules.find((item) => isActive(pathname, item));
+  const minimal = navMode === "minimal";
+  const labelsOpen = drawer || !minimal;
 
   function toggleLocale() {
     const next: Locale = locale === "fa" ? "en" : "fa";
@@ -146,18 +168,58 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
     writeLocale(next);
   }
 
+  function setMode(next: NavMode) {
+    setNavMode(next);
+    writeNavMode(next);
+    if (next === "expanded") setDrawer(false);
+  }
+
+  function onHamburger() {
+    if (drawer) {
+      setDrawer(false);
+      return;
+    }
+    setDrawer(true);
+  }
+
+  function NavList({ showLabels }: { showLabels: boolean }) {
+    return (
+      <nav className="flex-1 space-y-1 overflow-y-auto px-2 pb-4">
+        {modules.map((link) => {
+          const active = isActive(pathname, link);
+          const Icon = link.icon;
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              title={t(link.fa, link.en)}
+              aria-current={active ? "page" : undefined}
+              onClick={() => setDrawer(false)}
+              className={`flex min-h-11 items-center gap-3 rounded-[var(--radius-sm)] px-3 text-sm ${
+                showLabels ? "" : "justify-center px-0"
+              } ${active ? "bg-accent-soft font-medium text-ink" : "text-muted hover:bg-paper hover:text-ink"}`}
+            >
+              <Icon className="h-4 w-4 shrink-0" strokeWidth={1.7} />
+              {showLabels ? <span>{t(link.fa, link.en)}</span> : <span className="sr-only">{t(link.fa, link.en)}</span>}
+            </Link>
+          );
+        })}
+      </nav>
+    );
+  }
+
   return (
     <div className="flex min-h-[calc(100dvh-0px)] bg-paper" dir={dir} lang={locale}>
       <a href="#workspace-content" className="sr-only focus:not-sr-only focus:absolute focus:z-[80] focus:bg-elev focus:px-3 focus:py-2">
         {t("رفتن به محتوا", "Skip to content")}
       </a>
-      {mobile ? (
+      {drawer ? (
         <button
           type="button"
-          className="fixed inset-0 z-40 bg-ink/40 xl:hidden"
-          aria-label={t("بستن منو", "Close navigation")}
+          className="fixed inset-0 z-40 bg-ink/40"
+          aria-label={t("بستن فهرست", "Close navigation")}
           onClick={() => {
-            setMobile(false);
+            setDrawer(false);
             menuButton.current?.focus();
           }}
         />
@@ -165,97 +227,109 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
 
       <aside
         id="workspace-navigation"
-        className={`print-hide print:hidden fixed inset-y-0 z-50 flex w-64 flex-col border-line bg-elev transition-[transform,width] ${
-          dir === "rtl" ? "right-0 border-s" : "left-0 border-e"
-        } ${collapsed ? "xl:w-[4.5rem]" : "xl:w-64"} ${
-          mobile ? "translate-x-0" : dir === "rtl" ? "translate-x-full xl:translate-x-0" : "-translate-x-full xl:translate-x-0"
+        className={`print-hide print:hidden z-50 flex flex-col border-line bg-elev transition-[transform,width] ${
+          dir === "rtl" ? "border-s" : "border-e"
+        } ${
+          drawer
+            ? "fixed inset-y-0 w-64 translate-x-0 " + (dir === "rtl" ? "right-0" : "left-0")
+            : `fixed inset-y-0 hidden xl:flex ${dir === "rtl" ? "right-0" : "left-0"} ${minimal ? "w-[4.5rem]" : "w-64"}`
         }`}
         aria-label={t("ناوبری فضای کار", "Workspace navigation")}
       >
-        <div className="flex items-center justify-between gap-2 px-3 py-4">
-          <Link href={home} className="flex min-w-0 items-center gap-2" onClick={() => setMobile(false)}>
+        <div className={`flex items-center gap-2 px-3 py-4 ${labelsOpen ? "justify-between" : "justify-center"}`}>
+          <Link href={home} className="flex min-w-0 items-center gap-2" onClick={() => setDrawer(false)}>
             <HadiranMark className="h-8 w-8 shrink-0" />
-            <span className={`min-w-0 ${collapsed ? "xl:hidden" : ""}`}>
-              <span className="block truncate text-sm font-bold text-ink">{t("هادیران", "Hadiran")}</span>
-              <span className="block truncate text-xs text-muted">
-                {t(role === "author" || role === "member" ? "میز آزمون" : "میز کار", role === "author" || role === "member" ? "Exam desk" : "Workspace")}
+            {labelsOpen ? (
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-bold text-ink">{t("هادیران", "Hadiran")}</span>
+                <span className="block truncate text-xs text-muted">
+                  {t(role === "author" || role === "member" ? "میز آزمون" : "میز کار", role === "author" || role === "member" ? "Exam desk" : "Workspace")}
+                </span>
               </span>
-            </span>
+            ) : (
+              <span className="sr-only">{t("هادیران", "Hadiran")}</span>
+            )}
           </Link>
-          <button
-            type="button"
-            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-[var(--radius-sm)] text-muted hover:bg-paper hover:text-ink xl:hidden"
-            aria-label={t("بستن منو", "Close navigation")}
-            onClick={() => {
-              setMobile(false);
-              menuButton.current?.focus();
-            }}
-          >
-            <X className="h-5 w-5" />
-          </button>
+          {drawer ? (
+            <button
+              type="button"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-[var(--radius-sm)] text-muted hover:bg-paper hover:text-ink"
+              aria-label={t("بستن منو", "Close navigation")}
+              onClick={() => {
+                setDrawer(false);
+                menuButton.current?.focus();
+              }}
+            >
+              <X className="h-5 w-5" />
+            </button>
+          ) : null}
         </div>
 
         <button
           type="button"
-          className="mx-3 mb-3 flex min-h-11 items-center gap-2 rounded-[var(--radius-sm)] border border-line bg-paper px-3 text-sm text-muted hover:text-ink"
+          className={`mx-3 mb-3 flex min-h-11 items-center gap-2 rounded-[var(--radius-sm)] border border-line bg-paper px-3 text-sm text-muted hover:text-ink ${
+            labelsOpen ? "" : "justify-center px-0"
+          }`}
           onClick={() => searchDialog.current?.showModal()}
+          aria-label={t("جست‌وجوی بخش‌ها", "Find a module")}
         >
           <Search className="h-4 w-4 shrink-0" />
-          <span className={collapsed ? "xl:hidden" : ""}>{t("جست‌وجوی بخش‌ها", "Find a module")}</span>
+          {labelsOpen ? <span>{t("جست‌وجوی بخش‌ها", "Find a module")}</span> : null}
         </button>
 
-        <nav className="flex-1 space-y-1 overflow-y-auto px-2 pb-4">
-          {modules.map((link) => {
-            const active = isActive(pathname, link);
-            const Icon = link.icon;
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                title={t(link.fa, link.en)}
-                aria-current={active ? "page" : undefined}
-                onClick={() => setMobile(false)}
-                className={`flex min-h-11 items-center gap-3 rounded-[var(--radius-sm)] px-3 text-sm ${
-                  active ? "bg-accent-soft font-medium text-ink" : "text-muted hover:bg-paper hover:text-ink"
-                }`}
-              >
-                <Icon className="h-4 w-4 shrink-0" strokeWidth={1.7} />
-                <span className={collapsed ? "xl:hidden" : ""}>{t(link.fa, link.en)}</span>
-              </Link>
-            );
-          })}
-        </nav>
+        <NavList showLabels={labelsOpen} />
 
-        <div className="border-t border-line p-2">
+        <div className="space-y-1 border-t border-line p-2">
           <button
             type="button"
-            className="hidden min-h-11 w-full items-center gap-3 rounded-[var(--radius-sm)] px-3 text-sm text-muted hover:bg-paper hover:text-ink xl:flex"
-            onClick={() => setCollapsed((value) => !value)}
-            aria-expanded={!collapsed}
+            className={`flex min-h-11 w-full items-center gap-3 rounded-[var(--radius-sm)] px-3 text-sm text-muted hover:bg-paper hover:text-ink ${
+              labelsOpen ? "" : "justify-center px-0"
+            }`}
+            onClick={() => setMode(minimal ? "expanded" : "minimal")}
+            aria-pressed={!minimal}
+            title={minimal ? t("پین با نام بخش‌ها", "Pin with labels") : t("فقط آیکون", "Icons only")}
           >
-            {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-            <span className={collapsed ? "xl:hidden" : ""}>{t("جمع‌کردن منو", "Collapse sidebar")}</span>
+            {minimal ? <Pin className="h-4 w-4" /> : <PinOff className="h-4 w-4" />}
+            {labelsOpen ? <span>{minimal ? t("پین با نام", "Pin labels") : t("حالت مینیمال", "Minimal")}</span> : null}
           </button>
+          <Link
+            href="/"
+            className={`flex min-h-11 w-full items-center gap-3 rounded-[var(--radius-sm)] px-3 text-sm text-muted hover:bg-paper hover:text-ink ${
+              labelsOpen ? "" : "justify-center px-0"
+            }`}
+            title={t("خروج به سایت", "Back to site")}
+          >
+            <Home className="h-4 w-4 shrink-0" />
+            {labelsOpen ? <span>{t("خروج به سایت", "Back to site")}</span> : <span className="sr-only">{t("خروج به سایت", "Back to site")}</span>}
+          </Link>
         </div>
       </aside>
 
-      <div className={`flex min-w-0 flex-1 flex-col ${collapsed ? "xl:ms-[4.5rem]" : "xl:ms-64"}`}>
+      <div className={`flex min-w-0 flex-1 flex-col ${minimal ? "xl:ms-[4.5rem]" : "xl:ms-64"}`}>
         <header className="print-hide sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-line bg-paper/95 px-3 py-2 print:hidden">
           <div className="flex min-w-0 items-center gap-2">
             <button
               ref={menuButton}
               type="button"
-              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-[var(--radius-sm)] text-muted hover:bg-elev hover:text-ink xl:hidden"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-[var(--radius-sm)] text-muted hover:bg-elev hover:text-ink"
               aria-label={t("باز کردن فهرست", "Open navigation")}
-              aria-expanded={mobile}
+              aria-expanded={drawer}
               aria-controls="workspace-navigation"
-              onClick={() => setMobile(true)}
+              onClick={onHamburger}
             >
               <Menu className="h-5 w-5" />
             </button>
             <p className="truncate text-sm font-medium text-ink">{current ? t(current.fa, current.en) : t("میز کار", "Workspace")}</p>
           </div>
           <div className="flex items-center gap-1">
+            <Link
+              href="/"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-[var(--radius-sm)] text-muted hover:bg-elev hover:text-ink"
+              aria-label={t("خروج به سایت", "Back to site")}
+              title={t("خروج به سایت", "Back to site")}
+            >
+              <Home className="h-5 w-5" strokeWidth={1.6} />
+            </Link>
             <button
               type="button"
               className="inline-flex min-h-11 items-center gap-1 rounded-[var(--radius-sm)] px-3 text-xs font-medium text-muted hover:bg-elev hover:text-ink"
@@ -265,21 +339,24 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
               {locale === "fa" ? "EN" : "فا"}
             </button>
             <ThemeToggle />
-            <SessionMenu />
-            {showCreate ? (
-              <Link
-                href={role === "author" ? "/workspace/analyzers/new" : "/workspace/capture"}
-                className="inline-flex min-h-11 items-center gap-1.5 rounded-[var(--radius-sm)] bg-accent px-3 text-sm font-medium text-accent-fg"
-              >
-                <Plus className="h-4 w-4" />
-                <span className="hidden sm:inline">{t(role === "author" ? "آزمون تازه" : "ثبت جدید", role === "author" ? "New exam" : "New capture")}</span>
-              </Link>
-            ) : null}
           </div>
         </header>
         <div id="workspace-content" className="flex-1" tabIndex={-1}>
           {children}
         </div>
+      </div>
+
+      <div className="ws-float-dock print-hide print:hidden">
+        <SessionMenu />
+        {showCreate ? (
+          <Link
+            href={role === "author" ? "/workspace/analyzers/new" : "/workspace/capture"}
+            className="ws-float-capture"
+          >
+            <Plus className="h-4 w-4" />
+            <span>{t(role === "author" ? "آزمون تازه" : "ثبت جدید", role === "author" ? "New exam" : "New capture")}</span>
+          </Link>
+        ) : null}
       </div>
 
       <dialog
@@ -320,7 +397,7 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
                 className="flex min-h-11 items-center gap-3 rounded-[var(--radius-sm)] px-3 text-sm hover:bg-paper"
                 onClick={() => {
                   searchDialog.current?.close();
-                  setMobile(false);
+                  setDrawer(false);
                 }}
               >
                 <Icon className="h-4 w-4" strokeWidth={1.7} />

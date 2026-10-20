@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { requirePageOwner } from "@/lib/auth/guard";
 import { CaptureEditor } from "@/components/knowledge/CaptureEditor";
 import { PromoteButton } from "@/components/knowledge/PromoteButton";
+import { RecordRowActions } from "@/components/workspace/RecordRowActions";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -31,6 +32,9 @@ export default async function WorkspaceRecordPage({ params }: Props) {
           {item.status} · {item.visibility} · {item.id}
         </p>
         <h1 className="mt-1 text-3xl font-bold text-slate-900">{item.titleFa}</h1>
+        <div className="mt-3">
+          <RecordRowActions id={item.id} title={item.titleFa} />
+        </div>
       </div>
       <PromoteButton recordId={item.id} />
       <CaptureEditor

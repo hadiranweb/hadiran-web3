@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowUpLeft, Bot, FileText, FlaskConical, Receipt, RefreshCw, Users } from "lucide-react";
 import { actionKinds, type ActionKind, type OperationalSnapshot } from "@/lib/workspace/operations-types";
 import { useWorkspaceLocale } from "./useWorkspaceLocale";
+import { RecordRowActions } from "./RecordRowActions";
 import "./role-home.css";
 
 const labels: Record<ActionKind, [string, string]> = {
@@ -85,16 +86,22 @@ export function OperationalOverview({ snapshot, listOnly = false }: { snapshot: 
               const Icon = icons[item.kind];
               return (
                 <li key={item.key}>
-                  <Link href={item.href} className="rh-row">
-                    <span className="rh-icon">
-                      <Icon size={18} />
-                    </span>
-                    <span className="rh-copy">
-                      <strong>{item.title}</strong>
-                      <small>{t(...labels[item.kind])}</small>
-                    </span>
-                    <ArrowUpLeft size={16} />
-                  </Link>
+                  <div className="rh-row">
+                    <Link href={item.href} className="flex min-w-0 flex-1 items-center gap-3">
+                      <span className="rh-icon">
+                        <Icon size={18} />
+                      </span>
+                      <span className="rh-copy">
+                        <strong>{item.title}</strong>
+                        <small>{t(...labels[item.kind])}</small>
+                      </span>
+                    </Link>
+                    {item.kind === "notes" && item.href.startsWith("/workspace/records/") ? (
+                      <RecordRowActions id={item.href.slice("/workspace/records/".length)} title={item.title} />
+                    ) : (
+                      <ArrowUpLeft size={16} />
+                    )}
+                  </div>
                 </li>
               );
             })}
