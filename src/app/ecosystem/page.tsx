@@ -2,9 +2,10 @@ import { db } from "@/db";
 import { knowledge, memoryItems, projects, courses } from "@/db/schema";
 import { count, eq } from "drizzle-orm";
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { HadiranMark } from "@/components/HadiranMark";
-import { PageShell } from "@/components/ui/PageShell";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { RoomPage } from "@/components/ui/RoomPage";
 import { houseCopy, rooms } from "@/lib/copy";
 import type { Metadata } from "next";
 
@@ -73,40 +74,38 @@ export default async function EcosystemPage() {
   ];
 
   return (
-    <PageShell width="wide">
-      <PageHeader kicker="نقشه" title={houseCopy.heading} lede={houseCopy.lede} />
-
-      <ul className="grid gap-4 sm:grid-cols-2">
+    <RoomPage hero={<PageHeader kicker="نقشه" title={houseCopy.heading} lede={houseCopy.lede} />}>
+      <ul className="section-cards listing-cards">
         {worlds.map((world) => (
           <li key={world.href}>
-            <Link href={world.href} className="surface block h-full p-6 transition hover:border-accent">
-              <h2 className="text-xl font-bold leading-[1.7] text-ink">{world.label}</h2>
-              <p className="mt-2 text-sm leading-7 text-muted">{world.promise}</p>
-              {world.count != null ? (
-                <p className="mt-6 text-xs text-muted">
-                  {world.count.toLocaleString("fa-IR")} {world.unit}
-                </p>
-              ) : null}
+            <Link href={world.href} className="card card-hover section-card">
+              <div className="section-card-copy">
+                <h2 className="section-card-title">{world.label}</h2>
+                <p className="muted mt-2 text-sm leading-7">{world.promise}</p>
+                {world.count != null ? (
+                  <p className="chip mt-4">
+                    {world.count.toLocaleString("fa-IR")} {world.unit}
+                  </p>
+                ) : null}
+              </div>
+              <span className="more">
+                ورود
+                <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />
+              </span>
             </Link>
           </li>
         ))}
       </ul>
 
       <div className="mt-10 flex flex-wrap gap-3">
-        <Link
-          href="/"
-          className="inline-flex rounded-[var(--radius-md)] bg-accent px-5 py-2.5 text-sm font-medium text-accent-fg"
-        >
+        <Link href="/" className="ws-button ws-primary">
           شروع هم‌فکری
         </Link>
-        <Link
-          href="/hadiran"
-          className="inline-flex items-center gap-2 rounded-[var(--radius-md)] border border-line bg-elev px-5 py-2.5 text-sm font-medium text-ink"
-        >
+        <Link href="/hadiran" className="ws-button">
           <HadiranMark className="h-4 w-4" />
           درباره من
         </Link>
       </div>
-    </PageShell>
+    </RoomPage>
   );
 }

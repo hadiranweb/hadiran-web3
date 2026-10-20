@@ -2,16 +2,18 @@ import { db } from "@/db";
 import { projects, projectTopics, topics } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
-import { PageShell } from "@/components/ui/PageShell";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { RoomPage } from "@/components/ui/RoomPage";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { labCopy } from "@/lib/copy";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "کارگاه",
-  description: "ظرف‌ها و پروژه‌های باز. اینجا کار می‌کنیم، نه تبلیغ.",
+  description: labCopy.lede,
   alternates: { canonical: "/lab" },
 };
 
@@ -41,46 +43,50 @@ export default async function LabPage() {
   }
 
   return (
-    <PageShell>
-      <PageHeader title="کارگاه" lede="ظرف‌ها و پروژه‌های باز. اینجا کار می‌کنیم، نه تبلیغ." />
-
+    <RoomPage hero={<PageHeader title={labCopy.title} lede={labCopy.lede} />}>
       {allProjects.length === 0 ? (
         <EmptyState title="هنوز پروژه‌ای ثبت نشده." />
       ) : (
-        <ul className="grid gap-5 md:grid-cols-2">
+        <ul className="section-cards listing-cards">
           {allProjects.map((project) => (
             <li key={project.id}>
-              <Link href={`/lab/${project.slug}`} className="surface block h-full p-6 transition hover:border-accent">
-                <p className="text-xs font-medium text-mark">{statusLabels[project.status] || project.status}</p>
-                <h2 className="mt-2 text-xl font-bold leading-[1.7] text-ink">{project.nameFa}</h2>
-                {project.descriptionFa ? (
-                  <p className="mt-2 line-clamp-2 text-sm leading-7 text-muted">{project.descriptionFa}</p>
-                ) : null}
-                {typeof project.progress === "number" ? (
-                  <div className="mt-4">
-                    <div className="mb-1 flex items-center justify-between text-xs text-muted">
-                      <span>پیشرفت</span>
-                      <span>{project.progress.toLocaleString("fa-IR")}٪</span>
+              <Link href={`/lab/${project.slug}`} className="card card-hover section-card">
+                <div className="section-card-copy">
+                  <p className="chip">{statusLabels[project.status] || project.status}</p>
+                  <h2 className="section-card-title mt-3">{project.nameFa}</h2>
+                  {project.descriptionFa ? (
+                    <p className="muted mt-2 line-clamp-2 text-sm leading-7">{project.descriptionFa}</p>
+                  ) : null}
+                  {typeof project.progress === "number" ? (
+                    <div className="mt-4">
+                      <div className="mb-1 flex items-center justify-between text-xs text-muted">
+                        <span>پیشرفت</span>
+                        <span>{project.progress.toLocaleString("fa-IR")}٪</span>
+                      </div>
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-paper">
+                        <div className="h-full rounded-full bg-accent" style={{ width: `${project.progress}%` }} />
+                      </div>
                     </div>
-                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-paper">
-                      <div className="h-full rounded-full bg-accent" style={{ width: `${project.progress}%` }} />
+                  ) : null}
+                  {topicsMap[project.id]?.length ? (
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {topicsMap[project.id].map((topic) => (
+                        <span key={topic.slug} className="chip">
+                          {topic.labelFa}
+                        </span>
+                      ))}
                     </div>
-                  </div>
-                ) : null}
-                {topicsMap[project.id]?.length ? (
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {topicsMap[project.id].map((topic) => (
-                      <span key={topic.slug} className="rounded-full bg-paper px-2 py-1 text-xs text-muted">
-                        {topic.labelFa}
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
+                  ) : null}
+                </div>
+                <span className="more">
+                  ورود
+                  <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />
+                </span>
               </Link>
             </li>
           ))}
         </ul>
       )}
-    </PageShell>
+    </RoomPage>
   );
 }

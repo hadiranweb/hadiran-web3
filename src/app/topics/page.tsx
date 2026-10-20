@@ -2,11 +2,12 @@ import { db } from "@/db";
 import { topics, knowledgeTopics, projectTopics, courseTopics } from "@/db/schema";
 import { count } from "drizzle-orm";
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/JsonLd";
 import { absoluteUrl } from "@/lib/site";
-import { PageShell } from "@/components/ui/PageShell";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { RoomPage } from "@/components/ui/RoomPage";
 import { EmptyState } from "@/components/ui/EmptyState";
 
 export const dynamic = "force-dynamic";
@@ -42,51 +43,61 @@ export default async function TopicsPage() {
   const courseByTopic = toMap(courseCounts);
 
   return (
-    <PageShell>
-      <JsonLd
-        data={{
-          "@context": "https://schema.org",
-          "@type": "CollectionPage",
-          name: "موضوعات هادیران",
-          description: "موضوعات اتصال‌دهندهٔ باغ دانش، کارگاه و دوره‌های هادیران.",
-          url: absoluteUrl("/topics"),
-        }}
-      />
-      <PageHeader
-        title="موضوعات"
-        lede="پل خانه: هر موضوع باغ دانش، ظرف کارگاه و دورهٔ مرتبط را در یک صفحه جمع می‌کند."
-      />
-
+    <RoomPage
+      hero={
+        <>
+          <JsonLd
+            data={{
+              "@context": "https://schema.org",
+              "@type": "CollectionPage",
+              name: "موضوعات هادیران",
+              description: "موضوعات اتصال‌دهندهٔ باغ دانش، کارگاه و دوره‌های هادیران.",
+              url: absoluteUrl("/topics"),
+            }}
+          />
+          <PageHeader
+            title="موضوعات"
+            lede="پل خانه: هر موضوع باغ دانش، ظرف کارگاه و دورهٔ مرتبط را در یک صفحه جمع می‌کند."
+          />
+        </>
+      }
+    >
       {allTopics.length === 0 ? (
         <EmptyState title="موضوعی ثبت نشده." />
       ) : (
-        <ul className="grid gap-5 md:grid-cols-2">
+        <ul className="section-cards listing-cards">
           {allTopics.map((topic) => {
             const k = knowledgeByTopic[topic.id] ?? 0;
             const p = projectByTopic[topic.id] ?? 0;
             const c = courseByTopic[topic.id] ?? 0;
             return (
               <li key={topic.id}>
-                <Link href={`/topics/${topic.slug}`} className="surface block h-full p-6 transition hover:border-accent">
-                  <h2 className="text-lg font-bold leading-[1.7] text-ink">{topic.labelFa}</h2>
-                  {topic.labelEn ? (
-                    <p className="mt-1 text-xs text-muted" dir="ltr">
-                      {topic.labelEn}
+                <Link href={`/topics/${topic.slug}`} className="card card-hover section-card">
+                  <div className="section-card-copy">
+                    <h2 className="section-card-title">{topic.labelFa}</h2>
+                    {topic.labelEn ? (
+                      <p className="muted mt-1 text-xs" dir="ltr">
+                        {topic.labelEn}
+                      </p>
+                    ) : null}
+                    {topic.descriptionFa ? (
+                      <p className="muted mt-2 line-clamp-3 text-sm leading-7">{topic.descriptionFa}</p>
+                    ) : null}
+                    <p className="chip mt-4">
+                      {k.toLocaleString("fa-IR")} دانش · {p.toLocaleString("fa-IR")} پروژه · {c.toLocaleString("fa-IR")}{" "}
+                      دوره
                     </p>
-                  ) : null}
-                  {topic.descriptionFa ? (
-                    <p className="mt-2 line-clamp-3 text-sm leading-7 text-muted">{topic.descriptionFa}</p>
-                  ) : null}
-                  <p className="mt-4 text-xs text-muted">
-                    {k.toLocaleString("fa-IR")} دانش · {p.toLocaleString("fa-IR")} پروژه · {c.toLocaleString("fa-IR")}{" "}
-                    دوره
-                  </p>
+                  </div>
+                  <span className="more">
+                    ورود
+                    <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />
+                  </span>
                 </Link>
               </li>
             );
           })}
         </ul>
       )}
-    </PageShell>
+    </RoomPage>
   );
 }
