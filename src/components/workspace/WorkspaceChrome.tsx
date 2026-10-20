@@ -109,13 +109,30 @@ function isActive(pathname: string, link: ModuleLink) {
   return link.exact ? pathname === link.href : pathname === link.href || pathname.startsWith(`${link.href}/`);
 }
 
+const DESKTOP_NAV = "(min-width: 48rem)";
+
+function useDesktopNav() {
+  const [desktop, setDesktop] = useState(false);
+  useEffect(() => {
+    const media = window.matchMedia(DESKTOP_NAV);
+    const apply = () => setDesktop(media.matches);
+    apply();
+    media.addEventListener("change", apply);
+    return () => media.removeEventListener("change", apply);
+  }, []);
+  return desktop;
+}
+
 export function WorkspaceChrome({ children }: { children?: ReactNode }) {
   const pathname = usePathname();
   const [account, setAccount] = useState<{ role?: string; analyzerDesk?: boolean } | null>(null);
   const [locale, setLocale] = useState<Locale>("fa");
+  const desktop = useDesktopNav();
   const [navMode, setNavMode] = useState<NavMode>("pinned");
+  const [drawer, setDrawer] = useState(false);
   const [query, setQuery] = useState("");
   const searchDialog = useRef<HTMLDialogElement>(null);
+  const menuButton = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     setLocale(readLocale());
@@ -131,6 +148,32 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
       .catch(() => setAccount(null));
   }, [pathname]);
 
+  useEffect(() => {
+    setDrawer(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (desktop) setDrawer(false);
+  }, [desktop]);
+
+  useEffect(() => {
+    if (!drawer) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setDrawer(false);
+        menuButton.current?.focus();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = previous;
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [drawer]);
+
   const role = account?.role ?? null;
   const modules = role === "author" ? authorModules : role === "member" ? grantedModules : ownerModules;
   const home = role === "owner" || role == null ? "/workspace" : "/workspace/analyzers";
@@ -139,13 +182,19 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
   const dir = locale === "fa" ? "rtl" : "ltr";
   const matches = modules.filter((item) => `${item.fa} ${item.en}`.toLowerCase().includes(query.trim().toLowerCase()));
   const current = modules.find((item) => isActive(pathname, item));
-  const showLabels = navMode === "pinned";
+  const overlay = !desktop && drawer;
+  const showLabels = overlay || navMode === "pinned";
   const cycle =
     navMode === "pinned"
       ? { next: "icons" as const, Icon: Pin, fa: "پین؛ بزن تا فقط آیکون شود", en: "Pinned; click for icons only" }
       : navMode === "icons"
         ? { next: "open" as const, Icon: PanelLeftClose, fa: "فقط آیکون؛ بزن تا بسته شود", en: "Icons only; click to close" }
         : { next: "pinned" as const, Icon: Menu, fa: "فهرست بسته؛ بزن تا پین شود", en: "Closed; click to pin" };
+  const control = desktop
+    ? cycle
+    : drawer
+      ? { Icon: X, fa: "بستن فهرست", en: "Close navigation" }
+      : { Icon: Menu, fa: "باز کردن فهرست", en: "Open navigation" };
 
   function toggleLocale() {
     const next: Locale = locale === "fa" ? "en" : "fa";
@@ -153,9 +202,18 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
     writeLocale(next);
   }
 
-  function cycleNav() {
+  function onNavControl() {
+    if (!desktop) {
+      setDrawer((open) => !open);
+      return;
+    }
     setNavMode(cycle.next);
     writeNavMode(cycle.next);
+  }
+
+  function closeOverlay() {
+    setDrawer(false);
+    menuButton.current?.focus();
   }
 
   function NavList({ labeled }: { labeled: boolean }) {
@@ -172,6 +230,7 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
               title={label}
               data-label={label}
               aria-current={active ? "page" : undefined}
+              onClick={() => setDrawer(false)}
               className={`ws-rail-link ${active ? "is-active" : ""} ${labeled ? "is-labeled" : "is-icon"}`}
             >
               <Icon className="h-4 w-4 shrink-0" strokeWidth={1.7} />
@@ -184,14 +243,18 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
   }
 
   return (
-    <div className="ws-shell" dir={dir} lang={locale} data-nav-mode={navMode}>
+    <div className="ws-shell" dir={dir} lang={locale} data-nav-mode={navMode} data-nav-open={overlay ? "true" : "false"}>
       <a href="#workspace-content" className="sr-only focus:not-sr-only focus:absolute focus:z-[80] focus:bg-elev focus:px-3 focus:py-2">
         {t("رفتن به محتوا", "Skip to content")}
       </a>
 
+      {overlay ? (
+        <button type="button" className="ws-scrim" aria-label={t("بستن فهرست", "Close navigation")} onClick={closeOverlay} />
+      ) : null}
+
       <aside id="workspace-navigation" className="ws-rail print-hide print:hidden">
         <div className={`ws-rail-brand ${showLabels ? "is-labeled" : ""}`}>
-          <Link href={home} className="flex min-w-0 items-center gap-2">
+          <Link href={home} className="flex min-w-0 items-center gap-2" onClick={() => setDrawer(false)}>
             <HadiranMark className="h-8 w-8 shrink-0" />
             {showLabels ? (
               <span className="min-w-0">
@@ -204,6 +267,16 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
               <span className="sr-only">{t("هادیران", "Hadiran")}</span>
             )}
           </Link>
+          {overlay ? (
+            <button
+              type="button"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-[var(--radius-sm)] text-muted hover:bg-paper hover:text-ink"
+              aria-label={t("بستن منو", "Close navigation")}
+              onClick={closeOverlay}
+            >
+              <X className="h-5 w-5" />
+            </button>
+          ) : null}
         </div>
 
         <button
@@ -234,14 +307,16 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
         <header className="ws-topbar print-hide print:hidden">
           <div className="ws-topbar-start">
             <button
+              ref={menuButton}
               type="button"
               className="nav-menu-toggle"
-              aria-label={t(cycle.fa, cycle.en)}
-              title={t(cycle.fa, cycle.en)}
+              aria-label={t(control.fa, control.en)}
+              title={t(control.fa, control.en)}
+              aria-expanded={overlay}
               aria-controls="workspace-navigation"
-              onClick={cycleNav}
+              onClick={onNavControl}
             >
-              <cycle.Icon size={19} aria-hidden="true" />
+              <control.Icon size={19} aria-hidden="true" />
             </button>
             <p className="min-w-0 truncate text-sm font-medium text-ink">
               {current ? t(current.fa, current.en) : t("میز کار", "Workspace")}

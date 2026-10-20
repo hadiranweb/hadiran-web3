@@ -1243,7 +1243,9 @@
 
 .ws-shell {
   display: flex;
+  max-width: 100%;
   min-height: 100dvh;
+  overflow-x: clip;
   background: var(--bg);
 }
 
@@ -1259,36 +1261,45 @@
   background: var(--bg-elev);
 }
 
-.ws-shell[data-nav-mode="pinned"] .ws-rail {
-  display: flex;
-  position: sticky;
-  top: 0;
-  height: 100dvh;
-  min-height: 100dvh;
-  width: 16rem;
-}
-
-.ws-shell[data-nav-mode="icons"] .ws-rail {
-  display: flex;
-  position: sticky;
-  top: 0;
-  height: 100dvh;
-  min-height: 100dvh;
-  width: 4.5rem;
-}
-
-.ws-shell[data-nav-mode="open"] .ws-rail {
-  display: none;
-}
-
 .ws-shell[data-nav-open="true"] .ws-rail {
   display: flex;
   position: fixed;
   inset-block: 0;
   inset-inline-start: 0;
   z-index: 50;
-  width: 16rem;
+  width: min(16rem, calc(100vw - 2.75rem));
   height: 100dvh;
+  min-height: 100dvh;
+}
+
+@media (min-width: 48rem) {
+  .ws-shell[data-nav-mode="pinned"] .ws-rail {
+    display: flex;
+    position: sticky;
+    top: 0;
+    height: 100dvh;
+    min-height: 100dvh;
+    width: 16rem;
+  }
+
+  .ws-shell[data-nav-mode="icons"] .ws-rail {
+    display: flex;
+    position: sticky;
+    top: 0;
+    height: 100dvh;
+    min-height: 100dvh;
+    width: 4.5rem;
+  }
+
+  .ws-shell[data-nav-mode="open"] .ws-rail {
+    display: none;
+  }
+
+  .ws-shell[data-nav-open="true"] .ws-rail {
+    display: flex;
+    position: fixed;
+    width: 16rem;
+  }
 }
 
 .ws-scrim {
@@ -1302,8 +1313,10 @@
 .ws-main {
   display: flex;
   min-width: 0;
-  flex: 1;
+  flex: 1 1 auto;
   flex-direction: column;
+  width: 100%;
+  max-width: 100%;
 }
 
 .ws-topbar {
