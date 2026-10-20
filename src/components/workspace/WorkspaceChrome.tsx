@@ -208,12 +208,12 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
     );
   }
 
-  function ModeSwitch({ compact }: { compact?: boolean }) {
+  function ModeSwitch() {
     return (
       <div
         role="radiogroup"
         aria-label={t("حالت منوی کناری", "Side menu mode")}
-        className={`ws-mode-switch ${compact ? "is-compact" : showLabels ? "is-wide" : "is-stack"}`}
+        className={`ws-mode-switch ${showLabels ? "is-wide" : "is-stack"}`}
       >
         {navModes.map((mode) => {
           const Icon = mode.Icon;
@@ -230,11 +230,7 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
               className={`ws-mode-btn ${selected ? "is-selected" : ""}`}
             >
               <Icon className="h-4 w-4 shrink-0" />
-              {compact || !showLabels ? (
-                <span className="sr-only">{t(mode.fa, mode.en)}</span>
-              ) : (
-                <span className="truncate">{t(mode.fa, mode.en)}</span>
-              )}
+              {showLabels ? <span className="truncate">{t(mode.fa, mode.en)}</span> : <span className="sr-only">{t(mode.fa, mode.en)}</span>}
             </button>
           );
         })}
@@ -317,11 +313,23 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
 
       <div className="ws-main">
         <header className="ws-topbar print-hide print:hidden">
-          <p className="min-w-0 truncate text-sm font-medium text-ink">
-            {current ? t(current.fa, current.en) : t("میز کار", "Workspace")}
-          </p>
+          <div className="ws-topbar-start">
+            <button
+              ref={menuButton}
+              type="button"
+              className="nav-menu-toggle"
+              aria-label={drawer ? t("بستن فهرست", "Close navigation") : t("باز کردن فهرست", "Open navigation")}
+              aria-expanded={drawer}
+              aria-controls="workspace-navigation"
+              onClick={() => setDrawer((open) => !open)}
+            >
+              {drawer ? <X size={19} aria-hidden="true" /> : <Menu size={19} aria-hidden="true" />}
+            </button>
+            <p className="min-w-0 truncate text-sm font-medium text-ink">
+              {current ? t(current.fa, current.en) : t("میز کار", "Workspace")}
+            </p>
+          </div>
           <div className="ws-topbar-tools">
-            <ModeSwitch compact />
             <button
               type="button"
               className="ws-tool"
@@ -330,20 +338,7 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
             >
               {locale === "fa" ? "EN" : "فا"}
             </button>
-            <div className="site-nav-cluster">
-              <ThemeToggle locale={locale} className="theme-trigger" />
-              <button
-                ref={menuButton}
-                type="button"
-                className="nav-menu-toggle"
-                aria-label={drawer ? t("بستن فهرست", "Close navigation") : t("باز کردن فهرست", "Open navigation")}
-                aria-expanded={drawer}
-                aria-controls="workspace-navigation"
-                onClick={() => setDrawer((open) => !open)}
-              >
-                {drawer ? <X size={19} aria-hidden="true" /> : <Menu size={19} aria-hidden="true" />}
-              </button>
-            </div>
+            <ThemeToggle locale={locale} className="theme-trigger" />
             <SessionMenu chrome="site" />
           </div>
         </header>

@@ -66,10 +66,23 @@ export function Nav() {
     <header className="site-header print-hide sticky top-3 z-50 px-3 sm:px-5 print:hidden">
       <div className="nav-anchor mx-auto max-w-7xl">
         <div className="nav-pill site-nav-bar">
-          <Link href="/" className="brand-link" onClick={() => close()}>
-            <HadiranMark className="brand-mark h-7 w-7" />
-            <span className="brand-name">هادیران</span>
-          </Link>
+          <div className="site-nav-start">
+            <Link href="/" className="brand-link" onClick={() => close()}>
+              <HadiranMark className="brand-mark h-7 w-7" />
+              <span className="brand-name">هادیران</span>
+            </Link>
+            <button
+              ref={trigger}
+              type="button"
+              onClick={toggle}
+              className="nav-menu-toggle"
+              aria-label={open ? "بستن فهرست اتاق‌ها" : "باز کردن فهرست اتاق‌ها"}
+              aria-expanded={open}
+              aria-controls={id}
+            >
+              {open ? <X size={19} aria-hidden="true" /> : <Menu size={19} aria-hidden="true" />}
+            </button>
+          </div>
           <nav aria-label="اتاق‌ها" className="site-desktop-navigation">
             {primaryLinks.map((link) => (
               <Link
@@ -84,20 +97,7 @@ export function Nav() {
             ))}
           </nav>
           <div className="site-nav-actions">
-            <div className="site-nav-cluster">
-              <ThemeToggle className="theme-trigger" />
-              <button
-                ref={trigger}
-                type="button"
-                onClick={toggle}
-                className="nav-menu-toggle"
-                aria-label={open ? "بستن فهرست اتاق‌ها" : "باز کردن فهرست اتاق‌ها"}
-                aria-expanded={open}
-                aria-controls={id}
-              >
-                {open ? <X size={19} aria-hidden="true" /> : <Menu size={19} aria-hidden="true" />}
-              </button>
-            </div>
+            <ThemeToggle className="theme-trigger" />
             <SessionMenu chrome="site" />
           </div>
         </div>

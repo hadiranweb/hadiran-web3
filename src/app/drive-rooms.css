@@ -1249,11 +1249,36 @@
 
 .ws-rail {
   display: none;
-  z-index: 50;
-  width: 16rem;
+  z-index: 40;
+  flex: 0 0 auto;
   flex-direction: column;
+  align-self: stretch;
+  width: 16rem;
+  min-height: 100dvh;
   border-inline-end: 1px solid var(--line);
   background: var(--bg-elev);
+}
+
+.ws-shell[data-nav-mode="pinned"] .ws-rail {
+  display: flex;
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  min-height: 100dvh;
+  width: 16rem;
+}
+
+.ws-shell[data-nav-mode="icons"] .ws-rail {
+  display: flex;
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  min-height: 100dvh;
+  width: 4.5rem;
+}
+
+.ws-shell[data-nav-mode="open"] .ws-rail {
+  display: none;
 }
 
 .ws-shell[data-nav-open="true"] .ws-rail {
@@ -1261,7 +1286,9 @@
   position: fixed;
   inset-block: 0;
   inset-inline-start: 0;
+  z-index: 50;
   width: 16rem;
+  height: 100dvh;
 }
 
 .ws-scrim {
@@ -1294,6 +1321,14 @@
   background: color-mix(in srgb, var(--bg) 92%, transparent);
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
+}
+
+.ws-topbar-start {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .ws-topbar-tools {
@@ -1370,7 +1405,8 @@
 }
 
 .ws-rail-nav {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: auto;
   padding: 0 0.5rem 1rem;
 }
@@ -1405,6 +1441,7 @@
 
 .ws-rail-foot {
   display: flex;
+  flex: 0 0 auto;
   flex-direction: column;
   gap: 0.25rem;
   padding: 0.5rem;
@@ -1420,9 +1457,8 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.ws-mode-switch.is-stack,
-.ws-mode-switch.is-compact {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+.ws-mode-switch.is-stack {
+  grid-template-columns: 1fr;
 }
 
 .ws-mode-btn {
@@ -1448,39 +1484,8 @@
   color: var(--ink);
 }
 
-@media (min-width: 80rem) {
-  .ws-shell[data-nav-mode="pinned"] .ws-rail,
-  .ws-shell[data-nav-mode="icons"] .ws-rail {
-    display: flex;
-    position: fixed;
-    inset-block: 0;
-    inset-inline-start: 0;
-  }
-
-  .ws-shell[data-nav-mode="pinned"] .ws-rail {
-    width: 16rem;
-  }
-
-  .ws-shell[data-nav-mode="icons"] .ws-rail {
-    width: 4.5rem;
-  }
-
-  .ws-shell[data-nav-mode="pinned"] .ws-main {
-    margin-inline-start: 16rem;
-  }
-
-  .ws-shell[data-nav-mode="icons"] .ws-main {
-    margin-inline-start: 4.5rem;
-  }
-
-  .ws-shell[data-nav-open="true"] .ws-rail {
-    width: 16rem;
-  }
-}
-
-.ws-rail,
-.ws-main {
-  transition: width 200ms var(--ease-studio, ease), margin-inline-start 200ms var(--ease-studio, ease);
+.ws-rail {
+  transition: width 200ms var(--ease-studio, ease);
 }
 
 @media (hover: hover) {
