@@ -1,14 +1,16 @@
 import { db } from "@/db";
-import { knowledge, knowledgeTopics, memoryItems, topics } from "@/db/schema";
-import { and, eq, like, or } from "drizzle-orm";
-import { publicKnowledgeFilter } from "@/lib/knowledge/public";
+import { knowledgeTopics, topics } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { getCurrentAccount } from "@/lib/auth/session";
+import { loadPublicKnowledgeList } from "@/lib/public/catalog";
+import { readPublicCollection } from "@/lib/public/source";
 import Link from "next/link";
 import { ArrowLeft, Search, PenLine } from "lucide-react";
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { RoomPage } from "@/components/ui/RoomPage";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { PublicSourceNotice } from "@/components/ui/PublicSourceNotice";
 import { knowledgeCopy } from "@/lib/copy";
 
 export const dynamic = "force-dynamic";
@@ -34,53 +36,34 @@ interface Props {
 export default async function KnowledgePage({ searchParams }: Props) {
   const { topic, q } = await searchParams;
   const account = await getCurrentAccount();
+  const list = await loadPublicKnowledgeList(q);
 
-  let allKnowledge: (typeof knowledge.$inferSelect)[] = [];
-  try {
-    const filters = [publicKnowledgeFilter];
-    if (q) {
-      filters.push(
-        or(
-          like(knowledge.titleFa, `%${q}%`),
-          like(knowledge.summaryFa, `%${q}%`),
-          like(knowledge.bodyFa, `%${q}%`),
-        ),
-      );
-    }
-    const rows = await db
-      .select({ item: knowledge })
-      .from(knowledge)
-      .innerJoin(memoryItems, eq(knowledge.memoryItemId, memoryItems.id))
-      .where(and(...filters));
-    allKnowledge = rows.map((row) => row.item);
-  } catch (error) {
-    console.error("[hadiran] knowledge list", error);
-  }
-
-  const topicLinks = await db
-    .select({
-      knowledgeId: knowledgeTopics.knowledgeId,
-      labelFa: topics.labelFa,
-      slug: topics.slug,
-    })
-    .from(knowledgeTopics)
-    .innerJoin(topics, eq(knowledgeTopics.topicId, topics.id));
+  const topicLinks = await readPublicCollection("public knowledge topics", async () =>
+    db
+      .select({
+        knowledgeId: knowledgeTopics.knowledgeId,
+        labelFa: topics.labelFa,
+        slug: topics.slug,
+      })
+      .from(knowledgeTopics)
+      .innerJoin(topics, eq(knowledgeTopics.topicId, topics.id)),
+  );
 
   const topicsMap: Record<number, { labelFa: string; slug: string }[]> = {};
-  for (const row of topicLinks) {
+  for (const row of topicLinks.items) {
     if (!topicsMap[row.knowledgeId]) topicsMap[row.knowledgeId] = [];
     topicsMap[row.knowledgeId].push({ labelFa: row.labelFa, slug: row.slug });
   }
 
   const filteredKnowledge = topic
-    ? allKnowledge.filter((k) => topicsMap[k.id]?.some((t) => t.slug === topic))
-    : allKnowledge;
+    ? list.items.filter((item) => topicsMap[item.id]?.some((entry) => entry.slug === topic))
+    : list.items;
 
   const filterLabel =
     (topic &&
       Object.values(topicsMap)
         .flat()
-        .find((t) => t.slug === topic)?.labelFa) ||
+        .find((entry) => entry.slug === topic)?.labelFa) ||
     topic;
 
   return (
@@ -123,7 +106,9 @@ export default async function KnowledgePage({ searchParams }: Props) {
         </div>
       ) : null}
 
-      {filteredKnowledge.length === 0 ? (
+      {list.source !== "live" ? (
+        <PublicSourceNotice source={list.source} />
+      ) : filteredKnowledge.length === 0 ? (
         <EmptyState title="هنوز مطلب منتشرشده‌ای نیست." />
       ) : (
         <ul className="section-cards listing-cards">
@@ -136,9 +121,9 @@ export default async function KnowledgePage({ searchParams }: Props) {
                   {item.summaryFa ? <p className="muted mt-2 line-clamp-3 text-sm leading-7">{item.summaryFa}</p> : null}
                   {topicsMap[item.id]?.length ? (
                     <div className="mt-4 flex flex-wrap gap-2">
-                      {topicsMap[item.id].map((t) => (
-                        <span key={t.slug} className="chip">
-                          {t.labelFa}
+                      {topicsMap[item.id].map((entry) => (
+                        <span key={entry.slug} className="chip">
+                          {entry.labelFa}
                         </span>
                       ))}
                     </div>

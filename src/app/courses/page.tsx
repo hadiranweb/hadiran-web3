@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { courses, courseTopics, topics } from "@/db/schema";
+import { courseTopics, topics } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -7,6 +7,9 @@ import type { Metadata } from "next";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { RoomPage } from "@/components/ui/RoomPage";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { PublicSourceNotice } from "@/components/ui/PublicSourceNotice";
+import { loadPublicCourses } from "@/lib/public/catalog";
+import { readPublicCollection } from "@/lib/public/source";
 
 export const dynamic = "force-dynamic";
 
@@ -17,26 +20,29 @@ export const metadata: Metadata = {
 };
 
 export default async function CoursesPage() {
-  const allCourses = await db.select().from(courses);
+  const list = await loadPublicCourses();
+  const links = await readPublicCollection("public course topics", async () =>
+    db
+      .select({ courseId: courseTopics.courseId, labelFa: topics.labelFa, slug: topics.slug })
+      .from(courseTopics)
+      .innerJoin(topics, eq(courseTopics.topicId, topics.id)),
+  );
 
   const courseTopicsMap: Record<number, { labelFa: string; slug: string }[]> = {};
-  const links = await db
-    .select({ courseId: courseTopics.courseId, labelFa: topics.labelFa, slug: topics.slug })
-    .from(courseTopics)
-    .innerJoin(topics, eq(courseTopics.topicId, topics.id));
-
-  for (const row of links) {
+  for (const row of links.items) {
     if (!courseTopicsMap[row.courseId]) courseTopicsMap[row.courseId] = [];
     courseTopicsMap[row.courseId].push({ labelFa: row.labelFa, slug: row.slug });
   }
 
   return (
     <RoomPage hero={<PageHeader title="دوره‌ها" lede="آموزش در هادیران؛ تا دورهٔ واقعی نیاید فهرست خالی می‌ماند." />}>
-      {allCourses.length === 0 ? (
+      {list.source !== "live" ? (
+        <PublicSourceNotice source={list.source} />
+      ) : list.items.length === 0 ? (
         <EmptyState title="هنوز دوره‌ای منتشر نشده." />
       ) : (
         <ul className="section-cards listing-cards">
-          {allCourses.map((course) => (
+          {list.items.map((course) => (
             <li key={course.id}>
               <Link href={`/courses/${course.slug}`} className="card card-hover section-card">
                 <div className="section-card-copy">

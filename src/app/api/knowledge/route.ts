@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { knowledge, memoryItems } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import { publicKnowledgeFilter } from "@/lib/knowledge/public";
+import { publicKnowledgeFilter, publicKnowledgeJoin } from "@/lib/knowledge/public";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +10,7 @@ export async function GET() {
     const rows = await db
       .select({ item: knowledge })
       .from(knowledge)
-      .innerJoin(memoryItems, eq(knowledge.memoryItemId, memoryItems.id))
+      .innerJoin(memoryItems, publicKnowledgeJoin)
       .where(publicKnowledgeFilter);
     return NextResponse.json({ items: rows.map((row) => row.item) });
   } catch (error) {

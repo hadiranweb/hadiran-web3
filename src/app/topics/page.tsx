@@ -1,6 +1,6 @@
 import { db } from "@/db";
-import { topics, knowledgeTopics, projectTopics, courseTopics } from "@/db/schema";
-import { count } from "drizzle-orm";
+import { topics, projectTopics, courseTopics, projects, courses } from "@/db/schema";
+import { count, eq } from "drizzle-orm";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
@@ -9,6 +9,10 @@ import { absoluteUrl } from "@/lib/site";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { RoomPage } from "@/components/ui/RoomPage";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { PublicSourceNotice } from "@/components/ui/PublicSourceNotice";
+import { loadPublicTopicKnowledgeCounts } from "@/lib/public/catalog";
+import { publicCourseFilter, publicProjectFilter } from "@/lib/public/policy";
+import { readPublicCollection } from "@/lib/public/source";
 
 export const dynamic = "force-dynamic";
 
@@ -26,21 +30,31 @@ export const metadata: Metadata = {
 };
 
 export default async function TopicsPage() {
-  const allTopics = await db.select().from(topics);
-
-  const [knowledgeCounts, projectCounts, courseCounts] = await Promise.all([
+  const topicList = await readPublicCollection("public topics", () => db.select().from(topics));
+  const knowledgeCounts = await loadPublicTopicKnowledgeCounts();
+  const projectCounts = await readPublicCollection("public topic project counts", async () =>
     db
-      .select({ topicId: knowledgeTopics.topicId, n: count() })
-      .from(knowledgeTopics)
-      .groupBy(knowledgeTopics.topicId),
-    db.select({ topicId: projectTopics.topicId, n: count() }).from(projectTopics).groupBy(projectTopics.topicId),
-    db.select({ topicId: courseTopics.topicId, n: count() }).from(courseTopics).groupBy(courseTopics.topicId),
-  ]);
+      .select({ topicId: projectTopics.topicId, n: count() })
+      .from(projectTopics)
+      .innerJoin(projects, eq(projectTopics.projectId, projects.id))
+      .where(publicProjectFilter)
+      .groupBy(projectTopics.topicId),
+  );
+  const courseCounts = await readPublicCollection("public topic course counts", async () =>
+    db
+      .select({ topicId: courseTopics.topicId, n: count() })
+      .from(courseTopics)
+      .innerJoin(courses, eq(courseTopics.courseId, courses.id))
+      .where(publicCourseFilter)
+      .groupBy(courseTopics.topicId),
+  );
 
-  const toMap = (rows: { topicId: number; n: number }[]) => Object.fromEntries(rows.map((r) => [r.topicId, Number(r.n)]));
-  const knowledgeByTopic = toMap(knowledgeCounts);
-  const projectByTopic = toMap(projectCounts);
-  const courseByTopic = toMap(courseCounts);
+  const toMap = (rows: { topicId: number; n: number }[]) => Object.fromEntries(rows.map((row) => [row.topicId, Number(row.n)]));
+  const knowledgeByTopic = toMap(knowledgeCounts.items);
+  const projectByTopic = toMap(projectCounts.items);
+  const courseByTopic = toMap(courseCounts.items);
+  const segment = (source: string, value: number) =>
+    source === "live" ? value.toLocaleString("fa-IR") : "—";
 
   return (
     <RoomPage
@@ -62,14 +76,16 @@ export default async function TopicsPage() {
         </>
       }
     >
-      {allTopics.length === 0 ? (
+      {topicList.source !== "live" ? (
+        <PublicSourceNotice source={topicList.source} />
+      ) : topicList.items.length === 0 ? (
         <EmptyState title="موضوعی ثبت نشده." />
       ) : (
         <ul className="section-cards listing-cards">
-          {allTopics.map((topic) => {
-            const k = knowledgeByTopic[topic.id] ?? 0;
-            const p = projectByTopic[topic.id] ?? 0;
-            const c = courseByTopic[topic.id] ?? 0;
+          {topicList.items.map((topic) => {
+            const k = segment(knowledgeCounts.source, knowledgeByTopic[topic.id] ?? 0);
+            const p = segment(projectCounts.source, projectByTopic[topic.id] ?? 0);
+            const c = segment(courseCounts.source, courseByTopic[topic.id] ?? 0);
             return (
               <li key={topic.id}>
                 <Link href={`/topics/${topic.slug}`} className="card card-hover section-card">
@@ -84,8 +100,7 @@ export default async function TopicsPage() {
                       <p className="muted mt-2 line-clamp-3 text-sm leading-7">{topic.descriptionFa}</p>
                     ) : null}
                     <p className="chip mt-4">
-                      {k.toLocaleString("fa-IR")} دانش · {p.toLocaleString("fa-IR")} پروژه · {c.toLocaleString("fa-IR")}{" "}
-                      دوره
+                      {k} دانش · {p} پروژه · {c} دوره
                     </p>
                   </div>
                   <span className="more">

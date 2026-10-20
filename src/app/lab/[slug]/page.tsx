@@ -10,12 +10,19 @@ import {
   projectDocuments,
   knowledgeProjects,
   knowledge,
+  memoryItems,
   courseProjects,
   courses,
 } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
+import {
+  publicCourseFilter,
+  publicKnowledgeFilter,
+  publicKnowledgeJoin,
+} from "@/lib/public/policy";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getCurrentAccount } from "@/lib/auth/session";
 import {
   ArrowLeft,
   FlaskConical,
@@ -59,6 +66,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const [project] = await db.select().from(projects).where(eq(projects.slug, slug));
   if (!project) return { title: "یافت نشد" };
+  if (!project.published) {
+    return { title: project.nameFa, robots: { index: false, follow: false } };
+  }
   return {
     title: project.nameFa,
     description: project.descriptionFa ?? undefined,
@@ -75,6 +85,10 @@ export default async function ProjectPage({ params }: Props) {
   const { slug } = await params;
   const [project] = await db.select().from(projects).where(eq(projects.slug, slug));
   if (!project) notFound();
+  if (!project.published) {
+    const account = await getCurrentAccount();
+    if (account?.role !== "owner") notFound();
+  }
 
   const [projectTopicsList, projectSkillsList, projectRolesList, projectDocsList, projectKnowledgeList, projectCoursesList] =
     await Promise.all([
@@ -98,12 +112,13 @@ export default async function ProjectPage({ params }: Props) {
         .select({ slug: knowledge.slug, titleFa: knowledge.titleFa })
         .from(knowledgeProjects)
         .innerJoin(knowledge, eq(knowledgeProjects.knowledgeId, knowledge.id))
-        .where(eq(knowledgeProjects.projectId, project.id)),
+        .innerJoin(memoryItems, publicKnowledgeJoin)
+        .where(and(eq(knowledgeProjects.projectId, project.id), publicKnowledgeFilter)),
       db
         .select({ slug: courses.slug, titleFa: courses.titleFa })
         .from(courseProjects)
         .innerJoin(courses, eq(courseProjects.courseId, courses.id))
-        .where(eq(courseProjects.projectId, project.id)),
+        .where(and(eq(courseProjects.projectId, project.id), publicCourseFilter)),
     ]);
 
   const docsByType = Object.fromEntries(projectDocsList.map((d) => [d.type, d]));

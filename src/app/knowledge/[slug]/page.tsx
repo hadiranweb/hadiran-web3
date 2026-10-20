@@ -7,7 +7,8 @@ import {
   projects,
   knowledgeSlides,
 } from "@/db/schema";
-import { eq, asc } from "drizzle-orm";
+import { and, eq, asc } from "drizzle-orm";
+import { publicProjectFilter } from "@/lib/public/policy";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Hash, FlaskConical, Pencil } from "lucide-react";
@@ -63,7 +64,7 @@ export default async function KnowledgeItemPage({ params }: Props) {
     .select({ slug: projects.slug, nameFa: projects.nameFa })
     .from(knowledgeProjects)
     .innerJoin(projects, eq(knowledgeProjects.projectId, projects.id))
-    .where(eq(knowledgeProjects.knowledgeId, item.id));
+    .where(and(eq(knowledgeProjects.knowledgeId, item.id), publicProjectFilter));
 
   let slides: (typeof knowledgeSlides.$inferSelect)[] = [];
   try {

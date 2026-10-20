@@ -3,18 +3,27 @@ import {
   topics,
   knowledge,
   knowledgeTopics,
+  memoryItems,
   projects,
   projectTopics,
   courses,
   courseTopics,
 } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, BookOpen, FlaskConical, GraduationCap, Hash } from "lucide-react";
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/JsonLd";
 import { absoluteUrl } from "@/lib/site";
+import { PublicSourceNotice } from "@/components/ui/PublicSourceNotice";
+import {
+  publicCourseFilter,
+  publicKnowledgeFilter,
+  publicKnowledgeJoin,
+  publicProjectFilter,
+} from "@/lib/public/policy";
+import { readPublic } from "@/lib/public/source";
 
 export const dynamic = "force-dynamic";
 
@@ -47,40 +56,53 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function TopicHubPage({ params }: Props) {
   const { slug } = await params;
-  const [topic] = await db.select().from(topics).where(eq(topics.slug, slug));
-  if (!topic) notFound();
+  const loaded = await readPublic("public topic hub", async () => {
+    const [topic] = await db.select().from(topics).where(eq(topics.slug, slug));
+    if (!topic) return null;
+    const [knowledgeItems, projectItems, courseItems] = await Promise.all([
+      db
+        .select({
+          slug: knowledge.slug,
+          titleFa: knowledge.titleFa,
+          summaryFa: knowledge.summaryFa,
+        })
+        .from(knowledgeTopics)
+        .innerJoin(knowledge, eq(knowledgeTopics.knowledgeId, knowledge.id))
+        .innerJoin(memoryItems, publicKnowledgeJoin)
+        .where(and(eq(knowledgeTopics.topicId, topic.id), publicKnowledgeFilter)),
+      db
+        .select({
+          slug: projects.slug,
+          nameFa: projects.nameFa,
+          descriptionFa: projects.descriptionFa,
+        })
+        .from(projectTopics)
+        .innerJoin(projects, eq(projectTopics.projectId, projects.id))
+        .where(and(eq(projectTopics.topicId, topic.id), publicProjectFilter)),
+      db
+        .select({
+          slug: courses.slug,
+          titleFa: courses.titleFa,
+          descriptionFa: courses.descriptionFa,
+        })
+        .from(courseTopics)
+        .innerJoin(courses, eq(courseTopics.courseId, courses.id))
+        .where(and(eq(courseTopics.topicId, topic.id), publicCourseFilter)),
+    ]);
+    return { topic, knowledgeItems, projectItems, courseItems };
+  });
 
+  if (loaded.source !== "live") {
+    return (
+      <main className="mx-auto max-w-3xl px-4 py-10">
+        <PublicSourceNotice source={loaded.source} />
+      </main>
+    );
+  }
+  if (!loaded.data) notFound();
+
+  const { topic, knowledgeItems, projectItems, courseItems } = loaded.data;
   const description = topic.descriptionFa || topicFallback(topic.labelFa);
-
-  const [knowledgeItems, projectItems, courseItems] = await Promise.all([
-    db
-      .select({
-        slug: knowledge.slug,
-        titleFa: knowledge.titleFa,
-        summaryFa: knowledge.summaryFa,
-      })
-      .from(knowledgeTopics)
-      .innerJoin(knowledge, eq(knowledgeTopics.knowledgeId, knowledge.id))
-      .where(eq(knowledgeTopics.topicId, topic.id)),
-    db
-      .select({
-        slug: projects.slug,
-        nameFa: projects.nameFa,
-        descriptionFa: projects.descriptionFa,
-      })
-      .from(projectTopics)
-      .innerJoin(projects, eq(projectTopics.projectId, projects.id))
-      .where(eq(projectTopics.topicId, topic.id)),
-    db
-      .select({
-        slug: courses.slug,
-        titleFa: courses.titleFa,
-        descriptionFa: courses.descriptionFa,
-      })
-      .from(courseTopics)
-      .innerJoin(courses, eq(courseTopics.courseId, courses.id))
-      .where(eq(courseTopics.topicId, topic.id)),
-  ]);
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">

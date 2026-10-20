@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { projects, projectTopics, topics } from "@/db/schema";
+import { projectTopics, topics } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -7,7 +7,10 @@ import type { Metadata } from "next";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { RoomPage } from "@/components/ui/RoomPage";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { PublicSourceNotice } from "@/components/ui/PublicSourceNotice";
 import { labCopy } from "@/lib/copy";
+import { loadPublicProjects } from "@/lib/public/catalog";
+import { readPublicCollection } from "@/lib/public/source";
 
 export const dynamic = "force-dynamic";
 
@@ -29,26 +32,29 @@ const statusLabels: Record<string, string> = {
 };
 
 export default async function LabPage() {
-  const allProjects = await db.select().from(projects);
-
-  const topicLinks = await db
-    .select({ projectId: projectTopics.projectId, labelFa: topics.labelFa, slug: topics.slug })
-    .from(projectTopics)
-    .innerJoin(topics, eq(projectTopics.topicId, topics.id));
+  const list = await loadPublicProjects();
+  const topicLinks = await readPublicCollection("public project topics", async () =>
+    db
+      .select({ projectId: projectTopics.projectId, labelFa: topics.labelFa, slug: topics.slug })
+      .from(projectTopics)
+      .innerJoin(topics, eq(projectTopics.topicId, topics.id)),
+  );
 
   const topicsMap: Record<number, { labelFa: string; slug: string }[]> = {};
-  for (const row of topicLinks) {
+  for (const row of topicLinks.items) {
     if (!topicsMap[row.projectId]) topicsMap[row.projectId] = [];
     topicsMap[row.projectId].push({ labelFa: row.labelFa, slug: row.slug });
   }
 
   return (
     <RoomPage hero={<PageHeader title={labCopy.title} lede={labCopy.lede} />}>
-      {allProjects.length === 0 ? (
+      {list.source !== "live" ? (
+        <PublicSourceNotice source={list.source} />
+      ) : list.items.length === 0 ? (
         <EmptyState title="هنوز پروژه‌ای ثبت نشده." />
       ) : (
         <ul className="section-cards listing-cards">
-          {allProjects.map((project) => (
+          {list.items.map((project) => (
             <li key={project.id}>
               <Link href={`/lab/${project.slug}`} className="card card-hover section-card">
                 <div className="section-card-copy">

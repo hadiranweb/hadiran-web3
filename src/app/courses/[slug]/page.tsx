@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { courses, lessons, courseTopics, courseSkills, topics, skills, courseProjects, projects } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
+import { publicProjectFilter } from "@/lib/public/policy";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GraduationCap, Clock, Layers, ArrowLeft, BookOpen, FlaskConical, Wrench } from "lucide-react";
@@ -19,6 +20,7 @@ export default async function CoursePage({ params }: Props) {
   const [course] = await db.select().from(courses).where(eq(courses.slug, slug));
   if (!course) notFound();
   const account = await getCurrentAccount();
+  if (!course.published && account?.role !== "owner") notFound();
   let shopListing: { slug: string; titleFa: string } | null = null;
   let entitled = true;
   try {
@@ -53,7 +55,7 @@ export default async function CoursePage({ params }: Props) {
     .select({ slug: projects.slug, nameFa: projects.nameFa })
     .from(courseProjects)
     .innerJoin(projects, eq(courseProjects.projectId, projects.id))
-    .where(eq(courseProjects.courseId, course.id));
+    .where(and(eq(courseProjects.courseId, course.id), publicProjectFilter));
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">

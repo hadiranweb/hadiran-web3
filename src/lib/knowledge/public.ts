@@ -1,19 +1,15 @@
-import { and, eq, isNotNull } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { knowledge, memoryItems } from "@/db/schema";
+import { publicKnowledgeFilter, publicKnowledgeJoin } from "@/lib/public/policy";
 
-export const publicKnowledgeFilter = and(
-  isNotNull(knowledge.memoryItemId),
-  eq(knowledge.aiIndexable, true),
-  eq(memoryItems.lifecycle, "approved"),
-  eq(memoryItems.visibility, "public"),
-);
+export { publicKnowledgeFilter, publicKnowledgeJoin };
 
 export async function getPublicKnowledgeBySlug(slug: string) {
   const rows = await db
     .select({ item: knowledge })
     .from(knowledge)
-    .innerJoin(memoryItems, eq(knowledge.memoryItemId, memoryItems.id))
+    .innerJoin(memoryItems, publicKnowledgeJoin)
     .where(and(eq(knowledge.slug, slug), publicKnowledgeFilter));
   return rows[0]?.item ?? null;
 }

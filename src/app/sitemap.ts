@@ -25,15 +25,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const { db } = await import("@/db");
     const { knowledge, memoryItems, projects, courses, projectDocuments, topics, shopListings } = await import("@/db/schema");
-    const { eq, and, isNotNull } = await import("drizzle-orm");
+    const { publicCourseFilter, publicKnowledgeFilter, publicKnowledgeJoin, publicProjectFilter, publicShopFilter } =
+      await import("@/lib/public/policy");
     const [knowledgeRows, projectRows, courseRows, documentRows, topicRows, shopRows] = await Promise.all([
       db
         .select({ slug: knowledge.slug, updatedAt: knowledge.updatedAt })
         .from(knowledge)
-        .innerJoin(memoryItems, eq(knowledge.memoryItemId, memoryItems.id))
-        .where(and(isNotNull(knowledge.memoryItemId), eq(memoryItems.visibility, "public"), eq(memoryItems.lifecycle, "approved"))),
-      db.select({ slug: projects.slug, updatedAt: projects.updatedAt, id: projects.id }).from(projects),
-      db.select({ slug: courses.slug, updatedAt: courses.updatedAt }).from(courses),
+        .innerJoin(memoryItems, publicKnowledgeJoin)
+        .where(publicKnowledgeFilter),
+      db.select({ slug: projects.slug, updatedAt: projects.updatedAt, id: projects.id }).from(projects).where(publicProjectFilter),
+      db.select({ slug: courses.slug, updatedAt: courses.updatedAt }).from(courses).where(publicCourseFilter),
       db
         .select({
           type: projectDocuments.type,
@@ -45,7 +46,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       db
         .select({ slug: shopListings.slug, updatedAt: shopListings.updatedAt })
         .from(shopListings)
-        .where(eq(shopListings.published, true)),
+        .where(publicShopFilter),
     ]);
 
     for (const row of knowledgeRows) {

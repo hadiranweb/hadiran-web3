@@ -1,14 +1,13 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { db } from "@/db";
-import { shopListings } from "@/db/schema";
-import { desc, eq, and } from "drizzle-orm";
 import { formatMoney } from "@/lib/shop/money";
 import { isShopKind, shopKindFa } from "@/lib/shop/kinds";
+import { loadPublicShopList } from "@/lib/public/catalog";
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { RoomPage } from "@/components/ui/RoomPage";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { PublicSourceNotice } from "@/components/ui/PublicSourceNotice";
 
 export const dynamic = "force-dynamic";
 
@@ -26,17 +25,7 @@ interface Props {
 export default async function ShopPage({ searchParams }: Props) {
   const { kind: kindRaw } = await searchParams;
   const kindFilter = kindRaw && isShopKind(kindRaw) ? kindRaw : null;
-  let items: (typeof shopListings.$inferSelect)[] = [];
-  try {
-    const published = eq(shopListings.published, true);
-    items = await db
-      .select()
-      .from(shopListings)
-      .where(kindFilter ? and(published, eq(shopListings.kind, kindFilter)) : published)
-      .orderBy(desc(shopListings.updatedAt));
-  } catch (error) {
-    console.error("[hadiran] shop list", error);
-  }
+  const { source, items } = await loadPublicShopList(kindFilter);
 
   const filters = [
     { href: "/shop", label: "همه", active: !kindFilter },
@@ -62,7 +51,9 @@ export default async function ShopPage({ searchParams }: Props) {
         </PageHeader>
       }
     >
-      {items.length === 0 ? (
+      {source !== "live" ? (
+        <PublicSourceNotice source={source} />
+      ) : items.length === 0 ? (
         <EmptyState title="هنوز کالای منتشرشده‌ای نیست." />
       ) : (
         <ul className="section-cards listing-cards">

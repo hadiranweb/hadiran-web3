@@ -9,8 +9,9 @@ import {
   courseTopics,
   memoryItems,
 } from "@/db/schema";
-import { publicKnowledgeFilter } from "@/lib/knowledge/public";
-import { and, eq, ilike, inArray, or } from "drizzle-orm";
+import { publicKnowledgeFilter, publicKnowledgeJoin } from "@/lib/knowledge/public";
+import { publicCourseFilter, publicProjectFilter } from "@/lib/public/policy";
+import { and, ilike, inArray, or } from "drizzle-orm";
 
 export interface RetrievedEntity {
   type: "knowledge" | "project" | "course" | "topic";
@@ -180,7 +181,7 @@ async function retrieveFromDatabase(query: string): Promise<AIResponse> {
         body: knowledge.bodyFa,
       })
       .from(knowledge)
-      .innerJoin(memoryItems, eq(knowledge.memoryItemId, memoryItems.id))
+      .innerJoin(memoryItems, publicKnowledgeJoin)
       .where(
         and(
           publicKnowledgeFilter,
@@ -207,7 +208,7 @@ async function retrieveFromDatabase(query: string): Promise<AIResponse> {
       .from(projects)
       .where(
         and(
-          eq(projects.published, true),
+          publicProjectFilter,
           or(
             ...patterns.flatMap((p) => [
               ilike(projects.nameFa, p),
@@ -230,7 +231,7 @@ async function retrieveFromDatabase(query: string): Promise<AIResponse> {
       .from(courses)
       .where(
         and(
-          eq(courses.published, true),
+          publicCourseFilter,
           or(
             ...patterns.flatMap((p) => [
               ilike(courses.titleFa, p),
@@ -339,7 +340,8 @@ async function retrieveFromDatabase(query: string): Promise<AIResponse> {
               body: knowledge.bodyFa,
             })
             .from(knowledge)
-            .where(and(eq(knowledge.aiIndexable, true), inArray(knowledge.id, kIds)))
+            .innerJoin(memoryItems, publicKnowledgeJoin)
+            .where(and(publicKnowledgeFilter, inArray(knowledge.id, kIds)))
         : Promise.resolve([]),
       pIds.length
         ? db
@@ -349,7 +351,7 @@ async function retrieveFromDatabase(query: string): Promise<AIResponse> {
               summary: projects.descriptionFa,
             })
             .from(projects)
-            .where(and(eq(projects.published, true), inArray(projects.id, pIds)))
+            .where(and(publicProjectFilter, inArray(projects.id, pIds)))
         : Promise.resolve([]),
       cIds.length
         ? db
@@ -359,7 +361,7 @@ async function retrieveFromDatabase(query: string): Promise<AIResponse> {
               summary: courses.descriptionFa,
             })
             .from(courses)
-            .where(and(eq(courses.published, true), inArray(courses.id, cIds)))
+            .where(and(publicCourseFilter, inArray(courses.id, cIds)))
         : Promise.resolve([]),
     ]);
 

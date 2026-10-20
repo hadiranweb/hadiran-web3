@@ -1,12 +1,11 @@
-import { db } from "@/db";
-import { knowledge, memoryItems, projects, courses } from "@/db/schema";
-import { count, eq } from "drizzle-orm";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { HadiranMark } from "@/components/HadiranMark";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { RoomPage } from "@/components/ui/RoomPage";
 import { houseCopy, rooms } from "@/lib/copy";
+import { loadPublicWorldCounts } from "@/lib/public/catalog";
+import { publicCountLabel, type PublicCount } from "@/lib/public/source";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -27,41 +26,34 @@ export const metadata: Metadata = {
 };
 
 export default async function EcosystemPage() {
-  let knowledgeCount = { value: 0 };
-  let projectCount = { value: 0 };
-  let courseCount = { value: 0 };
-  try {
-    [knowledgeCount] = await db
-      .select({ value: count() })
-      .from(knowledge)
-      .innerJoin(memoryItems, eq(knowledge.memoryItemId, memoryItems.id))
-      .where(eq(memoryItems.visibility, "public"));
-    [projectCount] = await db.select({ value: count() }).from(projects);
-    [courseCount] = await db.select({ value: count() }).from(courses);
-  } catch (error) {
-    console.error("[hadiran] ecosystem counts failed", error);
-  }
+  const counts = await loadPublicWorldCounts();
 
-  const worlds = [
+  const worlds: {
+    href: string;
+    label: string;
+    promise: string;
+    count: PublicCount | null;
+    unit: string;
+  }[] = [
     {
       href: rooms.knowledge.href,
       label: rooms.knowledge.label,
       promise: "فکرهای تازه‌کاشته، در حال رشد و آزموده.",
-      count: knowledgeCount.value,
+      count: counts.knowledge,
       unit: "مطلب",
     },
     {
       href: rooms.lab.href,
       label: rooms.lab.label,
       promise: "ظرف‌ها و پروژه‌های باز؛ همکاری از صفحهٔ همان کار.",
-      count: projectCount.value,
+      count: counts.projects,
       unit: "ظرف",
     },
     {
       href: rooms.courses.href,
       label: rooms.courses.label,
       promise: "آموزش؛ تا دورهٔ واقعی نیاید خالی می‌ماند.",
-      count: courseCount.value,
+      count: counts.courses,
       unit: "دوره",
     },
     {
@@ -82,10 +74,8 @@ export default async function EcosystemPage() {
               <div className="section-card-copy">
                 <h2 className="section-card-title">{world.label}</h2>
                 <p className="muted mt-2 text-sm leading-7">{world.promise}</p>
-                {world.count != null ? (
-                  <p className="chip mt-4">
-                    {world.count.toLocaleString("fa-IR")} {world.unit}
-                  </p>
+                {world.count ? (
+                  <p className="chip mt-4">{publicCountLabel(world.count, world.unit)}</p>
                 ) : null}
               </div>
               <span className="more">
