@@ -1,0 +1,44 @@
+.ng-home { overflow-wrap: anywhere; }
+.ng-workbench { min-width: 0; }
+.ng-filters { display: flex; align-items: end; flex-wrap: wrap; gap: .7rem; margin-bottom: 1rem; }
+.ng-filters label { min-width: 0; display: flex; flex-direction: column; gap: .3rem; font-size: .72rem; color: var(--fg-muted); }
+.ng-filters input, .ng-filters select { max-width: 100%; min-width: 0; padding: .65rem .75rem; background: var(--surface-solid); border: 1px solid var(--line-2); border-radius: .65rem; color: var(--fg); font: inherit; min-height: 2.5rem; }
+.ng-filters .ng-search { flex: 1 1 14rem; position: relative; }
+.ng-search > svg { position: absolute; inset-inline-start: .6rem; bottom: .8rem; }
+.ng-search input { width: 100%; padding-inline-start: 2rem; }
+.ng-caption { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .6rem; margin-bottom: .8rem; font-size: .75rem; color: var(--fg-muted); }
+.ng-caption a, .ng-detail dd a { color: var(--accent-ink); text-decoration: underline; }
+.ng-canvas { border: 1px solid var(--line); border-radius: 1rem; background: var(--surface-solid); overflow: hidden; min-width: 0; }
+.ng-canvas > svg { display: block; touch-action: none; cursor: grab; }
+.ng-canvas > svg:active { cursor: grabbing; }
+.ng-canvas > svg:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
+.ng-edge { stroke: var(--fg-muted); stroke-width: 1.4; fill: none; color: var(--fg-muted); opacity: .65; }
+.ng-node { cursor: pointer; outline: none; }
+.ng-node circle { fill: var(--surface-solid); stroke: var(--lapis); stroke-width: 2.5; }
+.ng-role-owner circle { fill: var(--accent-soft); stroke: var(--accent); }
+.ng-role-author circle { fill: var(--gold-soft); stroke: var(--gold); }
+.ng-node:focus circle, .ng-node:hover circle, .ng-selected circle { stroke: var(--fg); stroke-width: 4; }
+.ng-initial { font-size: 13px; fill: var(--fg); pointer-events: none; }
+.ng-label { font-size: 13px; fill: var(--fg-3); pointer-events: none; }
+.ng-tools { display: flex; align-items: center; justify-content: center; gap: .4rem; padding: .6rem; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.ng-tools .rh-button { min-width: 2.5rem; }
+.ng-tools output { min-width: 3rem; text-align: center; font-size: .75rem; color: var(--fg-muted); }
+.ng-legend { font-size: .7rem; color: var(--fg-muted); padding-block: .75rem; }
+.ng-warning { font-size: .75rem; line-height: 1.8; padding: .75rem; margin-block: .5rem; border-radius: .6rem; background: var(--gold-soft); color: var(--fg-3); }
+.ng-tree { border: 1px solid var(--line); border-radius: .7rem; padding: .8rem 1rem; background: var(--surface-solid); margin-bottom: 1rem; font-size: .8rem; }
+.ng-tree summary { cursor: pointer; }
+.ng-tree ul { list-style: none; padding-inline-start: .8rem; }
+.ng-tree > ul { padding-inline-start: 0; }
+.ng-tree li { margin-top: .6rem; }
+.ng-tree li > ul { border-inline-start: 1px solid var(--line); }
+.ng-tree button { display: inline-block; text-align: start; min-height: 2rem; max-width: 100%; overflow-wrap: anywhere; }
+.ng-cycle { color: var(--gold-ink); }
+.ng-directory .rh-copy { text-align: start; }
+.ng-expanded { position: fixed; inset: 0; z-index: 100; padding: clamp(.8rem,3vw,2rem); background: var(--bg); overflow-y: auto; overscroll-behavior: contain; }
+.ng-detail { width: min(30rem,calc(100% - 2rem)); max-height: calc(100dvh - 2rem); overflow-y: auto; background: var(--surface-solid); color: var(--fg); padding: 1.5rem; margin: auto; border: 1px solid var(--line-2); border-radius: 1rem; overflow-wrap: anywhere; }
+.ng-detail::backdrop { background: rgb(0 0 0 / .4); }
+.ng-close { display: flex; margin-inline-start: auto; margin-bottom: .6rem; }
+.ng-detail h2 { font-size: 1.2rem; font-weight: 700; }
+.ng-detail dl { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: .7rem; margin-block: 1.2rem; font-size: .8rem; }
+.ng-detail dt { color: var(--fg-muted); }
+@media(max-width:600px) { .ng-filters > label:not(.ng-search) { flex: 1 1 6rem; } .ng-tree ul { padding-inline-start: .5rem; } .ng-detail dl { grid-template-columns: minmax(0,1fr); } }

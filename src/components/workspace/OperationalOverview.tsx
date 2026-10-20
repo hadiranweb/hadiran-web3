@@ -1,73 +1,106 @@
-import Link from "next/link";
-import { actionKinds, type ActionKind, type OperationalSnapshot } from "@/lib/workspace/operations-types";
+"use client";
 
-const labels: Record<ActionKind, string> = {
-  orders: "بررسی دریافت وجه",
-  notes: "بازبینی یادداشت‌ها",
-  collaborations: "درخواست‌های همکاری",
-  analyzers: "تکمیل آزمون‌های من",
-  bots: "بررسی خطای ربات‌ها",
+import { useTransition } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ArrowUpLeft, Bot, FileText, FlaskConical, Receipt, RefreshCw, Users } from "lucide-react";
+import { actionKinds, type ActionKind, type OperationalSnapshot } from "@/lib/workspace/operations-types";
+import { useWorkspaceLocale } from "./useWorkspaceLocale";
+import "./role-home.css";
+
+const labels: Record<ActionKind, [string, string]> = {
+  orders: ["بررسی دریافت وجه", "Review payment receipts"],
+  notes: ["بازبینی یادداشت‌ها", "Review notes"],
+  collaborations: ["درخواست‌های همکاری", "Collaboration requests"],
+  analyzers: ["تکمیل آزمون‌های من", "Complete my draft assessments"],
+  bots: ["بررسی خطای ربات‌ها", "Review bot errors"],
 };
 
+const icons = { orders: Receipt, notes: FileText, collaborations: Users, analyzers: FlaskConical, bots: Bot };
+
 export function OperationalOverview({ snapshot, listOnly = false }: { snapshot: OperationalSnapshot; listOnly?: boolean }) {
+  const { t, number } = useWorkspaceLocale();
+  const router = useRouter();
+  const [refreshing, startRefresh] = useTransition();
+  const live = snapshot.source === "live";
+
   return (
-    <main className="mx-auto max-w-3xl space-y-8 px-4 py-8">
-      <header>
-        <p className="text-xs font-medium text-muted">{snapshot.source === "live" ? "دادهٔ پایگاه" : "بدون اتصال داده"}</p>
-        <h1 className="mt-1 text-2xl font-bold text-ink">{listOnly ? "نیازمند اقدام" : "میز کار"}</h1>
+    <div className="ws-page rh-home" data-source={snapshot.source} aria-busy={refreshing}>
+      <header className="rh-heading">
+        <div>
+          <p>{live ? t("دادهٔ پایگاه", "DATABASE DATA") : t("بدون اتصال داده", "DATA UNAVAILABLE")}</p>
+          <h1>{listOnly ? t("نیازمند اقدام", "Needs your attention") : t("میز کار", "Overview")}</h1>
+        </div>
+        <div className="rh-tools">
+          <button className="rh-button" onClick={() => startRefresh(() => router.refresh())} disabled={refreshing}>
+            <RefreshCw size={15} />
+            {t("به‌روزرسانی", "Refresh")}
+          </button>
+        </div>
       </header>
 
-      {snapshot.source !== "live" ? (
-        <p className="rounded-[var(--radius-md)] border border-line bg-accent-soft px-4 py-3 text-sm text-ink" role="status">
-          داده در دسترس نیست. نمونه جای اطلاع واقعی نیامده است.
+      {!live ? (
+        <p className="rh-warning" role="status">
+          {t("داده در دسترس نیست. نمونه جای اطلاع واقعی نیامده است.", "Data is unavailable; no sample records have been substituted.")}
         </p>
       ) : null}
 
       {!listOnly ? (
-        <section className="grid gap-3 sm:grid-cols-3" aria-label="کارهای منتظر بررسی">
+        <div className="rh-metrics" aria-label={t("کارهای منتظر بررسی", "Pending work")}>
           {(["orders", "notes", "collaborations"] as const).map((kind) => (
-            <Link key={kind} href={`/workspace/actions?kind=${kind}`} className="rounded-[var(--radius-md)] border border-line bg-elev p-4 hover:border-accent">
-              <p className="text-sm text-muted">{labels[kind]}</p>
-              <p className="mt-2 text-2xl font-bold tabular-nums text-ink">
-                {snapshot.counts[kind] == null ? "—" : snapshot.counts[kind]!.toLocaleString("fa-IR")}
-              </p>
+            <Link key={kind} className="rh-metric" href={`/workspace/actions?kind=${kind}`}>
+              <span>
+                {t(...labels[kind])}
+                <ArrowUpLeft size={16} />
+              </span>
+              <strong>{snapshot.counts[kind] == null ? "—" : number(snapshot.counts[kind]!)}</strong>
             </Link>
           ))}
-        </section>
+        </div>
       ) : (
-        <nav className="flex flex-wrap gap-2" aria-label="نوع اقدام">
+        <nav className="rh-filters" aria-label={t("نوع اقدام", "Action type")}>
           {actionKinds.map((kind) => (
             <Link
               key={kind}
               href={`/workspace/actions?kind=${kind}`}
-              className={`min-h-11 rounded-full border px-3 text-sm leading-[2.75rem] ${
-                snapshot.filter === kind ? "border-accent bg-accent-soft text-ink" : "border-line text-muted hover:text-ink"
-              }`}
+              className="rh-button"
+              aria-current={snapshot.filter === kind ? "page" : undefined}
             >
-              {labels[kind]}
-              {snapshot.counts[kind] != null ? ` · ${snapshot.counts[kind]!.toLocaleString("fa-IR")}` : ""}
+              {t(...labels[kind])}
+              {snapshot.counts[kind] != null ? ` · ${number(snapshot.counts[kind]!)}` : ""}
             </Link>
           ))}
         </nav>
       )}
 
-      <section>
-        <h2 className="mb-3 text-lg font-bold text-ink">فهرست</h2>
+      <section className="rh-panel">
+        <div className="rh-section-heading">
+          <h2>{t("فهرست", "List")}</h2>
+        </div>
         {snapshot.actions.length === 0 ? (
-          <p className="text-sm text-muted">اقدام معلقی در این صافی نیست.</p>
+          <p className="rh-empty">{t("اقدام معلقی در این صافی نیست.", "No pending actions in this filter.")}</p>
         ) : (
-          <ul className="space-y-2">
-            {snapshot.actions.map((item) => (
-              <li key={item.key}>
-                <Link href={item.href} className="block rounded-[var(--radius-md)] border border-line bg-elev p-4 hover:border-accent">
-                  <p className="font-medium text-ink">{item.title}</p>
-                  <p className="mt-1 text-xs text-muted">{labels[item.kind]}</p>
-                </Link>
-              </li>
-            ))}
+          <ul className="rh-list">
+            {snapshot.actions.map((item) => {
+              const Icon = icons[item.kind];
+              return (
+                <li key={item.key}>
+                  <Link href={item.href} className="rh-row">
+                    <span className="rh-icon">
+                      <Icon size={18} />
+                    </span>
+                    <span className="rh-copy">
+                      <strong>{item.title}</strong>
+                      <small>{t(...labels[item.kind])}</small>
+                    </span>
+                    <ArrowUpLeft size={16} />
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
-    </main>
+    </div>
   );
 }

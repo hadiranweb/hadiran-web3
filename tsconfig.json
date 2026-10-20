@@ -38,6 +38,7 @@
   ],
   "exclude": [
     "node_modules",
-    "hadiran-web3-v2"
+    "hadiran-web3-v2",
+    "google_drive"
   ]
 }

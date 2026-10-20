@@ -19,10 +19,13 @@ export function SettingsPanel() {
   }
 
   return (
-    <main className="mx-auto max-w-3xl space-y-8 px-4 py-8">
-      <header>
-        <h1 className="text-2xl font-bold text-ink">تنظیمات</h1>
-        <p className="mt-2 text-sm leading-7 text-muted">زبان رابط میز و تم مرورگر. انتخاب در همین مرورگر می‌ماند.</p>
+    <div className="ws-page">
+      <header className="ws-page-heading">
+        <div>
+          <p className="ws-overline">میز</p>
+          <h1>تنظیمات</h1>
+          <p>زبان رابط میز و تم مرورگر. انتخاب در همین مرورگر می‌ماند.</p>
+        </div>
       </header>
 
       <section className="space-y-4 rounded-[var(--radius-md)] border border-line bg-elev p-5">
@@ -49,6 +52,6 @@ export function SettingsPanel() {
           <ThemeToggle />
         </div>
       </section>
-    </main>
+    </div>
   );
 }
