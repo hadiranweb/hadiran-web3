@@ -176,11 +176,11 @@ export default async function WorkspacePage() {
                   </span>
                   <span className="flex items-center gap-3 text-xs">
                     <Link href={`/workspace/records/${item.recordId}`} className="ws-text-link">
-                      ثبت مبدأ
+                      ویرایش
                     </Link>
                     {item.slug ? (
                       <Link href={`/knowledge/${item.slug}`} className="ws-text-link">
-                        نمود باغ دانش
+                        مشاهدهٔ عمومی
                       </Link>
                     ) : null}
                     <RecordRowActions id={item.recordId} title={item.titleFa} />

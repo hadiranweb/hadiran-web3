@@ -4,6 +4,7 @@ import { semanticRecords } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { requireOwner } from "@/lib/auth/guard";
 import { parseArticleLayers, parseClosingOptions, parseSimulator } from "@/lib/knowledge/article";
+import { canDeleteDraft, syncPublishedArticle } from "@/lib/knowledge/lifecycle";
 
 export const dynamic = "force-dynamic";
 
@@ -71,6 +72,15 @@ export async function PATCH(request: Request, { params }: Ctx) {
     .where(eq(semanticRecords.id, id))
     .returning();
 
+  if (updated.promotedMemoryId) {
+    try {
+      await syncPublishedArticle(updated);
+    } catch (error) {
+      console.error("[hadiran] garden sync", error instanceof Error ? error.name : "unknown");
+      return NextResponse.json({ error: "public_sync_failed", id: updated.id }, { status: 500 });
+    }
+  }
+
   return NextResponse.json({ ok: true, id: updated.id });
 }
 
@@ -78,13 +88,13 @@ export async function DELETE(_request: Request, { params }: Ctx) {
   const auth = await requireOwner();
   if (auth.error) return auth.error;
   const { id } = await params;
-  const [existing] = await db
-    .select({ id: semanticRecords.id, ownerId: semanticRecords.ownerId })
-    .from(semanticRecords)
-    .where(eq(semanticRecords.id, id));
+  const [existing] = await db.select().from(semanticRecords).where(eq(semanticRecords.id, id));
   if (!existing) return NextResponse.json({ error: "not_found" }, { status: 404 });
   if (existing.ownerId && existing.ownerId !== auth.account.id) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
+  if (!canDeleteDraft(existing)) {
+    return NextResponse.json({ error: "unpublish_or_archive_first" }, { status: 409 });
   }
   await db.delete(semanticRecords).where(eq(semanticRecords.id, id));
   return NextResponse.json({ ok: true, id });

@@ -12,6 +12,9 @@ export type WorkspaceItem = {
   editUrl?: string;
   progress?: number;
   email?: string;
+  phase?: "draft" | "review" | "published" | "archived";
+  visibility?: "private" | "public";
+  publicUrl?: string;
 };
 
 export type WorkspaceData = {

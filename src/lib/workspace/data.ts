@@ -2,10 +2,18 @@ import "server-only";
 import { cache } from "react";
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { collaborations, projects, semanticRecords, shopListings } from "@/db/schema";
+import { collaborations, knowledge, memoryItems, projects, semanticRecords, shopListings } from "@/db/schema";
+import { gardenPhase } from "@/lib/knowledge/lifecycle";
 import type { WorkspaceData, WorkspaceItem } from "./types";
 
-function mapRecord(row: typeof semanticRecords.$inferSelect): WorkspaceItem {
+function mapRecord(
+  row: typeof semanticRecords.$inferSelect,
+  extra?: { slug?: string | null; memoryVisibility?: string | null },
+): WorkspaceItem {
+  const phase = gardenPhase(row);
+  const visibility = extra?.memoryVisibility === "public" || row.visibility === "public" ? "public" : "private";
+  const publicUrl =
+    phase === "published" && visibility === "public" && extra?.slug ? `/knowledge/${extra.slug}` : undefined;
   return {
     id: row.id,
     title: row.titleFa,
@@ -15,6 +23,9 @@ function mapRecord(row: typeof semanticRecords.$inferSelect): WorkspaceItem {
     detail: row.summaryFa || "",
     updated: row.updatedAt?.toISOString() || "",
     editUrl: `/workspace/records/${row.id}`,
+    phase,
+    visibility,
+    publicUrl,
   };
 }
 
@@ -22,7 +33,17 @@ export const getWorkspaceData = cache(async (ownerId: number): Promise<Workspace
   const empty: WorkspaceData = { source: "error", knowledge: [], projects: [], collaborations: [], productCount: null };
   try {
     const [notes, work, applicants, listings] = await Promise.all([
-      db.select().from(semanticRecords).where(eq(semanticRecords.ownerId, ownerId)).orderBy(desc(semanticRecords.updatedAt)),
+      db
+        .select({
+          record: semanticRecords,
+          slug: knowledge.slug,
+          memoryVisibility: memoryItems.visibility,
+        })
+        .from(semanticRecords)
+        .leftJoin(memoryItems, eq(semanticRecords.promotedMemoryId, memoryItems.id))
+        .leftJoin(knowledge, eq(knowledge.memoryItemId, memoryItems.id))
+        .where(eq(semanticRecords.ownerId, ownerId))
+        .orderBy(desc(semanticRecords.updatedAt)),
       db
         .select({
           id: projects.id,
@@ -57,7 +78,9 @@ export const getWorkspaceData = cache(async (ownerId: number): Promise<Workspace
     return {
       source: "live",
       productCount: listings.length,
-      knowledge: notes.map(mapRecord),
+      knowledge: notes.map((row) =>
+        mapRecord(row.record, { slug: row.slug, memoryVisibility: row.memoryVisibility }),
+      ),
       projects: work.map((item) => ({
         id: String(item.id),
         title: item.title,

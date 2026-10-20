@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { knowledge, knowledgeReferences, knowledgeSlides, semanticRecords } from "@/db/schema";
 import { eq, asc } from "drizzle-orm";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { KnowledgeComposer } from "@/components/knowledge/KnowledgeComposer";
@@ -35,6 +35,7 @@ export default async function EditKnowledgePage({ params }: Props) {
       .where(eq(semanticRecords.promotedMemoryId, item.memoryItemId));
     sourceId = source?.id ?? null;
   }
+  if (sourceId) redirect(`/workspace/records/${sourceId}`);
 
   let slides: (typeof knowledgeSlides.$inferSelect)[] = [];
   try {
@@ -59,11 +60,7 @@ export default async function EditKnowledgePage({ params }: Props) {
         <Link href={`/knowledge/${item.slug}`} className="text-sm text-muted hover:text-ink">
           بازگشت به مطلب
         </Link>
-        {sourceId ? (
-          <Link href={`/workspace/records/${sourceId}`} className="text-sm text-accent">
-            متن خام در میزکار
-          </Link>
-        ) : null}
+        <p className="text-sm text-muted">این صفحه خروجی قدیمی بدون ثبت مبدأ است. ویرایش همین‌جا می‌ماند.</p>
       </div>
       <h1 className="mb-8 text-3xl font-bold text-ink">ویرایش مطلب</h1>
       <KnowledgeComposer

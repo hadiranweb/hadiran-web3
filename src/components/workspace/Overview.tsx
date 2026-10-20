@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { BookOpen, FileText, FolderKanban, Handshake, Package } from "lucide-react";
 import type { PulseCounts } from "@/lib/workspace/pulse";
+import { gardenPhaseFa } from "@/lib/knowledge/lifecycle";
 import { recordStatusFa } from "@/lib/workspace/pulse";
 import type { WorkspaceData } from "@/lib/workspace/types";
 import { RecordRowActions } from "./RecordRowActions";
@@ -45,7 +46,7 @@ export function Overview({
       href: "/workspace/knowledge",
       label: "باغ دانش",
       value: data.knowledge.length,
-      hint: "ثبت‌های میز",
+      hint: "پیش‌نویس تا منتشر",
       icon: BookOpen,
       tone: "ws-tone-teal",
     },
@@ -77,24 +78,19 @@ export function Overview({
 
   const pulseTiles = [
     {
-      href: "/workspace#open",
-      label: "ثبت خام",
-      value: pulse.captured,
+      href: "/workspace/knowledge?phase=draft",
+      label: "پیش‌نویس",
+      value: pulse.draft,
     },
     {
-      href: "/workspace#open",
-      label: "آمادهٔ ارتقا",
-      value: pulse.readyToPromote,
+      href: "/workspace/knowledge?phase=review",
+      label: "در بازبینی",
+      value: pulse.review,
     },
     {
-      href: "/knowledge",
-      label: "منتشر عمومی",
-      value: pulse.publicMemory,
-    },
-    {
-      href: "/knowledge",
-      label: "باغ دانش",
-      value: pulse.knowledgeProjections,
+      href: "/workspace/knowledge?phase=published",
+      label: "منتشرشدهٔ عمومی",
+      value: pulse.publicPublished,
     },
   ];
 
@@ -143,7 +139,7 @@ export function Overview({
       <div className="ws-overview-grid">
         <section className="ws-panel">
           <div className="ws-panel-title">
-            <h2>یادداشت اخیر</h2>
+            <h2>باغ دانش</h2>
             <Link href="/workspace/knowledge">همه</Link>
           </div>
           {recent.length === 0 ? (
@@ -158,7 +154,8 @@ export function Overview({
                   <span>
                     <strong>{item.title}</strong>
                     <small>
-                      {recordStatusFa(item.status)}
+                      {item.phase ? gardenPhaseFa(item.phase) : recordStatusFa(item.status)}
+                      {item.visibility === "public" ? " · عمومی" : item.visibility === "private" ? " · خصوصی" : ""}
                       {item.updated ? ` · ${whenFa(item.updated)}` : ""}
                     </small>
                   </span>

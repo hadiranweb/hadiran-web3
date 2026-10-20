@@ -23,10 +23,14 @@ const labels: Record<string, [string, string]> = {
   research: ["پژوهش", "Research"],
   idea: ["ایده", "Idea"],
   wiki: ["ویکی", "Wiki"],
-  captured: ["ثبت خام", "Captured"],
+  captured: ["پیش‌نویس", "Draft"],
   pending_review: ["در بازبینی", "In review"],
-  promoted: ["ارتقا یافته", "Promoted"],
-  published: ["منتشر", "Published"],
+  promoted: ["منتشرشده", "Published"],
+  published: ["منتشرشده", "Published"],
+  draft: ["پیش‌نویس", "Draft"],
+  review: ["در بازبینی", "In review"],
+  private: ["خصوصی", "Private"],
+  public: ["عمومی", "Public"],
   idea_status: ["ایده", "Idea"],
   concept: ["مفهوم", "Concept"],
   prototype: ["نمونه اولیه", "Prototype"],
@@ -43,13 +47,16 @@ const labels: Record<string, [string, string]> = {
 };
 
 const moduleTitles: Record<Exclude<ModuleKind, "products">, [string, string]> = {
-  knowledge: ["دانش میز", "Knowledge desk"],
+  knowledge: ["باغ دانش", "Knowledge garden"],
   projects: ["پروژه‌ها", "Projects"],
   collaborations: ["درخواست‌های همکاری", "Collaborations"],
 };
 
 const descriptions: Record<Exclude<ModuleKind, "products">, [string, string]> = {
-  knowledge: ["ثبت‌های خام و دانش تأییدشده را مرور کن؛ ذخیره به معنی انتشار نیست.", "Find and maintain captured notes. Saving is not publishing."],
+  knowledge: [
+    "یک باغ است. پیش‌نویس، بازبینی و انتشار وضعیت همین مطلب‌اند، نه محصول جدا. صفحهٔ عمومی فقط خروجی انتشار است.",
+    "One garden. Draft, review, and published are statuses of the same article. The public page is the published output.",
+  ],
   projects: ["وضعیت پروژه‌ها و مسیر رسیدن به مرحلهٔ بعد را مرور کن.", "Review project stages and progress."],
   collaborations: ["درخواست‌های دریافتی را بخوان و مرحلهٔ بررسی را مشخص کن.", "Read incoming applications and manage their review stages."],
 };
@@ -57,16 +64,18 @@ const descriptions: Record<Exclude<ModuleKind, "products">, [string, string]> = 
 const collaborationStatuses = ["submitted", "reviewed", "shortlisted", "interview", "accepted", "rejected"];
 
 const projectColumns = ["idea", "concept", "research", "prototype", "development", "beta", "production", "archived"];
-const knowledgeColumns = ["captured", "pending_review", "promoted"];
+const knowledgeColumns = ["draft", "review", "published", "archived"];
 
 export function RecordManager({
   kind,
   initial,
   source,
+  initialFilter = "",
 }: {
   kind: Exclude<ModuleKind, "products">;
   initial: WorkspaceItem[];
   source: WorkspaceData["source"];
+  initialFilter?: string;
 }) {
   const { locale, t, number } = useWorkspaceLocale();
   const router = useRouter();
@@ -76,7 +85,7 @@ export function RecordManager({
     [initial, overrides],
   );
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState("");
+  const [filter, setFilter] = useState(initialFilter);
   const [sort, setSort] = useState("newest");
   const [view, setView] = useState<"list" | "grid" | "kanban">("list");
   const [page, setPage] = useState(1);
@@ -92,12 +101,11 @@ export function RecordManager({
     value && !Number.isNaN(Date.parse(value))
       ? new Intl.DateTimeFormat(locale === "fa" ? "fa-IR" : "en-GB", { month: "short", day: "numeric" }).format(new Date(value))
       : "—";
-  const filterKey = kind === "knowledge" ? "category" : "status";
   const filtered = items
     .filter(
       (item) =>
         `${item.title} ${item.titleEn || ""} ${item.detail} ${item.category}`.toLowerCase().includes(query.trim().toLowerCase()) &&
-        (!filter || item[filterKey] === filter),
+        (!filter || (kind === "knowledge" ? item.phase === filter : item.status === filter)),
     )
     .sort((a, b) =>
       sort === "title"
@@ -109,7 +117,9 @@ export function RecordManager({
   const pages = Math.max(1, Math.ceil(filtered.length / 8));
   const currentPage = Math.min(page, pages);
   const visible = filtered.slice((currentPage - 1) * 8, currentPage * 8);
-  const filterOptions = Array.from(new Set(items.map((item) => item[filterKey]).filter(Boolean)));
+  const filterOptions = Array.from(
+    new Set(items.map((item) => (kind === "knowledge" ? item.phase : item.status)).filter((value): value is string => Boolean(value))),
+  );
   const columns = kind === "collaborations" ? collaborationStatuses : kind === "knowledge" ? knowledgeColumns : projectColumns;
 
   function hrefFor(item: WorkspaceItem) {
@@ -151,7 +161,9 @@ export function RecordManager({
           <span className="ws-record-icon">
             <FileText size={19} />
           </span>
-          <span className={`ws-badge ws-status-${item.status}`}>{label(item.status)}</span>
+          <span className={`ws-badge ws-status-${kind === "knowledge" ? item.phase || item.status : item.status}`}>
+            {label(kind === "knowledge" ? item.phase || item.status : item.status)}
+          </span>
         </div>
         <button type="button" className="ws-card-title" onClick={() => openDetails(item)}>
           {titleOf(item)}
@@ -164,9 +176,11 @@ export function RecordManager({
           </div>
         ) : null}
         <div className="ws-record-card-bottom">
-          <span>{label(item.category)}</span>
+          <span>{kind === "knowledge" ? label(item.visibility || "private") : label(item.category)}</span>
           <span className="flex items-center gap-1">
-            {kind === "knowledge" ? <RecordRowActions id={item.id} title={titleOf(item)} /> : null}
+            {kind === "knowledge" ? (
+              <RecordRowActions id={item.id} title={titleOf(item)} phase={item.phase} publicUrl={item.publicUrl} />
+            ) : null}
             <button type="button" className="ws-icon-button" onClick={() => openDetails(item)} aria-label={`${t("جزئیات", "Details")}: ${titleOf(item)}`}>
               <ArrowUpLeft size={17} />
             </button>
@@ -190,7 +204,7 @@ export function RecordManager({
         {kind === "knowledge" ? (
           <Link className="ws-button ws-primary" href="/workspace/capture">
             <Plus size={17} />
-            {t("یادداشت جدید", "New note")}
+            {t("مطلب تازه", "New article")}
           </Link>
         ) : (
           <span className="ws-read-mode">{t("مرور و بررسی", "Review workspace")}</span>
@@ -243,7 +257,7 @@ export function RecordManager({
       ) : view === "kanban" ? (
         <div className="ws-kanban">
           {columns.map((column) => {
-            const group = filtered.filter((item) => item.status === column);
+            const group = filtered.filter((item) => (kind === "knowledge" ? item.phase === column : item.status === column));
             return (
               <section className="ws-kanban-column" key={column}>
                 <h2>
@@ -263,7 +277,13 @@ export function RecordManager({
               <tr>
                 <th>{t("عنوان", "Title")}</th>
                 <th>{t("وضعیت", "Status")}</th>
-                <th>{kind === "collaborations" ? t("پروژه", "Project") : t("نوع", "Type")}</th>
+                <th>
+                  {kind === "collaborations"
+                    ? t("پروژه", "Project")
+                    : kind === "knowledge"
+                      ? t("دیدپذیری", "Visibility")
+                      : t("نوع", "Type")}
+                </th>
                 <th>{t("تاریخ", "Updated")}</th>
                 {kind === "knowledge" ? <th>{t("اقدام", "Actions")}</th> : null}
               </tr>
@@ -283,13 +303,15 @@ export function RecordManager({
                     </button>
                   </td>
                   <td>
-                    <span className={`ws-badge ws-status-${item.status}`}>{label(item.status)}</span>
+                    <span className={`ws-badge ws-status-${kind === "knowledge" ? item.phase || item.status : item.status}`}>
+                      {label(kind === "knowledge" ? item.phase || item.status : item.status)}
+                    </span>
                   </td>
-                  <td>{label(item.category)}</td>
+                  <td>{kind === "knowledge" ? label(item.visibility || "private") : label(item.category)}</td>
                   <td className="ws-nowrap">{date(item.updated)}</td>
                   {kind === "knowledge" ? (
                     <td>
-                      <RecordRowActions id={item.id} title={titleOf(item)} />
+                      <RecordRowActions id={item.id} title={titleOf(item)} phase={item.phase} publicUrl={item.publicUrl} />
                     </td>
                   ) : null}
                 </tr>
@@ -332,11 +354,17 @@ export function RecordManager({
             <dl>
               <div>
                 <dt>{t("وضعیت", "Status")}</dt>
-                <dd>{label(selected.status)}</dd>
+                <dd>{label(kind === "knowledge" ? selected.phase || selected.status : selected.status)}</dd>
               </div>
               <div>
-                <dt>{kind === "collaborations" ? t("پروژه", "Project") : t("نوع", "Type")}</dt>
-                <dd>{label(selected.category)}</dd>
+                <dt>
+                  {kind === "collaborations"
+                    ? t("پروژه", "Project")
+                    : kind === "knowledge"
+                      ? t("دیدپذیری", "Visibility")
+                      : t("نوع", "Type")}
+                </dt>
+                <dd>{kind === "knowledge" ? label(selected.visibility || "private") : label(selected.category)}</dd>
               </div>
               <div>
                 <dt>{t("به‌روزرسانی", "Updated")}</dt>
@@ -362,7 +390,14 @@ export function RecordManager({
                   {t("بازکردن صفحه", "Open page")}
                 </Link>
               ) : null}
-              {kind === "knowledge" ? <RecordRowActions id={selected.id} title={titleOf(selected)} /> : null}
+              {kind === "knowledge" ? (
+                <RecordRowActions
+                  id={selected.id}
+                  title={titleOf(selected)}
+                  phase={selected.phase}
+                  publicUrl={selected.publicUrl}
+                />
+              ) : null}
             </div>
           </div>
         ) : null}

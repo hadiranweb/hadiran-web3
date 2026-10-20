@@ -8,6 +8,7 @@ import {
   knowledgeSlides,
   memoryItems,
   projects,
+  semanticRecords,
 } from "@/db/schema";
 import { and, eq, asc } from "drizzle-orm";
 import { publicKnowledgeFilter, publicKnowledgeJoin, publicProjectFilter } from "@/lib/public/policy";
@@ -48,6 +49,19 @@ export default async function KnowledgeItemPage({ params }: Props) {
   const item = await getPublicKnowledgeBySlug(slug);
   if (!item) notFound();
   const account = await getCurrentAccount();
+  let editHref: string | null = null;
+  if (account?.role === "owner") {
+    if (item.memoryItemId) {
+      const [source] = await db
+        .select({ id: semanticRecords.id })
+        .from(semanticRecords)
+        .where(eq(semanticRecords.promotedMemoryId, item.memoryItemId))
+        .limit(1);
+      editHref = source ? `/workspace/records/${source.id}` : "/workspace/knowledge";
+    } else {
+      editHref = "/workspace/knowledge";
+    }
+  }
 
   const itemTopics = await db
     .select({ labelFa: topics.labelFa, slug: topics.slug })
@@ -96,15 +110,12 @@ export default async function KnowledgeItemPage({ params }: Props) {
           <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
           بازگشت به باغ دانش
         </Link>
-        {account?.role === "owner" && (
-          <Link
-            href={`/knowledge/${item.slug}/edit`}
-            className="inline-flex items-center gap-1 text-sm font-medium text-accent"
-          >
+        {editHref ? (
+          <Link href={editHref} className="inline-flex items-center gap-1 text-sm font-medium text-accent">
             <Pencil className="h-3.5 w-3.5" />
-            ویرایش
+            ویرایش مطلب
           </Link>
-        )}
+        ) : null}
       </div>
 
       <article className="surface p-6 sm:p-10">
