@@ -1,17 +1,24 @@
-import { eq, inArray } from "drizzle-orm";
-import { db } from "@/db";
-import { knowledge, knowledgeReferences } from "@/db/schema";
-import { parseRelatedSlugs } from "@/lib/knowledge/article";
+import { parseRelatedSlugs } from "./article";
 
-export async function replaceKnowledgeRelated(sourceId: number, slugs: unknown) {
+export type RelatedRecord = {
+  sourceKnowledgeId: number;
+  targetKnowledgeId: number;
+  relation: string;
+};
+
+/** Narrow executor so Postgres and the in-memory adapter share one helper. */
+export type RelatedExecutor = {
+  deleteBySource(sourceId: number): Promise<void>;
+  findTargetsBySlugs(slugs: string[]): Promise<{ id: number; slug: string }[]>;
+  insertRelations(rows: RelatedRecord[]): Promise<void>;
+};
+
+export async function replaceKnowledgeRelated(exec: RelatedExecutor, sourceId: number, slugs: unknown) {
   if (!Array.isArray(slugs)) return;
   const wanted = parseRelatedSlugs(slugs);
-  await db.delete(knowledgeReferences).where(eq(knowledgeReferences.sourceKnowledgeId, sourceId));
+  await exec.deleteBySource(sourceId);
   if (wanted.length === 0) return;
-  const targets = await db
-    .select({ id: knowledge.id, slug: knowledge.slug })
-    .from(knowledge)
-    .where(inArray(knowledge.slug, wanted));
+  const targets = await exec.findTargetsBySlugs(wanted);
   const rows = targets
     .filter((row) => row.id !== sourceId)
     .map((row) => ({
@@ -19,5 +26,5 @@ export async function replaceKnowledgeRelated(sourceId: number, slugs: unknown) 
       targetKnowledgeId: row.id,
       relation: "thread",
     }));
-  if (rows.length) await db.insert(knowledgeReferences).values(rows);
+  if (rows.length) await exec.insertRelations(rows);
 }

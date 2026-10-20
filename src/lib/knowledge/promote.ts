@@ -12,6 +12,8 @@ import {
 import { eq } from "drizzle-orm";
 import { slugify } from "@/lib/markdown";
 import { parseClosingOptions, parseRelatedSlugs, parseSimulator } from "@/lib/knowledge/article";
+import { commitKnowledgeArticle } from "@/lib/knowledge/commit";
+import { knowledgeCommitExecutor, relatedExecutor } from "@/lib/knowledge/related-db";
 import { replaceKnowledgeRelated } from "@/lib/knowledge/related";
 import { newCanonicalId } from "./ids";
 import {
@@ -140,37 +142,47 @@ export async function promoteSemanticRecord(opts: {
   const [existingKnowledge] = await db.select().from(knowledge).where(eq(knowledge.memoryItemId, memoryId));
   let publicSlug = existingKnowledge?.slug ?? slug;
   let knowledgeId = existingKnowledge?.id ?? null;
-  if (!existingKnowledge) {
-    const [dup] = await db.select({ id: knowledge.id }).from(knowledge).where(eq(knowledge.slug, publicSlug));
-    if (dup) publicSlug = `${publicSlug}-${memoryId.slice(-4)}`;
-    const [created] = await db.insert(knowledge).values({
-      slug: publicSlug,
-      type: "article",
-      titleFa: record.titleFa,
-      titleEn: record.titleEn,
-      summaryFa: record.summaryFa,
-      bodyFa: record.bodyFa,
-      growth: record.growth,
-      readingMinutes: record.readingMinutes,
-      lineFa: record.lineFa,
-      questionFa: record.questionFa,
-      rootFa: record.rootFa,
-      firstStepFa: record.firstStepFa,
-      marginNoteFa: record.marginNoteFa,
-      prunedAt: record.prunedAt,
-      audioUrl: record.audioUrl,
-      simulator: parseSimulator(record.simulator),
-      closingQuestionFa: record.closingQuestionFa,
-      closingOptions: parseClosingOptions(record.closingOptions),
-      closingPromptFa: record.closingPromptFa,
-      aiIndexable: visibility === "public",
-      memoryItemId: memoryId,
-    }).returning({ id: knowledge.id });
-    knowledgeId = created?.id ?? null;
-  } else {
-    await db
-      .update(knowledge)
-      .set({
+  await db.transaction(async (tx) => {
+    if (!existingKnowledge) {
+      const [dup] = await tx.select({ id: knowledge.id }).from(knowledge).where(eq(knowledge.slug, publicSlug));
+      if (dup) publicSlug = `${publicSlug}-${memoryId.slice(-4)}`;
+      const [created] = await tx
+        .insert(knowledge)
+        .values({
+          slug: publicSlug,
+          type: "article",
+          titleFa: record.titleFa,
+          titleEn: record.titleEn,
+          summaryFa: record.summaryFa,
+          bodyFa: record.bodyFa,
+          growth: record.growth,
+          readingMinutes: record.readingMinutes,
+          lineFa: record.lineFa,
+          questionFa: record.questionFa,
+          rootFa: record.rootFa,
+          firstStepFa: record.firstStepFa,
+          marginNoteFa: record.marginNoteFa,
+          prunedAt: record.prunedAt,
+          audioUrl: record.audioUrl,
+          simulator: parseSimulator(record.simulator),
+          closingQuestionFa: record.closingQuestionFa,
+          closingOptions: parseClosingOptions(record.closingOptions),
+          closingPromptFa: record.closingPromptFa,
+          aiIndexable: visibility === "public",
+          memoryItemId: memoryId,
+          revision: 1,
+        })
+        .returning({ id: knowledge.id });
+      knowledgeId = created?.id ?? null;
+      if (knowledgeId) {
+        await replaceKnowledgeRelated(relatedExecutor(tx), knowledgeId, parseRelatedSlugs(record.relatedSlugs));
+      }
+      return;
+    }
+    const saved = await commitKnowledgeArticle(knowledgeCommitExecutor(tx), {
+      id: existingKnowledge.id,
+      baseRevision: existingKnowledge.revision,
+      columns: {
         titleFa: record.titleFa,
         titleEn: record.titleEn,
         summaryFa: record.summaryFa,
@@ -189,13 +201,12 @@ export async function promoteSemanticRecord(opts: {
         closingOptions: parseClosingOptions(record.closingOptions),
         closingPromptFa: record.closingPromptFa,
         aiIndexable: visibility === "public",
-        updatedAt: now,
-      })
-      .where(eq(knowledge.id, existingKnowledge.id));
-  }
-  if (knowledgeId) {
-    await replaceKnowledgeRelated(knowledgeId, parseRelatedSlugs(record.relatedSlugs));
-  }
+      },
+      relatedSlugs: parseRelatedSlugs(record.relatedSlugs),
+    });
+    knowledgeId = saved.id;
+    publicSlug = saved.slug;
+  });
 
   if (!existingKnowledge) {
     await db.insert(graphEdges).values([

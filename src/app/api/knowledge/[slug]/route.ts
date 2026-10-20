@@ -6,7 +6,8 @@ import { slugify } from "@/lib/markdown";
 import { requireAccount } from "@/lib/auth/guard";
 import { getPublicKnowledgeBySlug } from "@/lib/knowledge/public";
 import { parseArticleLayers, parseClosingOptions, parseSimulator } from "@/lib/knowledge/article";
-import { replaceKnowledgeRelated } from "@/lib/knowledge/related";
+import { commitKnowledgeArticle, parseBaseRevision, RevisionConflict } from "@/lib/knowledge/commit";
+import { knowledgeCommitExecutor } from "@/lib/knowledge/related-db";
 
 export const dynamic = "force-dynamic";
 
@@ -43,13 +44,17 @@ function articleLayers(body: Record<string, unknown>, existing: typeof knowledge
         : null
       : existing.summaryFa;
   const { relatedSlugs: _related, ...columns } = layers;
-  return { ...columns, summaryFa, updatedAt: new Date() };
+  return { ...columns, summaryFa };
 }
 
-async function replaceSlides(knowledgeId: number, slides: SlideInput[]) {
-  await db.delete(knowledgeSlides).where(eq(knowledgeSlides.knowledgeId, knowledgeId));
+async function replaceSlides(
+  tx: { delete: typeof db.delete; insert: typeof db.insert },
+  knowledgeId: number,
+  slides: SlideInput[],
+) {
+  await tx.delete(knowledgeSlides).where(eq(knowledgeSlides.knowledgeId, knowledgeId));
   if (slides.length === 0) return;
-  await db.insert(knowledgeSlides).values(
+  await tx.insert(knowledgeSlides).values(
     slides.map((slide, index) => ({
       knowledgeId,
       sortOrder: slide.sortOrder ?? index,
@@ -82,54 +87,61 @@ export async function PATCH(request: Request, { params }: Ctx) {
     if (!existing) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
     const body = (await request.json()) as Record<string, unknown>;
+    const baseRevision = parseBaseRevision(body.baseRevision);
+    if (baseRevision == null) {
+      return NextResponse.json({ error: "revision_required", revision: existing.revision }, { status: 409 });
+    }
+    if (baseRevision !== existing.revision) {
+      return NextResponse.json({ error: "revision_conflict", revision: existing.revision }, { status: 409 });
+    }
+
     const layers = articleLayers(body, existing);
+    let columns: Record<string, unknown> = layers;
 
-    if (existing.memoryItemId) {
-      const [updated] = await db.update(knowledge).set(layers).where(eq(knowledge.id, existing.id)).returning();
-      await replaceKnowledgeRelated(existing.id, body.relatedSlugs);
-      return NextResponse.json({ ok: true, slug: updated.slug, id: updated.id });
-    }
-
-    const titleFa = typeof body.titleFa === "string" ? body.titleFa.trim() : existing.titleFa;
-    const nextSlug =
-      typeof body.slug === "string" && body.slug.trim() ? slugify(body.slug) : existing.slug;
-    if (["new", "edit", "write"].includes(nextSlug)) {
-      return NextResponse.json({ error: "این اسلاگ رزرو شده است" }, { status: 400 });
-    }
-    if (nextSlug !== existing.slug) {
-      const [dup] = await db.select({ id: knowledge.id }).from(knowledge).where(eq(knowledge.slug, nextSlug));
-      if (dup) {
-        return NextResponse.json({ error: "این اسلاگ قبلاً استفاده شده است" }, { status: 409 });
+    if (!existing.memoryItemId) {
+      const titleFa = typeof body.titleFa === "string" ? body.titleFa.trim() : existing.titleFa;
+      const nextSlug =
+        typeof body.slug === "string" && body.slug.trim() ? slugify(body.slug) : existing.slug;
+      if (["new", "edit", "write"].includes(nextSlug)) {
+        return NextResponse.json({ error: "این اسلاگ رزرو شده است" }, { status: 400 });
       }
-    }
-    const type = TYPES.includes(body.type as (typeof TYPES)[number])
-      ? (body.type as (typeof TYPES)[number])
-      : existing.type;
-
-    const [updated] = await db
-      .update(knowledge)
-      .set({
+      if (nextSlug !== existing.slug) {
+        const [dup] = await db.select({ id: knowledge.id }).from(knowledge).where(eq(knowledge.slug, nextSlug));
+        if (dup) {
+          return NextResponse.json({ error: "این اسلاگ قبلاً استفاده شده است" }, { status: 409 });
+        }
+      }
+      const type = TYPES.includes(body.type as (typeof TYPES)[number])
+        ? (body.type as (typeof TYPES)[number])
+        : existing.type;
+      columns = {
         ...layers,
         slug: nextSlug,
         type,
         titleFa,
         titleEn: typeof body.titleEn === "string" ? body.titleEn : existing.titleEn,
         bodyFa: typeof body.bodyFa === "string" ? body.bodyFa : existing.bodyFa,
-      })
-      .where(eq(knowledge.id, existing.id))
-      .returning();
-
-    if (Array.isArray(body.slides)) {
-      try {
-        await replaceSlides(existing.id, body.slides as SlideInput[]);
-      } catch (slideError) {
-        console.error("knowledge slides save:", slideError);
-      }
+      };
     }
-    await replaceKnowledgeRelated(existing.id, body.relatedSlugs);
 
-    return NextResponse.json({ ok: true, slug: updated.slug, id: updated.id });
+    const updated = await db.transaction(async (tx) => {
+      const saved = await commitKnowledgeArticle(knowledgeCommitExecutor(tx), {
+        id: existing.id,
+        baseRevision,
+        columns,
+        relatedSlugs: body.relatedSlugs,
+      });
+      if (Array.isArray(body.slides)) {
+        await replaceSlides(tx, existing.id, body.slides as SlideInput[]);
+      }
+      return saved;
+    });
+
+    return NextResponse.json({ ok: true, slug: updated.slug, id: updated.id, revision: updated.revision });
   } catch (error) {
+    if (error instanceof RevisionConflict) {
+      return NextResponse.json({ error: "revision_conflict", revision: error.currentRevision }, { status: 409 });
+    }
     console.error("[hadiran] knowledge patch", error instanceof Error ? error.name : "unknown");
     return NextResponse.json({ error: "Failed to update knowledge" }, { status: 500 });
   }

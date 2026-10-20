@@ -116,6 +116,7 @@ export const knowledge = pgTable("knowledge", {
   closingPromptFa: text("closing_prompt_fa"),
   aiIndexable: boolean("ai_indexable").default(true),
   versionable: boolean("versionable").default(true),
+  revision: integer("revision").notNull().default(1),
   memoryItemId: varchar("memory_item_id", { length: 64 }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),

@@ -24,7 +24,8 @@ export async function POST(request: Request, { params }: Ctx) {
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {
     const message = error instanceof Error ? error.message : "promote_failed";
-    const status = message === "not_found" ? 404 : message === "forbidden" ? 403 : 500;
+    const status =
+      message === "not_found" ? 404 : message === "forbidden" ? 403 : message === "revision_conflict" ? 409 : 500;
     console.error("[hadiran] promote", error);
     return NextResponse.json({ error: message }, { status });
   }

@@ -43,6 +43,7 @@ export type KnowledgeDraft = {
   closingOptions?: unknown;
   closingPromptFa?: string | null;
   relatedSlugs?: string[];
+  revision?: number;
   slides: KnowledgeSlide[];
   fromMemory?: boolean;
 };
@@ -133,6 +134,7 @@ export function KnowledgeComposer({
   const [closingOptions, setClosingOptions] = useState(optionsToText(initial?.closingOptions));
   const [closingPromptFa, setClosingPromptFa] = useState(initial?.closingPromptFa ?? "");
   const [relatedSlugs, setRelatedSlugs] = useState((initial?.relatedSlugs ?? []).join("\n"));
+  const [revision, setRevision] = useState(initial?.revision ?? 1);
   const [slides, setSlides] = useState<SlideDraft[]>(
     (initial?.slides ?? []).map((s) => ({
       id: s.id,
@@ -319,6 +321,7 @@ export function KnowledgeComposer({
           .split("\n")
           .map((row) => row.trim())
           .filter(Boolean),
+        baseRevision: revision,
         slides: slides.map((s, i) => ({
           id: s.id,
           sortOrder: i,
@@ -335,8 +338,14 @@ export function KnowledgeComposer({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const data = (await res.json()) as { slug?: string; error?: string };
-      if (!res.ok) throw new Error(data.error || "ذخیره ناموفق بود");
+      const data = (await res.json()) as { slug?: string; error?: string; revision?: number };
+      if (!res.ok) {
+        if (data.error === "revision_conflict" || data.error === "revision_required") {
+          throw new Error("این مطلب از وقتی که باز کردید عوض شده. صفحه را تازه کنید و دوباره ذخیره کنید.");
+        }
+        throw new Error(data.error || "ذخیره ناموفق بود");
+      }
+      if (typeof data.revision === "number") setRevision(data.revision);
       clearDraft(draftKey);
       router.push(`/knowledge/${data.slug || finalSlug}`);
       router.refresh();

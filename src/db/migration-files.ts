@@ -110,5 +110,9 @@ export const MIGRATION_FILES: { id: string; sql: string }[] = [
   {
     "id": "0027_document_template_overrides.sql",
     "sql": "CREATE TABLE IF NOT EXISTS analyzer_document_template_overrides (\n  account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,\n  template_id VARCHAR(64) NOT NULL REFERENCES analyzer_document_templates(id) ON DELETE CASCADE,\n  chrome JSONB NOT NULL DEFAULT '{}'::jsonb,\n  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),\n  PRIMARY KEY (account_id, template_id)\n);\n\nALTER TABLE analyzer_reports ADD COLUMN IF NOT EXISTS chrome_snapshot JSONB;\n"
+  },
+  {
+    "id": "0028_knowledge_revision.sql",
+    "sql": "ALTER TABLE knowledge ADD COLUMN IF NOT EXISTS revision INTEGER NOT NULL DEFAULT 1;\n"
   }
 ];

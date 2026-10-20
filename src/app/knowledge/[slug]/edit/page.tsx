@@ -90,6 +90,7 @@ export default async function EditKnowledgePage({ params }: Props) {
           closingOptions: item.closingOptions,
           closingPromptFa: item.closingPromptFa,
           relatedSlugs: related.map((row) => row.slug),
+          revision: item.revision,
           fromMemory: Boolean(item.memoryItemId),
           slides: slides.map((s) => ({
             id: s.id,
