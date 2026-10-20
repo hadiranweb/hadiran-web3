@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { HomeChat } from "@/components/HomeChat";
 import { HadiranMark } from "@/components/HadiranMark";
+import { ReassemblyPortrait } from "@/components/portrait/ReassemblyPortrait";
 import { siteConfig } from "@/lib/site";
 import { homeFlow, rooms, voice } from "@/lib/copy";
 
@@ -63,8 +64,12 @@ export default function HomePage() {
               اول می‌بینیم، بعد می‌سازیم
             </p>
           </div>
-          <div className="home-portrait-shell" aria-hidden="true">
-            <HadiranMark className="h-28 w-28 sm:h-36 sm:w-36" />
+          <div className="home-portrait-shell">
+            <ReassemblyPortrait />
+            <p className="home-portrait-brand">
+              <HadiranMark className="h-7 w-7" />
+              <span>هادیران</span>
+            </p>
           </div>
         </div>
         <div className="wrap home-chat-wrap">

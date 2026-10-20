@@ -93,8 +93,66 @@
   order: -1;
   margin-inline: auto;
   display: grid;
-  width: min(100%, 22rem);
-  place-items: center;
+  width: min(100%, 27rem);
+  justify-items: center;
+  gap: 0.85rem;
+}
+
+.home-portrait-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.portrait-reassembly {
+  aspect-ratio: 1254 / 1142.04;
+  isolation: isolate;
+}
+
+.portrait-halo {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.portrait-pieces,
+.portrait-vector {
+  backface-visibility: hidden;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 74%,
+    rgb(0 0 0 / 0.72) 84%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 74%,
+    rgb(0 0 0 / 0.72) 84%,
+    transparent 100%
+  );
+}
+
+.portrait-piece-svg {
+  overflow: visible;
+}
+
+.portrait-piece {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portrait-pieces {
+    opacity: 0 !important;
+    visibility: hidden;
+  }
+
+  .portrait-vector {
+    opacity: 1 !important;
+  }
 }
 
 .home-chat-wrap {
