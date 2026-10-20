@@ -9,9 +9,10 @@ import {
   Home,
   Layers,
   Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
   PenLine,
   Pin,
-  PinOff,
   Plus,
   ScanSearch,
   Search,
@@ -26,7 +27,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { SessionMenu } from "@/components/auth/SessionMenu";
 
 type Locale = "fa" | "en";
-type NavMode = "expanded" | "minimal";
+type NavMode = "pinned" | "open" | "icons";
 type ModuleLink = {
   href: string;
   fa: string;
@@ -88,9 +89,12 @@ function writeLocale(value: Locale) {
 
 function readNavMode(): NavMode {
   try {
-    return localStorage.getItem(NAV_STORAGE) === "minimal" ? "minimal" : "expanded";
+    const stored = localStorage.getItem(NAV_STORAGE);
+    if (stored === "open") return "open";
+    if (stored === "minimal" || stored === "icons") return "icons";
+    return "pinned";
   } catch {
-    return "expanded";
+    return "pinned";
   }
 }
 
@@ -110,7 +114,7 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
   const pathname = usePathname();
   const [account, setAccount] = useState<{ role?: string; analyzerDesk?: boolean } | null>(null);
   const [locale, setLocale] = useState<Locale>("fa");
-  const [navMode, setNavMode] = useState<NavMode>("expanded");
+  const [navMode, setNavMode] = useState<NavMode>("pinned");
   const [drawer, setDrawer] = useState(false);
   const [query, setQuery] = useState("");
   const searchDialog = useRef<HTMLDialogElement>(null);
@@ -159,8 +163,13 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
   const dir = locale === "fa" ? "rtl" : "ltr";
   const matches = modules.filter((item) => `${item.fa} ${item.en}`.toLowerCase().includes(query.trim().toLowerCase()));
   const current = modules.find((item) => isActive(pathname, item));
-  const minimal = navMode === "minimal";
-  const labelsOpen = drawer || !minimal;
+  const labelsOpen = drawer || navMode === "pinned";
+  const contentOffset = navMode === "pinned" ? "xl:ms-64" : navMode === "icons" ? "xl:ms-[4.5rem]" : "";
+  const navModes = [
+    { value: "pinned" as const, fa: "پین", en: "Pin", Icon: Pin },
+    { value: "open" as const, fa: "باز", en: "Open", Icon: PanelLeftOpen },
+    { value: "icons" as const, fa: "فقط آیکون", en: "Icons only", Icon: PanelLeftClose },
+  ];
 
   function toggleLocale() {
     const next: Locale = locale === "fa" ? "en" : "fa";
@@ -171,7 +180,7 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
   function setMode(next: NavMode) {
     setNavMode(next);
     writeNavMode(next);
-    if (next === "expanded") setDrawer(false);
+    setDrawer(false);
   }
 
   function onHamburger() {
@@ -227,12 +236,15 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
 
       <aside
         id="workspace-navigation"
+        data-nav-mode={navMode}
         className={`print-hide print:hidden z-50 flex flex-col border-line bg-elev transition-[transform,width] ${
           dir === "rtl" ? "border-s" : "border-e"
         } ${
           drawer
             ? "fixed inset-y-0 w-64 translate-x-0 " + (dir === "rtl" ? "right-0" : "left-0")
-            : `fixed inset-y-0 hidden xl:flex ${dir === "rtl" ? "right-0" : "left-0"} ${minimal ? "w-[4.5rem]" : "w-64"}`
+            : navMode === "open"
+              ? "hidden"
+              : `fixed inset-y-0 hidden xl:flex ${dir === "rtl" ? "right-0" : "left-0"} ${navMode === "icons" ? "w-[4.5rem]" : "w-64"}`
         }`}
         aria-label={t("ناوبری فضای کار", "Workspace navigation")}
       >
@@ -280,18 +292,33 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
         <NavList showLabels={labelsOpen} />
 
         <div className="space-y-1 border-t border-line p-2">
-          <button
-            type="button"
-            className={`flex min-h-11 w-full items-center gap-3 rounded-[var(--radius-sm)] px-3 text-sm text-muted hover:bg-paper hover:text-ink ${
-              labelsOpen ? "" : "justify-center px-0"
-            }`}
-            onClick={() => setMode(minimal ? "expanded" : "minimal")}
-            aria-pressed={!minimal}
-            title={minimal ? t("پین با نام بخش‌ها", "Pin with labels") : t("فقط آیکون", "Icons only")}
+          <div
+            role="radiogroup"
+            aria-label={t("حالت منوی کناری", "Side menu mode")}
+            className={`grid gap-1 ${labelsOpen ? "grid-cols-3" : "grid-cols-1"}`}
           >
-            {minimal ? <Pin className="h-4 w-4" /> : <PinOff className="h-4 w-4" />}
-            {labelsOpen ? <span>{minimal ? t("پین با نام", "Pin labels") : t("حالت مینیمال", "Minimal")}</span> : null}
-          </button>
+            {navModes.map((mode) => {
+              const Icon = mode.Icon;
+              const selected = navMode === mode.value;
+              return (
+                <button
+                  key={mode.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  title={t(mode.fa, mode.en)}
+                  aria-label={t(mode.fa, mode.en)}
+                  onClick={() => setMode(mode.value)}
+                  className={`flex min-h-11 items-center justify-center gap-1 rounded-[var(--radius-sm)] px-1 text-[0.7rem] font-medium ${
+                    selected ? "bg-accent-soft text-ink" : "text-muted hover:bg-paper hover:text-ink"
+                  }`}
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  {labelsOpen ? <span className="truncate">{t(mode.fa, mode.en)}</span> : <span className="sr-only">{t(mode.fa, mode.en)}</span>}
+                </button>
+              );
+            })}
+          </div>
           <Link
             href="/"
             className={`flex min-h-11 w-full items-center gap-3 rounded-[var(--radius-sm)] px-3 text-sm text-muted hover:bg-paper hover:text-ink ${
@@ -305,7 +332,7 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
         </div>
       </aside>
 
-      <div className={`flex min-w-0 flex-1 flex-col ${minimal ? "xl:ms-[4.5rem]" : "xl:ms-64"}`}>
+      <div className={`flex min-w-0 flex-1 flex-col ${contentOffset}`}>
         <header className="print-hide sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-line bg-paper/95 px-3 py-2 print:hidden">
           <div className="flex min-w-0 items-center gap-2">
             <button
