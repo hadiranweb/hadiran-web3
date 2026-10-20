@@ -4,28 +4,23 @@ import {
   knowledgeTopics,
   topics,
   knowledgeProjects,
-  projects,
+  knowledgeReferences,
   knowledgeSlides,
+  memoryItems,
+  projects,
 } from "@/db/schema";
 import { and, eq, asc } from "drizzle-orm";
-import { publicProjectFilter } from "@/lib/public/policy";
+import { publicKnowledgeFilter, publicKnowledgeJoin, publicProjectFilter } from "@/lib/public/policy";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Hash, FlaskConical, Pencil } from "lucide-react";
 import type { Metadata } from "next";
-import { KnowledgeView } from "@/components/knowledge/KnowledgeView";
+import { KnowledgeArticle } from "@/components/knowledge/KnowledgeArticle";
 import { getCurrentAccount } from "@/lib/auth/session";
 import { getPublicKnowledgeBySlug } from "@/lib/knowledge/public";
+import { growthLabel, minutesFa, type KnowledgeGrowth } from "@/lib/knowledge/article";
 
 export const dynamic = "force-dynamic";
-
-const typeLabels: Record<string, string> = {
-  wiki: "ویکی",
-  article: "مقاله",
-  note: "یادداشت",
-  research: "تحقیق",
-  idea: "ایده",
-};
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -37,11 +32,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!item) return { title: "یافت نشد", robots: { index: false, follow: false } };
   return {
     title: item.titleFa,
-    description: item.summaryFa ?? undefined,
+    description: item.lineFa || item.summaryFa || undefined,
     alternates: { canonical: `/knowledge/${slug}` },
     openGraph: {
       title: item.titleFa,
-      description: item.summaryFa ?? undefined,
+      description: item.lineFa || item.summaryFa || undefined,
       type: "article",
       locale: "fa_IR",
     },
@@ -66,6 +61,19 @@ export default async function KnowledgeItemPage({ params }: Props) {
     .innerJoin(projects, eq(knowledgeProjects.projectId, projects.id))
     .where(and(eq(knowledgeProjects.knowledgeId, item.id), publicProjectFilter));
 
+  const related = await db
+    .select({
+      slug: knowledge.slug,
+      titleFa: knowledge.titleFa,
+      summaryFa: knowledge.summaryFa,
+      growth: knowledge.growth,
+      lineFa: knowledge.lineFa,
+    })
+    .from(knowledgeReferences)
+    .innerJoin(knowledge, eq(knowledgeReferences.targetKnowledgeId, knowledge.id))
+    .innerJoin(memoryItems, publicKnowledgeJoin)
+    .where(and(eq(knowledgeReferences.sourceKnowledgeId, item.id), publicKnowledgeFilter));
+
   let slides: (typeof knowledgeSlides.$inferSelect)[] = [];
   try {
     slides = await db
@@ -76,6 +84,10 @@ export default async function KnowledgeItemPage({ params }: Props) {
   } catch (error) {
     console.error("knowledge slides query:", error);
   }
+
+  const growth = growthLabel(item.growth as KnowledgeGrowth);
+  const minutes = minutesFa(item.readingMinutes);
+  const topicLine = itemTopics.map((topic) => topic.labelFa).join(" و ");
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
@@ -96,23 +108,36 @@ export default async function KnowledgeItemPage({ params }: Props) {
       </div>
 
       <article className="surface p-6 sm:p-10">
-        <span className="inline-block rounded-full border border-line bg-paper px-3 py-1 text-xs font-medium text-mark">
-          {typeLabels[item.type] || item.type}
-        </span>
+        <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-mark">
+          {growth ? <span className="chip">{growth}</span> : null}
+          {topicLine ? <span className="muted">موضوع: {topicLine}</span> : null}
+          {minutes ? <span className="muted">{minutes}</span> : null}
+        </div>
         <h1 className="mt-4 text-3xl font-extrabold leading-[1.35] text-ink">{item.titleFa}</h1>
-        {item.titleEn && (
+        {item.titleEn ? (
           <p className="mt-1 text-sm text-muted" dir="ltr">
             {item.titleEn}
           </p>
-        )}
+        ) : null}
 
-        {item.summaryFa && (
-          <p className="mt-6 rounded-[var(--radius-md)] bg-paper p-4 text-base leading-[1.85] text-ink">{item.summaryFa}</p>
-        )}
-
-        <KnowledgeView
-          title={item.titleFa}
+        <KnowledgeArticle
+          titleFa={item.titleFa}
+          lineFa={item.lineFa}
+          summaryFa={item.summaryFa}
           bodyFa={item.bodyFa}
+          growth={item.growth}
+          readingMinutes={item.readingMinutes}
+          questionFa={item.questionFa}
+          rootFa={item.rootFa}
+          firstStepFa={item.firstStepFa}
+          marginNoteFa={item.marginNoteFa}
+          prunedAt={item.prunedAt}
+          audioUrl={item.audioUrl}
+          simulator={item.simulator}
+          closingQuestionFa={item.closingQuestionFa}
+          closingOptions={item.closingOptions}
+          closingPromptFa={item.closingPromptFa}
+          related={related}
           slides={slides.map((s) => ({
             id: s.id,
             sortOrder: s.sortOrder,
@@ -136,7 +161,7 @@ export default async function KnowledgeItemPage({ params }: Props) {
           ))}
         </div>
 
-        {itemProjects.length > 0 && (
+        {itemProjects.length > 0 ? (
           <div className="mt-8 border-t border-line pt-6">
             <h3 className="mb-3 flex items-center gap-2 font-bold text-ink">
               <FlaskConical className="h-5 w-5 text-muted" strokeWidth={1.5} />
@@ -154,7 +179,7 @@ export default async function KnowledgeItemPage({ params }: Props) {
               ))}
             </div>
           </div>
-        )}
+        ) : null}
       </article>
     </main>
   );

@@ -98,5 +98,9 @@ export const MIGRATION_FILES: { id: string; sql: string }[] = [
   {
     "id": "0024_shop_order_events.sql",
     "sql": "CREATE TABLE IF NOT EXISTS shop_order_events (\n  id SERIAL PRIMARY KEY,\n  order_id TEXT NOT NULL REFERENCES shop_orders(id) ON DELETE CASCADE,\n  actor_id INTEGER REFERENCES accounts(id) ON DELETE SET NULL,\n  actor_role TEXT NOT NULL,\n  kind TEXT NOT NULL,\n  from_state TEXT,\n  to_state TEXT NOT NULL,\n  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()\n);\nCREATE INDEX IF NOT EXISTS shop_order_events_order_time_idx ON shop_order_events(order_id,created_at,id);\nCREATE INDEX IF NOT EXISTS shop_orders_settled_time_idx ON shop_orders(settled_at,id) WHERE state='settled';\nCREATE INDEX IF NOT EXISTS shop_orders_buyer_created_idx ON shop_orders(buyer_id,created_at,id);\n-- Historical state transitions are unknown: no fabricated event backfill.\n"
+  },
+  {
+    "id": "0025_knowledge_article_layers.sql",
+    "sql": "ALTER TABLE knowledge ADD COLUMN IF NOT EXISTS growth TEXT;\nALTER TABLE knowledge ADD COLUMN IF NOT EXISTS reading_minutes INTEGER;\nALTER TABLE knowledge ADD COLUMN IF NOT EXISTS line_fa TEXT;\nALTER TABLE knowledge ADD COLUMN IF NOT EXISTS question_fa TEXT;\nALTER TABLE knowledge ADD COLUMN IF NOT EXISTS root_fa TEXT;\nALTER TABLE knowledge ADD COLUMN IF NOT EXISTS first_step_fa TEXT;\nALTER TABLE knowledge ADD COLUMN IF NOT EXISTS margin_note_fa TEXT;\nALTER TABLE knowledge ADD COLUMN IF NOT EXISTS pruned_at TIMESTAMPTZ;\nALTER TABLE knowledge ADD COLUMN IF NOT EXISTS audio_url TEXT;\nALTER TABLE knowledge ADD COLUMN IF NOT EXISTS simulator JSONB;\nALTER TABLE knowledge ADD COLUMN IF NOT EXISTS closing_question_fa TEXT;\nALTER TABLE knowledge ADD COLUMN IF NOT EXISTS closing_options JSONB;\nALTER TABLE knowledge ADD COLUMN IF NOT EXISTS closing_prompt_fa TEXT;\n"
   }
 ];

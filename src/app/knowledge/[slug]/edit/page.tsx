@@ -1,7 +1,7 @@
 import { db } from "@/db";
-import { knowledge, knowledgeSlides, semanticRecords } from "@/db/schema";
+import { knowledge, knowledgeReferences, knowledgeSlides, semanticRecords } from "@/db/schema";
 import { eq, asc } from "drizzle-orm";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { KnowledgeComposer } from "@/components/knowledge/KnowledgeComposer";
@@ -26,12 +26,14 @@ export default async function EditKnowledgePage({ params }: Props) {
   await requirePageOwner(`/knowledge/${slug}/edit`);
   const [item] = await db.select().from(knowledge).where(eq(knowledge.slug, slug));
   if (!item) notFound();
+
+  let sourceId: string | null = null;
   if (item.memoryItemId) {
     const [source] = await db
-      .select()
+      .select({ id: semanticRecords.id })
       .from(semanticRecords)
       .where(eq(semanticRecords.promotedMemoryId, item.memoryItemId));
-    if (source) redirect(`/workspace/records/${source.id}`);
+    sourceId = source?.id ?? null;
   }
 
   let slides: (typeof knowledgeSlides.$inferSelect)[] = [];
@@ -45,11 +47,24 @@ export default async function EditKnowledgePage({ params }: Props) {
     console.error("knowledge slides query:", error);
   }
 
+  const related = await db
+    .select({ slug: knowledge.slug })
+    .from(knowledgeReferences)
+    .innerJoin(knowledge, eq(knowledgeReferences.targetKnowledgeId, knowledge.id))
+    .where(eq(knowledgeReferences.sourceKnowledgeId, item.id));
+
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
-      <Link href={`/knowledge/${item.slug}`} className="mb-6 inline-block text-sm text-muted hover:text-ink">
-        بازگشت به مطلب
-      </Link>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <Link href={`/knowledge/${item.slug}`} className="text-sm text-muted hover:text-ink">
+          بازگشت به مطلب
+        </Link>
+        {sourceId ? (
+          <Link href={`/workspace/records/${sourceId}`} className="text-sm text-accent">
+            متن خام در میزکار
+          </Link>
+        ) : null}
+      </div>
       <h1 className="mb-8 text-3xl font-bold text-ink">ویرایش مطلب</h1>
       <KnowledgeComposer
         mode="edit"
@@ -61,6 +76,21 @@ export default async function EditKnowledgePage({ params }: Props) {
           titleEn: item.titleEn,
           summaryFa: item.summaryFa,
           bodyFa: item.bodyFa,
+          growth: item.growth,
+          readingMinutes: item.readingMinutes,
+          lineFa: item.lineFa,
+          questionFa: item.questionFa,
+          rootFa: item.rootFa,
+          firstStepFa: item.firstStepFa,
+          marginNoteFa: item.marginNoteFa,
+          prunedAt: item.prunedAt,
+          audioUrl: item.audioUrl,
+          simulator: item.simulator,
+          closingQuestionFa: item.closingQuestionFa,
+          closingOptions: item.closingOptions,
+          closingPromptFa: item.closingPromptFa,
+          relatedSlugs: related.map((row) => row.slug),
+          fromMemory: Boolean(item.memoryItemId),
           slides: slides.map((s) => ({
             id: s.id,
             sortOrder: s.sortOrder,

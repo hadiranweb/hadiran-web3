@@ -12,6 +12,7 @@ import { RoomPage } from "@/components/ui/RoomPage";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PublicSourceNotice } from "@/components/ui/PublicSourceNotice";
 import { knowledgeCopy } from "@/lib/copy";
+import { growthLabel, minutesFa, type KnowledgeGrowth } from "@/lib/knowledge/article";
 
 export const dynamic = "force-dynamic";
 
@@ -116,9 +117,14 @@ export default async function KnowledgePage({ searchParams }: Props) {
             <li key={item.id}>
               <Link href={`/knowledge/${item.slug}`} className="card card-hover section-card">
                 <div className="section-card-copy">
-                  <p className="chip">{typeLabels[item.type] || item.type}</p>
+                  <p className="chip">
+                    {growthLabel(item.growth as KnowledgeGrowth) || typeLabels[item.type] || item.type}
+                    {minutesFa(item.readingMinutes) ? ` · ${minutesFa(item.readingMinutes)}` : ""}
+                  </p>
                   <h2 className="section-card-title mt-3">{item.titleFa}</h2>
-                  {item.summaryFa ? <p className="muted mt-2 line-clamp-3 text-sm leading-7">{item.summaryFa}</p> : null}
+                  {item.lineFa || item.summaryFa ? (
+                    <p className="muted mt-2 line-clamp-3 text-sm leading-7">{item.lineFa || item.summaryFa}</p>
+                  ) : null}
                   {topicsMap[item.id]?.length ? (
                     <div className="mt-4 flex flex-wrap gap-2">
                       {topicsMap[item.id].map((entry) => (
