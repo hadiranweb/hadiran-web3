@@ -26,7 +26,7 @@ function accountLabel(account: MeAccount) {
   return parts || account.displayName || "حساب";
 }
 
-export function SessionMenu() {
+export function SessionMenu({ chrome = "default" }: { chrome?: "default" | "site" }) {
   const pathname = usePathname();
   const router = useRouter();
   const [account, setAccount] = useState<MeAccount | null>(null);
@@ -90,7 +90,12 @@ export function SessionMenu() {
   }
 
   if (!loaded) {
-    return <span className="inline-block h-10 w-10 rounded-full bg-elev" aria-hidden="true" />;
+    return (
+      <span
+        className={chrome === "site" ? "session-loading" : "inline-block h-10 w-10 rounded-full bg-elev"}
+        aria-hidden="true"
+      />
+    );
   }
 
   if (!account) {
@@ -98,11 +103,15 @@ export function SessionMenu() {
     return (
       <Link
         href="/signin"
-        className="inline-flex min-h-11 items-center gap-1.5 rounded-[var(--radius-sm)] px-2.5 text-sm font-medium text-ink hover:bg-elev"
+        className={
+          chrome === "site"
+            ? "session-login-button"
+            : "inline-flex min-h-11 items-center gap-1.5 rounded-[var(--radius-sm)] px-2.5 text-sm font-medium text-ink hover:bg-elev"
+        }
         aria-label="ورود"
       >
         <LogIn className="h-4 w-4" strokeWidth={1.5} />
-        <span className="hidden sm:inline">ورود</span>
+        <span>ورود</span>
       </Link>
     );
   }
@@ -111,6 +120,72 @@ export function SessionMenu() {
   const avatar = account.avatar ?? { variant: defaultAvatarVariant(account.id), photoUrl: null };
   const showDesk = account.role === "owner" || account.role === "author" || account.analyzerDesk;
   const deskHref = account.role === "owner" ? "/workspace" : "/workspace/analyzers";
+
+  if (chrome === "site") {
+    return (
+      <div className="session-control">
+        <button
+          ref={trigger}
+          type="button"
+          className="session-avatar-button"
+          aria-expanded={open}
+          aria-controls={id}
+          onClick={toggle}
+        >
+          <UserAvatar variant={avatar.variant} photoUrl={avatar.photoUrl} size={40} />
+          <span className="sr-only">{open ? "بستن منوی حساب" : `حساب ${name}`}</span>
+        </button>
+        <div
+          id={id}
+          ref={panel}
+          hidden={!visible}
+          inert={!open || undefined}
+          className="profile-dropdown"
+        >
+          <div className="profile-dropdown-identity">
+            <UserAvatar variant={avatar.variant} photoUrl={avatar.photoUrl} size={44} />
+            <div>
+              <strong>{name}</strong>
+              <small>{roleFa(account.role)}</small>
+            </div>
+          </div>
+          <nav aria-label="حساب">
+            <ul>
+              <li>
+                <Link href="/account" onClick={() => close()}>
+                  حساب من
+                </Link>
+              </li>
+              {account.needsPassword ? (
+                <li>
+                  <Link href="/account#password" onClick={() => close()}>
+                    تعیین رمز عبور
+                  </Link>
+                </li>
+              ) : null}
+              {showDesk ? (
+                <li>
+                  <Link href={deskHref} onClick={() => close()}>
+                    میزکار
+                  </Link>
+                </li>
+              ) : null}
+              <li>
+                <button type="button" className="profile-logout" disabled={loggingOut} onClick={() => void logout()}>
+                  {loggingOut ? "در حال خروج…" : "خروج"}
+                </button>
+              </li>
+            </ul>
+          </nav>
+          {logoutError ? (
+            <div className="profile-dropdown-footer">
+              <p role="status">{logoutError}</p>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative">

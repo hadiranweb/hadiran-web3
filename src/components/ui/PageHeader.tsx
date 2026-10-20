@@ -15,13 +15,9 @@ export function PageHeader({
 }) {
   return (
     <header className={`mb-10 ${align === "center" ? "text-center" : ""}`}>
-      {kicker ? <p className="mb-2 text-sm font-medium text-mark">{kicker}</p> : null}
-      <h1 className="text-3xl font-extrabold leading-[1.35] tracking-tight text-ink sm:text-4xl">{title}</h1>
-      {lede ? (
-        <p className={`mt-3 max-w-2xl text-base leading-[1.85] text-muted ${align === "center" ? "mx-auto" : ""}`}>
-          {lede}
-        </p>
-      ) : null}
+      {kicker ? <p className={`eyebrow mb-3 ${align === "center" ? "mx-auto" : ""}`}>{kicker}</p> : null}
+      <h1 className="title-xl text-ink">{title}</h1>
+      {lede ? <p className={`lede mt-3 max-w-2xl ${align === "center" ? "mx-auto" : ""}`}>{lede}</p> : null}
       {children}
     </header>
   );

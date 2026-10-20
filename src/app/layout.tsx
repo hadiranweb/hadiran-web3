@@ -47,7 +47,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeBoot }} />
       </head>
-      <body className={`${iranSharp.className} flex min-h-screen flex-col bg-paper text-ink antialiased`}>
+      <body className={`${iranSharp.className} site-body flex min-h-screen flex-col bg-paper text-ink antialiased`}>
         <SiteChrome>{children}</SiteChrome>
         <Suspense fallback={null}>
           <ReferralCapture />

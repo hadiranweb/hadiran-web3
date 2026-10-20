@@ -45,7 +45,7 @@ function StudyLamp({ on }: { on: boolean }) {
   );
 }
 
-export function ThemeToggle() {
+export function ThemeToggle({ className }: { className?: string }) {
   const [dark, setDark] = useState(false);
 
   useEffect(() => {
@@ -65,7 +65,10 @@ export function ThemeToggle() {
         applyTheme(next);
         setDark(next);
       }}
-      className="inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-xl border border-line bg-elev p-2 text-muted transition-colors hover:bg-paper hover:text-ink"
+      className={
+        className ??
+        "inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-xl border border-line bg-elev p-2 text-muted transition-colors hover:bg-paper hover:text-ink"
+      }
     >
       <StudyLamp on={dark} />
     </button>
