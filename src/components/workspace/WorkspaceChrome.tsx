@@ -163,8 +163,7 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
   const dir = locale === "fa" ? "rtl" : "ltr";
   const matches = modules.filter((item) => `${item.fa} ${item.en}`.toLowerCase().includes(query.trim().toLowerCase()));
   const current = modules.find((item) => isActive(pathname, item));
-  const labelsOpen = drawer || navMode === "pinned";
-  const contentOffset = navMode === "pinned" ? "xl:ms-64" : navMode === "icons" ? "xl:ms-[4.5rem]" : "";
+  const showLabels = drawer || navMode !== "icons";
   const navModes = [
     { value: "pinned" as const, fa: "پین", en: "Pin", Icon: Pin },
     { value: "open" as const, fa: "باز", en: "Open", Icon: PanelLeftOpen },
@@ -183,33 +182,25 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
     setDrawer(false);
   }
 
-  function onHamburger() {
-    if (drawer) {
-      setDrawer(false);
-      return;
-    }
-    setDrawer(true);
-  }
-
-  function NavList({ showLabels }: { showLabels: boolean }) {
+  function NavList({ labeled }: { labeled: boolean }) {
     return (
-      <nav className="flex-1 space-y-1 overflow-y-auto px-2 pb-4">
+      <nav className="ws-rail-nav" aria-label={t("ناوبری فضای کار", "Workspace navigation")}>
         {modules.map((link) => {
           const active = isActive(pathname, link);
           const Icon = link.icon;
+          const label = t(link.fa, link.en);
           return (
             <Link
               key={link.href}
               href={link.href}
-              title={t(link.fa, link.en)}
+              title={label}
+              data-label={label}
               aria-current={active ? "page" : undefined}
               onClick={() => setDrawer(false)}
-              className={`flex min-h-11 items-center gap-3 rounded-[var(--radius-sm)] px-3 text-sm ${
-                showLabels ? "" : "justify-center px-0"
-              } ${active ? "bg-accent-soft font-medium text-ink" : "text-muted hover:bg-paper hover:text-ink"}`}
+              className={`ws-rail-link ${active ? "is-active" : ""} ${labeled ? "is-labeled" : "is-icon"}`}
             >
               <Icon className="h-4 w-4 shrink-0" strokeWidth={1.7} />
-              {showLabels ? <span>{t(link.fa, link.en)}</span> : <span className="sr-only">{t(link.fa, link.en)}</span>}
+              {labeled ? <span>{label}</span> : <span className="sr-only">{label}</span>}
             </Link>
           );
         })}
@@ -217,15 +208,50 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
     );
   }
 
+  function ModeSwitch({ compact }: { compact?: boolean }) {
+    return (
+      <div
+        role="radiogroup"
+        aria-label={t("حالت منوی کناری", "Side menu mode")}
+        className={`ws-mode-switch ${compact ? "is-compact" : showLabels ? "is-wide" : "is-stack"}`}
+      >
+        {navModes.map((mode) => {
+          const Icon = mode.Icon;
+          const selected = navMode === mode.value;
+          return (
+            <button
+              key={mode.value}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              title={t(mode.fa, mode.en)}
+              aria-label={t(mode.fa, mode.en)}
+              onClick={() => setMode(mode.value)}
+              className={`ws-mode-btn ${selected ? "is-selected" : ""}`}
+            >
+              <Icon className="h-4 w-4 shrink-0" />
+              {compact || !showLabels ? (
+                <span className="sr-only">{t(mode.fa, mode.en)}</span>
+              ) : (
+                <span className="truncate">{t(mode.fa, mode.en)}</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+
   return (
-    <div className="flex min-h-[calc(100dvh-0px)] bg-paper" dir={dir} lang={locale}>
+    <div className="ws-shell" dir={dir} lang={locale} data-nav-mode={navMode} data-nav-open={drawer ? "true" : "false"}>
       <a href="#workspace-content" className="sr-only focus:not-sr-only focus:absolute focus:z-[80] focus:bg-elev focus:px-3 focus:py-2">
         {t("رفتن به محتوا", "Skip to content")}
       </a>
+
       {drawer ? (
         <button
           type="button"
-          className="fixed inset-0 z-40 bg-ink/40"
+          className="ws-scrim"
           aria-label={t("بستن فهرست", "Close navigation")}
           onClick={() => {
             setDrawer(false);
@@ -234,24 +260,11 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
         />
       ) : null}
 
-      <aside
-        id="workspace-navigation"
-        data-nav-mode={navMode}
-        className={`print-hide print:hidden z-50 flex flex-col border-line bg-elev transition-[transform,width] ${
-          dir === "rtl" ? "border-s" : "border-e"
-        } ${
-          drawer
-            ? "fixed inset-y-0 w-64 translate-x-0 " + (dir === "rtl" ? "right-0" : "left-0")
-            : navMode === "open"
-              ? "hidden"
-              : `fixed inset-y-0 hidden xl:flex ${dir === "rtl" ? "right-0" : "left-0"} ${navMode === "icons" ? "w-[4.5rem]" : "w-64"}`
-        }`}
-        aria-label={t("ناوبری فضای کار", "Workspace navigation")}
-      >
-        <div className={`flex items-center gap-2 px-3 py-4 ${labelsOpen ? "justify-between" : "justify-center"}`}>
+      <aside id="workspace-navigation" className="ws-rail print-hide print:hidden">
+        <div className={`ws-rail-brand ${showLabels ? "is-labeled" : ""}`}>
           <Link href={home} className="flex min-w-0 items-center gap-2" onClick={() => setDrawer(false)}>
             <HadiranMark className="h-8 w-8 shrink-0" />
-            {labelsOpen ? (
+            {showLabels ? (
               <span className="min-w-0">
                 <span className="block truncate text-sm font-bold text-ink">{t("هادیران", "Hadiran")}</span>
                 <span className="block truncate text-xs text-muted">
@@ -279,103 +292,68 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
 
         <button
           type="button"
-          className={`mx-3 mb-3 flex min-h-11 items-center gap-2 rounded-[var(--radius-sm)] border border-line bg-paper px-3 text-sm text-muted hover:text-ink ${
-            labelsOpen ? "" : "justify-center px-0"
-          }`}
+          className={`ws-rail-search ${showLabels ? "is-labeled" : ""}`}
           onClick={() => searchDialog.current?.showModal()}
           aria-label={t("جست‌وجوی بخش‌ها", "Find a module")}
         >
           <Search className="h-4 w-4 shrink-0" />
-          {labelsOpen ? <span>{t("جست‌وجوی بخش‌ها", "Find a module")}</span> : null}
+          {showLabels ? <span>{t("جست‌وجوی بخش‌ها", "Find a module")}</span> : null}
         </button>
 
-        <NavList showLabels={labelsOpen} />
+        <NavList labeled={showLabels} />
 
-        <div className="space-y-1 border-t border-line p-2">
-          <div
-            role="radiogroup"
-            aria-label={t("حالت منوی کناری", "Side menu mode")}
-            className={`grid gap-1 ${labelsOpen ? "grid-cols-3" : "grid-cols-1"}`}
-          >
-            {navModes.map((mode) => {
-              const Icon = mode.Icon;
-              const selected = navMode === mode.value;
-              return (
-                <button
-                  key={mode.value}
-                  type="button"
-                  role="radio"
-                  aria-checked={selected}
-                  title={t(mode.fa, mode.en)}
-                  aria-label={t(mode.fa, mode.en)}
-                  onClick={() => setMode(mode.value)}
-                  className={`flex min-h-11 items-center justify-center gap-1 rounded-[var(--radius-sm)] px-1 text-[0.7rem] font-medium ${
-                    selected ? "bg-accent-soft text-ink" : "text-muted hover:bg-paper hover:text-ink"
-                  }`}
-                >
-                  <Icon className="h-4 w-4 shrink-0" />
-                  {labelsOpen ? <span className="truncate">{t(mode.fa, mode.en)}</span> : <span className="sr-only">{t(mode.fa, mode.en)}</span>}
-                </button>
-              );
-            })}
-          </div>
+        <div className="ws-rail-foot">
+          <ModeSwitch />
           <Link
             href="/"
-            className={`flex min-h-11 w-full items-center gap-3 rounded-[var(--radius-sm)] px-3 text-sm text-muted hover:bg-paper hover:text-ink ${
-              labelsOpen ? "" : "justify-center px-0"
-            }`}
+            className={`ws-rail-link ${showLabels ? "is-labeled" : "is-icon"}`}
             title={t("خروج به سایت", "Back to site")}
           >
             <Home className="h-4 w-4 shrink-0" />
-            {labelsOpen ? <span>{t("خروج به سایت", "Back to site")}</span> : <span className="sr-only">{t("خروج به سایت", "Back to site")}</span>}
+            {showLabels ? <span>{t("خروج به سایت", "Back to site")}</span> : <span className="sr-only">{t("خروج به سایت", "Back to site")}</span>}
           </Link>
         </div>
       </aside>
 
-      <div className={`flex min-w-0 flex-1 flex-col ${contentOffset}`}>
-        <header className="print-hide sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-line bg-paper/95 px-3 py-2 print:hidden">
-          <div className="flex min-w-0 items-center gap-2">
-            <button
-              ref={menuButton}
-              type="button"
-              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-[var(--radius-sm)] text-muted hover:bg-elev hover:text-ink"
-              aria-label={t("باز کردن فهرست", "Open navigation")}
-              aria-expanded={drawer}
-              aria-controls="workspace-navigation"
-              onClick={onHamburger}
-            >
-              <Menu className="h-5 w-5" />
-            </button>
-            <p className="truncate text-sm font-medium text-ink">{current ? t(current.fa, current.en) : t("میز کار", "Workspace")}</p>
-          </div>
-          <div className="flex items-center gap-1">
-            <Link
-              href="/"
-              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-[var(--radius-sm)] text-muted hover:bg-elev hover:text-ink"
-              aria-label={t("خروج به سایت", "Back to site")}
-              title={t("خروج به سایت", "Back to site")}
-            >
-              <Home className="h-5 w-5" strokeWidth={1.6} />
-            </Link>
+      <div className="ws-main">
+        <header className="ws-topbar print-hide print:hidden">
+          <p className="min-w-0 truncate text-sm font-medium text-ink">
+            {current ? t(current.fa, current.en) : t("میز کار", "Workspace")}
+          </p>
+          <div className="ws-topbar-tools">
+            <ModeSwitch compact />
             <button
               type="button"
-              className="inline-flex min-h-11 items-center gap-1 rounded-[var(--radius-sm)] px-3 text-xs font-medium text-muted hover:bg-elev hover:text-ink"
+              className="ws-tool"
               onClick={toggleLocale}
               aria-label={t("تغییر زبان به انگلیسی", "Switch language to Persian")}
             >
               {locale === "fa" ? "EN" : "فا"}
             </button>
-            <ThemeToggle locale={locale} />
+            <div className="site-nav-cluster">
+              <ThemeToggle locale={locale} className="theme-trigger" />
+              <button
+                ref={menuButton}
+                type="button"
+                className="nav-menu-toggle"
+                aria-label={drawer ? t("بستن فهرست", "Close navigation") : t("باز کردن فهرست", "Open navigation")}
+                aria-expanded={drawer}
+                aria-controls="workspace-navigation"
+                onClick={() => setDrawer((open) => !open)}
+              >
+                {drawer ? <X size={19} aria-hidden="true" /> : <Menu size={19} aria-hidden="true" />}
+              </button>
+            </div>
+            <SessionMenu chrome="site" />
           </div>
         </header>
-        <div id="workspace-content" className="flex-1" tabIndex={-1}>
+        <div id="workspace-content" className="ws-content" tabIndex={-1}>
           {children}
         </div>
       </div>
 
-      <div className="ws-float-dock print-hide print:hidden">
-        <SessionMenu />
-        {showCreate ? (
+      {showCreate ? (
+        <div className="ws-float-dock print-hide print:hidden">
           <Link
             href={role === "author" ? "/workspace/analyzers/new" : "/workspace/capture"}
             className="ws-float-capture"
@@ -383,8 +361,8 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
             <Plus className="h-4 w-4" />
             <span>{t(role === "author" ? "آزمون تازه" : "ثبت جدید", role === "author" ? "New exam" : "New capture")}</span>
           </Link>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
 
       <dialog
         ref={searchDialog}

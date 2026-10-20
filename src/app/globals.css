@@ -555,10 +555,17 @@ optgroup {
   gap: clamp(0.25rem, 0.6vw, 0.5rem);
 }
 
+.site-nav-cluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
 .site-desktop-navigation {
   display: none;
 }
 
+.theme-trigger,
 .site-nav-actions .theme-trigger,
 .nav-menu-toggle,
 .session-avatar-button {
@@ -581,6 +588,7 @@ optgroup {
 .nav-menu-toggle[aria-expanded="true"],
 .session-avatar-button:hover,
 .session-avatar-button[aria-expanded="true"],
+.theme-trigger:hover,
 .site-nav-actions .theme-trigger:hover {
   background: var(--accent-soft);
   border-color: var(--accent);
@@ -907,7 +915,7 @@ html.dark .profile-logout {
   }
 }
 
-@media (min-width: 90rem) {
+@media (min-width: 80rem) {
   .site-desktop-navigation {
     display: flex;
     flex: 1 1 auto;
@@ -921,7 +929,7 @@ html.dark .profile-logout {
     min-height: 44px;
   }
 
-  .nav-menu-toggle {
+  .site-header .nav-menu-toggle {
     display: none;
   }
 }

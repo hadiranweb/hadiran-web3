@@ -44,7 +44,7 @@ export function Nav() {
   }, [pathname, close]);
 
   useEffect(() => {
-    const media = window.matchMedia("(min-width: 90rem)");
+    const media = window.matchMedia("(min-width: 80rem)");
     const onChange = () => {
       if (media.matches) close();
     };
@@ -84,19 +84,21 @@ export function Nav() {
             ))}
           </nav>
           <div className="site-nav-actions">
-            <ThemeToggle className="theme-trigger" />
+            <div className="site-nav-cluster">
+              <ThemeToggle className="theme-trigger" />
+              <button
+                ref={trigger}
+                type="button"
+                onClick={toggle}
+                className="nav-menu-toggle"
+                aria-label={open ? "بستن فهرست اتاق‌ها" : "باز کردن فهرست اتاق‌ها"}
+                aria-expanded={open}
+                aria-controls={id}
+              >
+                {open ? <X size={19} aria-hidden="true" /> : <Menu size={19} aria-hidden="true" />}
+              </button>
+            </div>
             <SessionMenu chrome="site" />
-            <button
-              ref={trigger}
-              type="button"
-              onClick={toggle}
-              className="nav-menu-toggle"
-              aria-label={open ? "بستن فهرست اتاق‌ها" : "باز کردن فهرست اتاق‌ها"}
-              aria-expanded={open}
-              aria-controls={id}
-            >
-              {open ? <X size={19} aria-hidden="true" /> : <Menu size={19} aria-hidden="true" />}
-            </button>
           </div>
         </div>
         <div
