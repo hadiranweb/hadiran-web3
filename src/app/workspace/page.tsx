@@ -20,20 +20,18 @@ function whenFa(value: Date | null): string {
   return value.toLocaleDateString("fa-IR");
 }
 
-const card =
-  "block rounded-2xl border border-slate-200 bg-white p-4 hover:border-indigo-200 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-indigo-500";
-const empty =
-  "rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400";
-const heading = "text-lg font-bold text-slate-900 dark:text-slate-100";
-const muted = "text-xs text-slate-500 dark:text-slate-400";
-const title = "font-medium text-slate-900 dark:text-slate-100";
-const link = "text-indigo-600 hover:text-indigo-800 dark:text-indigo-300";
+const card = "block rounded-[var(--radius-md)] border border-line bg-elev p-4 hover:border-accent";
+const empty = "rounded-[var(--radius-md)] border border-dashed border-line bg-elev p-6 text-sm text-muted";
+const heading = "text-lg font-bold text-ink";
+const muted = "text-xs text-muted";
+const title = "font-medium text-ink";
+const link = "text-accent hover:opacity-90";
 
 function QueueGroup({ title: label, group }: { title: string; group: ActionGroup }) {
   if (group.count == null) {
     return (
       <div>
-        <h3 className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">{label}</h3>
+        <h3 className="mb-2 text-sm font-medium text-ink">{label}</h3>
         <p className={muted}>نامشخص</p>
       </div>
     );
@@ -41,9 +39,9 @@ function QueueGroup({ title: label, group }: { title: string; group: ActionGroup
   if (group.count === 0) return null;
   return (
     <div>
-      <h3 className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+      <h3 className="mb-2 text-sm font-medium text-ink">
         {label}
-        <span className="ms-2 tabular-nums text-slate-500 dark:text-slate-400">
+        <span className="ms-2 tabular-nums text-muted">
           {group.count.toLocaleString("fa-IR")}
         </span>
       </h3>
@@ -73,8 +71,16 @@ export default async function WorkspacePage() {
 
   return (
     <main className="mx-auto max-w-3xl space-y-10 px-4 py-8">
+      <header>
+        <p className="text-xs font-medium text-muted">همه‌چیز در یک نگاه</p>
+        <h1 className="mt-1 text-2xl font-bold text-ink">میز کار</h1>
+        <p className="mt-2 max-w-prose text-sm leading-7 text-muted">
+          پالس، صف اقدام و کار باز — همان ثبت‌ها و ربات‌های واقعی، بدون پیش‌نمایش جدا از پایگاه.
+        </p>
+      </header>
+
       {!desk.ok ? (
-        <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
+        <p className="rounded-[var(--radius-md)] border border-line bg-accent-soft px-4 py-3 text-sm text-ink">
           لایهٔ دانش در این محیط آماده نیست. ثبت و ارتقا بعد از migrate در دسترس است.
         </p>
       ) : null}
@@ -130,7 +136,7 @@ export default async function WorkspacePage() {
             <QueueGroup title="ربات" group={queue.bots} />
           </div>
         ) : (
-          <p className="text-sm text-slate-500 dark:text-slate-400">اقدام معلقی در این چهار گروه نیست.</p>
+          <p className="text-sm text-muted">اقدام معلقی در این چهار گروه نیست.</p>
         )}
       </section>
 
@@ -193,19 +199,19 @@ export default async function WorkspacePage() {
       <section>
         <h2 className={`mb-3 ${heading}`}>اخیراً منتشر</h2>
         {desk.published.length === 0 ? (
-          <p className="text-sm text-slate-500 dark:text-slate-400">هنوز چیزی منتشر نشده.</p>
+          <p className="text-sm text-muted">هنوز چیزی منتشر نشده.</p>
         ) : (
           <ul className="space-y-2">
             {desk.published.map((item) => (
               <li
                 key={item.recordId}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-md)] border border-line bg-elev p-4"
               >
                 <p className={title}>{item.titleFa}</p>
                 <span className="flex gap-3 text-xs">
                   <Link
                     href={`/workspace/records/${item.recordId}`}
-                    className="text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-300"
+                    className="text-muted hover:text-accent"
                   >
                     ثبت مبدأ
                   </Link>
@@ -224,7 +230,7 @@ export default async function WorkspacePage() {
       <section>
         <h2 className={`mb-3 ${heading}`}>همهٔ ثبت‌ها</h2>
         {desk.allRecords.length === 0 ? (
-          <p className="text-sm text-slate-500 dark:text-slate-400">هنوز ثبتی نیست.</p>
+          <p className="text-sm text-muted">هنوز ثبتی نیست.</p>
         ) : (
           <ul className="space-y-2">
             {desk.allRecords.map((item) => (

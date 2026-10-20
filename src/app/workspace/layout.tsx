@@ -6,10 +6,5 @@ export const metadata: Metadata = {
 };
 
 export default function WorkspaceLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <>
-      <WorkspaceChrome />
-      {children}
-    </>
-  );
+  return <WorkspaceChrome>{children}</WorkspaceChrome>;
 }

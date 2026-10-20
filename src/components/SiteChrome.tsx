@@ -29,11 +29,12 @@ function ExamChrome() {
 export function SiteChrome({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const exam = isAnalyzerExamPath(pathname);
+  const workspace = pathname.startsWith("/workspace");
   return (
     <>
-      {exam ? <ExamChrome /> : <Nav />}
+      {exam ? <ExamChrome /> : workspace ? null : <Nav />}
       <div className="flex-1">{children}</div>
-      {exam ? null : <Footer />}
+      {exam || workspace ? null : <Footer />}
     </>
   );
 }

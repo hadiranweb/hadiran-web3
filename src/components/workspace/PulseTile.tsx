@@ -15,11 +15,11 @@ export function PulseTile({
   return (
     <Link
       href={href}
-      className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-4 hover:border-indigo-200 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-indigo-500"
+      className="flex flex-col gap-2 rounded-[var(--radius-md)] border border-line bg-elev px-4 py-4 hover:border-accent"
     >
-      <span className="text-xs text-slate-500 dark:text-slate-400">{label}</span>
-      <span className="text-2xl font-bold tabular-nums text-slate-900 dark:text-slate-100">{display}</span>
-      <span className="text-xs text-slate-500 dark:text-slate-400">{value == null ? "نامشخص" : foot}</span>
+      <span className="text-xs text-muted">{label}</span>
+      <span className="text-2xl font-bold tabular-nums text-ink">{display}</span>
+      <span className="text-xs text-muted">{value == null ? "نامشخص" : foot}</span>
     </Link>
   );
 }
