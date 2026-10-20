@@ -106,5 +106,9 @@ export const MIGRATION_FILES: { id: string; sql: string }[] = [
   {
     "id": "0026_capture_article_layers.sql",
     "sql": "ALTER TABLE semantic_records ADD COLUMN IF NOT EXISTS growth TEXT;\nALTER TABLE semantic_records ADD COLUMN IF NOT EXISTS reading_minutes INTEGER;\nALTER TABLE semantic_records ADD COLUMN IF NOT EXISTS line_fa TEXT;\nALTER TABLE semantic_records ADD COLUMN IF NOT EXISTS question_fa TEXT;\nALTER TABLE semantic_records ADD COLUMN IF NOT EXISTS root_fa TEXT;\nALTER TABLE semantic_records ADD COLUMN IF NOT EXISTS first_step_fa TEXT;\nALTER TABLE semantic_records ADD COLUMN IF NOT EXISTS margin_note_fa TEXT;\nALTER TABLE semantic_records ADD COLUMN IF NOT EXISTS pruned_at TIMESTAMPTZ;\nALTER TABLE semantic_records ADD COLUMN IF NOT EXISTS audio_url TEXT;\nALTER TABLE semantic_records ADD COLUMN IF NOT EXISTS simulator JSONB;\nALTER TABLE semantic_records ADD COLUMN IF NOT EXISTS closing_question_fa TEXT;\nALTER TABLE semantic_records ADD COLUMN IF NOT EXISTS closing_options JSONB;\nALTER TABLE semantic_records ADD COLUMN IF NOT EXISTS closing_prompt_fa TEXT;\nALTER TABLE semantic_records ADD COLUMN IF NOT EXISTS related_slugs JSONB;\n"
+  },
+  {
+    "id": "0027_document_template_overrides.sql",
+    "sql": "CREATE TABLE IF NOT EXISTS analyzer_document_template_overrides (\n  account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,\n  template_id VARCHAR(64) NOT NULL REFERENCES analyzer_document_templates(id) ON DELETE CASCADE,\n  chrome JSONB NOT NULL DEFAULT '{}'::jsonb,\n  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),\n  PRIMARY KEY (account_id, template_id)\n);\n\nALTER TABLE analyzer_reports ADD COLUMN IF NOT EXISTS chrome_snapshot JSONB;\n"
   }
 ];

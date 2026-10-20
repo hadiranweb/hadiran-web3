@@ -369,6 +369,22 @@ export const analyzerDocumentTemplates = pgTable("analyzer_document_templates", 
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+/** Per-account chrome for a shared template. Authors never write the base row. */
+export const analyzerDocumentTemplateOverrides = pgTable(
+  "analyzer_document_template_overrides",
+  {
+    accountId: integer("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    templateId: varchar("template_id", { length: 64 })
+      .notNull()
+      .references(() => analyzerDocumentTemplates.id, { onDelete: "cascade" }),
+    chrome: jsonb("chrome").$type<Record<string, unknown>>().notNull().default({}),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.accountId, t.templateId] })],
+);
+
 /** One snapshot per submitted attempt. Layers and actions are child tables. */
 export const analyzerReports = pgTable(
   "analyzer_reports",
@@ -398,6 +414,7 @@ export const analyzerReports = pgTable(
     closingFa: text("closing_fa"),
     context: jsonb("context").$type<{ labelFa: string; valueFa: string }[]>().notNull().default([]),
     patterns: jsonb("patterns").$type<{ meaningFa: string; actionFa: string }[]>().notNull().default([]),
+    chromeSnapshot: jsonb("chrome_snapshot").$type<Record<string, unknown> | null>(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [unique("analyzer_reports_attempt_unique").on(t.attemptKind, t.attemptId)],

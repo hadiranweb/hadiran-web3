@@ -5,6 +5,7 @@ import { resolveDocumentTemplateId, templatesForPack } from "@/lib/analyzers/doc
 import { listDocumentTemplates } from "@/lib/analyzers/document-templates-store";
 import { listConvertedDocuments } from "@/lib/analyzers/persist-report";
 import { requirePageAnalyzerDesk } from "@/lib/auth/guard";
+import { isOwner } from "@/lib/auth/roles";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,7 @@ export default async function DocumentsWorkspacePage() {
       defaultTemplateId: resolveDocumentTemplateId(row.pack),
     }));
   const documents = await listConvertedDocuments(packs.map((pack) => pack.slug));
-  const templates = await listDocumentTemplates();
+  const templates = await listDocumentTemplates(account.id);
 
   return (
     <main className="mx-auto max-w-6xl space-y-6 px-4 py-8">
@@ -38,7 +39,12 @@ export default async function DocumentsWorkspacePage() {
           قالب را با ویرایشگر کد پایین همین صفحه عوض کنید.
         </p>
       </div>
-      <DocumentBuilder packs={packs} initialDocuments={documents} templates={templates} />
+      <DocumentBuilder
+        packs={packs}
+        initialDocuments={documents}
+        templates={templates}
+        canEditBase={isOwner(account.role)}
+      />
     </main>
   );
 }

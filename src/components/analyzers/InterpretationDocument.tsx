@@ -2,7 +2,7 @@ import { HadiranMark } from "@/components/HadiranMark";
 import { CasioResearchDocument } from "@/components/analyzers/CasioResearchDocument";
 import { ChromeDocument } from "@/components/analyzers/ChromeDocument";
 import { renderChromeDocument } from "@/lib/analyzers/document-chrome";
-import { readDocumentChrome } from "@/lib/analyzers/document-templates-store";
+import { mergeChrome, readDocumentChrome } from "@/lib/analyzers/document-templates-store";
 import { documentLayoutKey } from "@/lib/analyzers/document-templates";
 import { faNum, type InterpretationDocument } from "@/lib/analyzers/document-model";
 
@@ -12,7 +12,9 @@ function whenFa(value: string | null) {
 }
 
 export async function InterpretationDocumentView({ doc }: { doc: InterpretationDocument }) {
-  const chrome = await readDocumentChrome(doc.templateId);
+  const chrome = doc.chromeSnapshot
+    ? mergeChrome(doc.templateId, doc.chromeSnapshot)
+    : await readDocumentChrome(doc.templateId);
   if (chrome.html.trim()) {
     const rendered = renderChromeDocument(chrome, doc);
     return (

@@ -25,6 +25,7 @@ import {
 } from "@/lib/analyzers/document-templates";
 import type { AnalyzerPack } from "@/lib/analyzers/pack";
 import type { WorkspaceAttemptRow } from "@/lib/analyzers/workspace-attempt-types";
+import { clipDocumentChrome, readDocumentChrome } from "@/lib/analyzers/document-templates-store";
 import { ensureInterpretationDocumentsSchema } from "@/lib/auth/schema-guard";
 
 type StoredKeyword = { id: string; titleFa: string; children: { id: string; titleFa: string }[] };
@@ -144,6 +145,7 @@ function documentFromStored(
     scores: [],
     patterns: report.patterns ?? [],
     closingFa: report.closingFa ?? "",
+    chromeSnapshot: report.chromeSnapshot ?? null,
   };
 }
 
@@ -303,6 +305,7 @@ async function upsertSnapshot(input: {
   attemptKind: "casio" | "analyzer";
   templateId: string;
   doc: InterpretationDocument;
+  chromeSnapshot: Record<string, unknown>;
 }): Promise<number> {
   const values = {
     slug: input.pack.slug,
@@ -325,6 +328,7 @@ async function upsertSnapshot(input: {
     closingFa: input.doc.closingFa,
     context: input.doc.context,
     patterns: input.doc.patterns,
+    chromeSnapshot: input.chromeSnapshot,
   };
   const [existing] = await db
     .select({ id: analyzerReports.id })
@@ -349,6 +353,7 @@ export async function convertAttemptDocument(input: {
   attemptId: number;
   templateId: string;
   row: WorkspaceAttemptRow;
+  converterAccountId: number;
 }): Promise<ConvertedDocumentRef> {
   await ensureInterpretationDocumentsSchema();
   const templateId = resolveDocumentTemplateId(input.pack, input.templateId);
@@ -361,6 +366,7 @@ export async function convertAttemptDocument(input: {
   const accountId = await attemptOwnerId(attemptKind, input.attemptId);
   if (!accountId) throw new Error("missing_account");
   const doc = buildInterpretationDocument(input.pack, row, templateId);
+  const chrome = clipDocumentChrome(await readDocumentChrome(templateId, input.converterAccountId));
   const id = await upsertSnapshot({
     pack: input.pack,
     accountId,
@@ -368,6 +374,7 @@ export async function convertAttemptDocument(input: {
     attemptKind,
     templateId,
     doc,
+    chromeSnapshot: chrome as unknown as Record<string, unknown>,
   });
   return { id, attemptId: input.attemptId, templateId, href: documentHref(id) };
 }

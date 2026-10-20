@@ -21,6 +21,7 @@ type TemplateRow = {
   id: string;
   titleFa: string;
   chrome: DocumentChrome;
+  source?: "base" | "override";
 };
 
 type Pane = "html" | "css" | "logo-light" | "logo-dark" | "logo-seal";
@@ -33,7 +34,13 @@ const PANES: { id: Pane; label: string }[] = [
   { id: "logo-seal", label: "SVG مهر" },
 ];
 
-export function DocumentTemplateEditor({ initial }: { initial: TemplateRow[] }) {
+export function DocumentTemplateEditor({
+  initial,
+  canEditBase,
+}: {
+  initial: TemplateRow[];
+  canEditBase: boolean;
+}) {
   const [templates, setTemplates] = useState(initial);
   const [id, setId] = useState(initial[0]?.id ?? "hadiran");
   const current = templates.find((row) => row.id === id) ?? templates[0];
@@ -43,6 +50,7 @@ export function DocumentTemplateEditor({ initial }: { initial: TemplateRow[] }) 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [applyBase, setApplyBase] = useState(false);
   const editorRef = useRef<ReactCodeMirrorRef>(null);
   const variables = useMemo(() => documentVariableCatalog(), []);
 
@@ -57,6 +65,7 @@ export function DocumentTemplateEditor({ initial }: { initial: TemplateRow[] }) 
     }
     setSaved(false);
     setError(null);
+    setApplyBase(false);
   }
 
   function patch(next: Partial<DocumentChrome> | { logos: DocumentChrome["logos"] }) {
@@ -100,7 +109,7 @@ export function DocumentTemplateEditor({ initial }: { initial: TemplateRow[] }) 
       const res = await fetch(`/api/workspace/document-templates/${current.id}`, {
         method: "PUT",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ chrome }),
+        body: JSON.stringify({ chrome, applyBase: canEditBase && applyBase }),
       });
       const data = (await res.json()) as { template?: TemplateRow; error?: string };
       if (!res.ok || !data.template) {
@@ -110,6 +119,7 @@ export function DocumentTemplateEditor({ initial }: { initial: TemplateRow[] }) 
       setTemplates((list) => list.map((row) => (row.id === data.template!.id ? data.template! : row)));
       setChrome(data.template.chrome);
       setSaved(true);
+      if (data.template.source === "base") setApplyBase(false);
     } catch {
       setError("ذخیره نشد.");
     } finally {
@@ -131,6 +141,7 @@ export function DocumentTemplateEditor({ initial }: { initial: TemplateRow[] }) 
           داستان سند را در تب HTML بنویسید یا روی خود پیش‌نمایش جابه‌جا و بزرگ و کوچک کنید. ادیتور کد سر جایش است.
           هر <span dir="ltr">section.doc-page</span> یک برگ است؛ پیش‌فرض اندازهٔ چاپ A4 است. هدر و پانوشت سایت در چاپ
           نمی‌آید. متغیرها را با <span dir="ltr">{"{{نام}}"}</span> صدا بزنید؛ مقدار نمونه جای آن‌ها پخته نمی‌شود.
+          ذخیرهٔ پیش‌فرض فقط برای حساب شماست و روی سازندهٔ دیگر اثر ندارد. سندهای تبدیل‌شده با شکل لحظهٔ تبدیل می‌مانند.
         </p>
       </div>
       <label className="block text-sm">
@@ -143,6 +154,7 @@ export function DocumentTemplateEditor({ initial }: { initial: TemplateRow[] }) 
           {templates.map((row) => (
             <option key={row.id} value={row.id}>
               {row.titleFa}
+              {row.source === "override" ? " · نسخهٔ شما" : ""}
             </option>
           ))}
         </select>
@@ -196,16 +208,33 @@ export function DocumentTemplateEditor({ initial }: { initial: TemplateRow[] }) 
           ویرایش روی پیش‌نمایش
         </button>
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-3">
+        {canEditBase ? (
+          <label className="flex items-center gap-2 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              className="size-4 rounded border-slate-300"
+              checked={applyBase}
+              onChange={(event) => setApplyBase(event.target.checked)}
+            />
+            اعمال روی قالب پایه (برای همه)
+          </label>
+        ) : (
+          <p className="text-xs text-slate-500">تغییرات فقط برای حساب شما ذخیره می‌شود.</p>
+        )}
         <button
           type="button"
           disabled={busy}
           onClick={() => void save()}
           className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
         >
-          {busy ? "…" : "ذخیرهٔ قالب"}
+          {busy ? "…" : applyBase && canEditBase ? "ذخیرهٔ قالب پایه" : "ذخیرهٔ قالب من"}
         </button>
-        {saved ? <p className="self-center text-sm text-emerald-700">ذخیره شد.</p> : null}
+        {saved ? (
+          <p className="self-center text-sm text-emerald-700">
+            {current.source === "base" ? "قالب پایه به‌روز شد." : "فقط برای حساب شما ذخیره شد."}
+          </p>
+        ) : null}
         {error ? <p className="self-center text-sm text-red-700">{error}</p> : null}
       </div>
       {surface === "visual" ? (

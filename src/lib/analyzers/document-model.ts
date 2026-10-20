@@ -49,6 +49,8 @@ export type InterpretationDocument = {
   scores: { titleFa: string; valueFa: string }[];
   patterns: { meaningFa: string; actionFa: string }[];
   closingFa: string;
+  /** Frozen chrome from convert time. Missing on documents converted before snapshots. */
+  chromeSnapshot?: Record<string, unknown> | null;
 };
 
 export function faNum(value: number | string) {

@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { analyzerDocumentTemplates } from "@/db/schema";
+import { analyzerDocumentTemplateOverrides, analyzerDocumentTemplates } from "@/db/schema";
 import {
   CASIO_TEMPLATE_CSS,
   CASIO_TEMPLATE_HTML,
@@ -56,8 +56,8 @@ function staleCasioChrome(html: string, css: string) {
   return !html.includes("{{{overallChartSvg}}}") || !html.includes("keywordGraphGroups") || !css.includes("keyword-graph");
 }
 
-export function mergeChrome(templateId: string, raw: unknown): DocumentChrome {
-  const fallback = defaultChrome(templateId);
+export function mergeChrome(templateId: string, raw: unknown, baseRaw?: unknown): DocumentChrome {
+  const fallback = baseRaw !== undefined ? mergeChrome(templateId, baseRaw) : defaultChrome(templateId);
   const parsed = parseChrome(raw);
   const id = canonicalizeTemplateId(templateId);
   let html = parsed.html.trim() ? parsed.html : fallback.html;
@@ -79,52 +79,8 @@ export function mergeChrome(templateId: string, raw: unknown): DocumentChrome {
   };
 }
 
-export type StoredDocumentTemplate = {
-  id: string;
-  titleFa: string;
-  layoutKey: string;
-  brandNameFa: string;
-  system: boolean;
-  chrome: DocumentChrome;
-};
-
-export async function listDocumentTemplates(): Promise<StoredDocumentTemplate[]> {
-  await ensureInterpretationDocumentsSchema();
-  const rows = await db.select().from(analyzerDocumentTemplates).orderBy(asc(analyzerDocumentTemplates.id));
-  return rows
-    .filter((row) => row.id === "hadiran" || row.id === "casio-ss")
-    .map((row) => ({
-      id: row.id,
-      titleFa: row.titleFa,
-      layoutKey: row.layoutKey,
-      brandNameFa: row.brandNameFa,
-      system: row.system,
-      chrome: mergeChrome(row.id, row.chrome),
-    }));
-}
-
-export async function readDocumentChrome(templateId: string): Promise<DocumentChrome> {
-  await ensureInterpretationDocumentsSchema();
-  const id = canonicalizeTemplateId(templateId);
-  const [row] = await db
-    .select()
-    .from(analyzerDocumentTemplates)
-    .where(eq(analyzerDocumentTemplates.id, id))
-    .limit(1);
-  if (row) return mergeChrome(row.id, row.chrome);
-  const [legacy] = await db
-    .select()
-    .from(analyzerDocumentTemplates)
-    .where(eq(analyzerDocumentTemplates.id, templateId))
-    .limit(1);
-  return mergeChrome(templateId, legacy?.chrome);
-}
-
-export async function updateDocumentTemplateChrome(id: string, chrome: DocumentChrome): Promise<StoredDocumentTemplate | null> {
-  await ensureInterpretationDocumentsSchema();
-  const allowed = id === "hadiran" || id === "casio-ss";
-  if (!allowed) return null;
-  const next: DocumentChrome = {
+export function clipDocumentChrome(chrome: DocumentChrome): DocumentChrome {
+  return {
     html: chrome.html.slice(0, 200_000),
     css: chrome.css.slice(0, 80_000),
     logos: {
@@ -135,18 +91,129 @@ export async function updateDocumentTemplateChrome(id: string, chrome: DocumentC
     pageSize: chrome.pageSize,
     pageMargin: chrome.pageMargin.slice(0, 32),
   };
-  const [row] = await db
-    .update(analyzerDocumentTemplates)
-    .set({ chrome: next, updatedAt: new Date() })
-    .where(eq(analyzerDocumentTemplates.id, id))
-    .returning();
-  if (!row) return null;
+}
+
+function chromeJson(chrome: DocumentChrome): Record<string, unknown> {
+  return chrome as unknown as Record<string, unknown>;
+}
+
+export type StoredDocumentTemplate = {
+  id: string;
+  titleFa: string;
+  layoutKey: string;
+  brandNameFa: string;
+  system: boolean;
+  source: "base" | "override";
+  chrome: DocumentChrome;
+};
+
+const ALLOWED_TEMPLATE_IDS = new Set(["hadiran", "casio-ss"]);
+
+function toStored(
+  row: typeof analyzerDocumentTemplates.$inferSelect,
+  overlay: unknown | undefined,
+): StoredDocumentTemplate {
   return {
     id: row.id,
     titleFa: row.titleFa,
     layoutKey: row.layoutKey,
     brandNameFa: row.brandNameFa,
     system: row.system,
-    chrome: mergeChrome(row.id, row.chrome),
+    source: overlay !== undefined ? "override" : "base",
+    chrome: overlay !== undefined ? mergeChrome(row.id, overlay, row.chrome) : mergeChrome(row.id, row.chrome),
   };
+}
+
+export async function listDocumentTemplates(accountId: number): Promise<StoredDocumentTemplate[]> {
+  await ensureInterpretationDocumentsSchema();
+  const rows = await db.select().from(analyzerDocumentTemplates).orderBy(asc(analyzerDocumentTemplates.id));
+  const overrides = await db
+    .select()
+    .from(analyzerDocumentTemplateOverrides)
+    .where(eq(analyzerDocumentTemplateOverrides.accountId, accountId));
+  const overlayByTemplate = new Map(overrides.map((row) => [row.templateId, row.chrome]));
+  return rows.filter((row) => ALLOWED_TEMPLATE_IDS.has(row.id)).map((row) => toStored(row, overlayByTemplate.get(row.id)));
+}
+
+export async function readDocumentChrome(templateId: string, accountId?: number): Promise<DocumentChrome> {
+  await ensureInterpretationDocumentsSchema();
+  const id = canonicalizeTemplateId(templateId);
+  const [row] = await db
+    .select()
+    .from(analyzerDocumentTemplates)
+    .where(eq(analyzerDocumentTemplates.id, id))
+    .limit(1);
+  let overlay: unknown | undefined;
+  if (accountId != null) {
+    const [over] = await db
+      .select()
+      .from(analyzerDocumentTemplateOverrides)
+      .where(
+        and(
+          eq(analyzerDocumentTemplateOverrides.accountId, accountId),
+          eq(analyzerDocumentTemplateOverrides.templateId, id),
+        ),
+      )
+      .limit(1);
+    overlay = over?.chrome;
+  }
+  if (row) {
+    return overlay !== undefined ? mergeChrome(row.id, overlay, row.chrome) : mergeChrome(row.id, row.chrome);
+  }
+  const [legacy] = await db
+    .select()
+    .from(analyzerDocumentTemplates)
+    .where(eq(analyzerDocumentTemplates.id, templateId))
+    .limit(1);
+  if (legacy) {
+    return overlay !== undefined ? mergeChrome(legacy.id, overlay, legacy.chrome) : mergeChrome(templateId, legacy.chrome);
+  }
+  return overlay !== undefined ? mergeChrome(templateId, overlay) : mergeChrome(templateId, undefined);
+}
+
+export async function saveDocumentTemplateChrome(input: {
+  id: string;
+  chrome: DocumentChrome;
+  accountId: number;
+  applyBase: boolean;
+}): Promise<StoredDocumentTemplate | null> {
+  await ensureInterpretationDocumentsSchema();
+  if (!ALLOWED_TEMPLATE_IDS.has(input.id)) return null;
+  const next = clipDocumentChrome(input.chrome);
+  if (input.applyBase) {
+    await db
+      .delete(analyzerDocumentTemplateOverrides)
+      .where(
+        and(
+          eq(analyzerDocumentTemplateOverrides.accountId, input.accountId),
+          eq(analyzerDocumentTemplateOverrides.templateId, input.id),
+        ),
+      );
+    const [row] = await db
+      .update(analyzerDocumentTemplates)
+      .set({ chrome: chromeJson(next), updatedAt: new Date() })
+      .where(eq(analyzerDocumentTemplates.id, input.id))
+      .returning();
+    if (!row) return null;
+    return toStored(row, undefined);
+  }
+  await db
+    .insert(analyzerDocumentTemplateOverrides)
+    .values({
+      accountId: input.accountId,
+      templateId: input.id,
+      chrome: chromeJson(next),
+      updatedAt: new Date(),
+    })
+    .onConflictDoUpdate({
+      target: [analyzerDocumentTemplateOverrides.accountId, analyzerDocumentTemplateOverrides.templateId],
+      set: { chrome: chromeJson(next), updatedAt: new Date() },
+    });
+  const [row] = await db
+    .select()
+    .from(analyzerDocumentTemplates)
+    .where(eq(analyzerDocumentTemplates.id, input.id))
+    .limit(1);
+  if (!row) return null;
+  return toStored(row, next);
 }

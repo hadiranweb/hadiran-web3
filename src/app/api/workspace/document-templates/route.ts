@@ -8,6 +8,6 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const auth = await requireAnalyzerDesk();
   if (auth.error) return auth.error;
-  const templates = await listDocumentTemplates();
+  const templates = await listDocumentTemplates(auth.account.id);
   return NextResponse.json({ templates, variables: documentVariableCatalog() });
 }

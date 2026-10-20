@@ -71,6 +71,7 @@ export async function POST(request: Request) {
           attemptId,
           templateId,
           row: attempt,
+          converterAccountId: auth.account.id,
         }),
       );
     } catch (error) {
