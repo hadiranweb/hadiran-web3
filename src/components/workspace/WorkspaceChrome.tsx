@@ -10,7 +10,6 @@ import {
   Layers,
   Menu,
   PanelLeftClose,
-  PanelLeftOpen,
   PenLine,
   Pin,
   Plus,
@@ -115,10 +114,8 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
   const [account, setAccount] = useState<{ role?: string; analyzerDesk?: boolean } | null>(null);
   const [locale, setLocale] = useState<Locale>("fa");
   const [navMode, setNavMode] = useState<NavMode>("pinned");
-  const [drawer, setDrawer] = useState(false);
   const [query, setQuery] = useState("");
   const searchDialog = useRef<HTMLDialogElement>(null);
-  const menuButton = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     setLocale(readLocale());
@@ -134,27 +131,6 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
       .catch(() => setAccount(null));
   }, [pathname]);
 
-  useEffect(() => {
-    setDrawer(false);
-  }, [pathname]);
-
-  useEffect(() => {
-    if (!drawer) return;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setDrawer(false);
-        menuButton.current?.focus();
-      }
-    };
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.body.style.overflow = previous;
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [drawer]);
-
   const role = account?.role ?? null;
   const modules = role === "author" ? authorModules : role === "member" ? grantedModules : ownerModules;
   const home = role === "owner" || role == null ? "/workspace" : "/workspace/analyzers";
@@ -163,12 +139,13 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
   const dir = locale === "fa" ? "rtl" : "ltr";
   const matches = modules.filter((item) => `${item.fa} ${item.en}`.toLowerCase().includes(query.trim().toLowerCase()));
   const current = modules.find((item) => isActive(pathname, item));
-  const showLabels = drawer || navMode !== "icons";
-  const navModes = [
-    { value: "pinned" as const, fa: "پین", en: "Pin", Icon: Pin },
-    { value: "open" as const, fa: "باز", en: "Open", Icon: PanelLeftOpen },
-    { value: "icons" as const, fa: "فقط آیکون", en: "Icons only", Icon: PanelLeftClose },
-  ];
+  const showLabels = navMode === "pinned";
+  const cycle =
+    navMode === "pinned"
+      ? { next: "icons" as const, Icon: Pin, fa: "پین؛ بزن تا فقط آیکون شود", en: "Pinned; click for icons only" }
+      : navMode === "icons"
+        ? { next: "open" as const, Icon: PanelLeftClose, fa: "فقط آیکون؛ بزن تا بسته شود", en: "Icons only; click to close" }
+        : { next: "pinned" as const, Icon: Menu, fa: "فهرست بسته؛ بزن تا پین شود", en: "Closed; click to pin" };
 
   function toggleLocale() {
     const next: Locale = locale === "fa" ? "en" : "fa";
@@ -176,10 +153,9 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
     writeLocale(next);
   }
 
-  function setMode(next: NavMode) {
-    setNavMode(next);
-    writeNavMode(next);
-    setDrawer(false);
+  function cycleNav() {
+    setNavMode(cycle.next);
+    writeNavMode(cycle.next);
   }
 
   function NavList({ labeled }: { labeled: boolean }) {
@@ -196,7 +172,6 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
               title={label}
               data-label={label}
               aria-current={active ? "page" : undefined}
-              onClick={() => setDrawer(false)}
               className={`ws-rail-link ${active ? "is-active" : ""} ${labeled ? "is-labeled" : "is-icon"}`}
             >
               <Icon className="h-4 w-4 shrink-0" strokeWidth={1.7} />
@@ -208,57 +183,15 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
     );
   }
 
-  function ModeSwitch() {
-    return (
-      <div
-        role="radiogroup"
-        aria-label={t("حالت منوی کناری", "Side menu mode")}
-        className={`ws-mode-switch ${showLabels ? "is-wide" : "is-stack"}`}
-      >
-        {navModes.map((mode) => {
-          const Icon = mode.Icon;
-          const selected = navMode === mode.value;
-          return (
-            <button
-              key={mode.value}
-              type="button"
-              role="radio"
-              aria-checked={selected}
-              title={t(mode.fa, mode.en)}
-              aria-label={t(mode.fa, mode.en)}
-              onClick={() => setMode(mode.value)}
-              className={`ws-mode-btn ${selected ? "is-selected" : ""}`}
-            >
-              <Icon className="h-4 w-4 shrink-0" />
-              {showLabels ? <span className="truncate">{t(mode.fa, mode.en)}</span> : <span className="sr-only">{t(mode.fa, mode.en)}</span>}
-            </button>
-          );
-        })}
-      </div>
-    );
-  }
-
   return (
-    <div className="ws-shell" dir={dir} lang={locale} data-nav-mode={navMode} data-nav-open={drawer ? "true" : "false"}>
+    <div className="ws-shell" dir={dir} lang={locale} data-nav-mode={navMode}>
       <a href="#workspace-content" className="sr-only focus:not-sr-only focus:absolute focus:z-[80] focus:bg-elev focus:px-3 focus:py-2">
         {t("رفتن به محتوا", "Skip to content")}
       </a>
 
-      {drawer ? (
-        <button
-          type="button"
-          className="ws-scrim"
-          aria-label={t("بستن فهرست", "Close navigation")}
-          onClick={() => {
-            setDrawer(false);
-            menuButton.current?.focus();
-          }}
-        />
-      ) : null}
-
       <aside id="workspace-navigation" className="ws-rail print-hide print:hidden">
         <div className={`ws-rail-brand ${showLabels ? "is-labeled" : ""}`}>
-          <Link href={home} className="flex min-w-0 items-center gap-2" onClick={() => setDrawer(false)}>
+          <Link href={home} className="flex min-w-0 items-center gap-2">
             <HadiranMark className="h-8 w-8 shrink-0" />
             {showLabels ? (
               <span className="min-w-0">
@@ -271,19 +204,6 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
               <span className="sr-only">{t("هادیران", "Hadiran")}</span>
             )}
           </Link>
-          {drawer ? (
-            <button
-              type="button"
-              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-[var(--radius-sm)] text-muted hover:bg-paper hover:text-ink"
-              aria-label={t("بستن منو", "Close navigation")}
-              onClick={() => {
-                setDrawer(false);
-                menuButton.current?.focus();
-              }}
-            >
-              <X className="h-5 w-5" />
-            </button>
-          ) : null}
         </div>
 
         <button
@@ -299,7 +219,6 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
         <NavList labeled={showLabels} />
 
         <div className="ws-rail-foot">
-          <ModeSwitch />
           <Link
             href="/"
             className={`ws-rail-link ${showLabels ? "is-labeled" : "is-icon"}`}
@@ -315,15 +234,14 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
         <header className="ws-topbar print-hide print:hidden">
           <div className="ws-topbar-start">
             <button
-              ref={menuButton}
               type="button"
               className="nav-menu-toggle"
-              aria-label={drawer ? t("بستن فهرست", "Close navigation") : t("باز کردن فهرست", "Open navigation")}
-              aria-expanded={drawer}
+              aria-label={t(cycle.fa, cycle.en)}
+              title={t(cycle.fa, cycle.en)}
               aria-controls="workspace-navigation"
-              onClick={() => setDrawer((open) => !open)}
+              onClick={cycleNav}
             >
-              {drawer ? <X size={19} aria-hidden="true" /> : <Menu size={19} aria-hidden="true" />}
+              <cycle.Icon size={19} aria-hidden="true" />
             </button>
             <p className="min-w-0 truncate text-sm font-medium text-ink">
               {current ? t(current.fa, current.en) : t("میز کار", "Workspace")}
@@ -395,10 +313,7 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
                 key={item.href}
                 href={item.href}
                 className="flex min-h-11 items-center gap-3 rounded-[var(--radius-sm)] px-3 text-sm hover:bg-paper"
-                onClick={() => {
-                  searchDialog.current?.close();
-                  setDrawer(false);
-                }}
+                onClick={() => searchDialog.current?.close()}
               >
                 <Icon className="h-4 w-4" strokeWidth={1.7} />
                 {t(item.fa, item.en)}
