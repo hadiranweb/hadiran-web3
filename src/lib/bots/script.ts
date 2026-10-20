@@ -371,7 +371,10 @@ export function telegramCommandsOf(script: BotScript): { command: string; descri
   if (!out.length) {
     out.push({ command: "start", description: "شروع یا ادامه" }, { command: "help", description: "راهنمای ربات" });
   }
-  reon matchBotKey(script: BotScript, text: string, command: string | null): BotKey | null {
+  return out.slice(0, 100);
+}
+
+export function matchBotKey(script: BotScript, text: string, command: string | null): BotKey | null {
   if (command) {
     const byCommand = script.keys.find((key) => key.command && key.command === command);
     if (byCommand) return byCommand;
@@ -486,6 +489,4 @@ export function botVars(input: {
 
 export function line(script: BotScript, key: keyof BotTexts, vars?: Record<string, string>): string {
   return interpolateBotText(script.texts[key], vars ?? botVars({ service: "آینه" })).slice(0, 4096);
-}
-rvice: "آینه" })).slice(0, 4096);
 }
