@@ -84,3 +84,102 @@ export function defaultArticleDepth(input: {
   if (input.bodyFa?.trim()) return "full";
   return "line";
 }
+
+export type ArticleLayerRow = {
+  growth: string | null;
+  readingMinutes: number | null;
+  lineFa: string | null;
+  questionFa: string | null;
+  rootFa: string | null;
+  firstStepFa: string | null;
+  marginNoteFa: string | null;
+  prunedAt: Date | null;
+  audioUrl: string | null;
+  simulator: ArticleSimulator | null;
+  closingQuestionFa: string | null;
+  closingOptions: ClosingOption[];
+  closingPromptFa: string | null;
+  relatedSlugs: string[];
+};
+
+const emptyLayers: ArticleLayerRow = {
+  growth: null,
+  readingMinutes: null,
+  lineFa: null,
+  questionFa: null,
+  rootFa: null,
+  firstStepFa: null,
+  marginNoteFa: null,
+  prunedAt: null,
+  audioUrl: null,
+  simulator: null,
+  closingQuestionFa: null,
+  closingOptions: [],
+  closingPromptFa: null,
+  relatedSlugs: [],
+};
+
+function nullableText(value: unknown, fallback: string | null) {
+  if (value === null) return null;
+  if (typeof value === "string") return value.trim() || null;
+  return fallback;
+}
+
+function nullableDate(value: unknown, fallback: Date | null) {
+  if (value === null || value === "") return null;
+  if (typeof value !== "string") return fallback;
+  const date = new Date(value.length === 10 ? `${value}T12:00:00+03:30` : value);
+  return Number.isNaN(date.getTime()) ? fallback : date;
+}
+
+export function parseRelatedSlugs(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.map((row) => (typeof row === "string" ? row.trim() : "")).filter(Boolean))];
+}
+
+export function parseArticleLayers(
+  body: Record<string, unknown>,
+  existing?: Partial<ArticleLayerRow> | null,
+): ArticleLayerRow {
+  const base: ArticleLayerRow = {
+    ...emptyLayers,
+    ...existing,
+    closingOptions: existing?.closingOptions ?? [],
+    relatedSlugs: existing?.relatedSlugs ?? [],
+  };
+  const has = (key: string) => Object.prototype.hasOwnProperty.call(body, key);
+  let readingMinutes = base.readingMinutes;
+  if (has("readingMinutes")) {
+    const raw = body.readingMinutes;
+    if (raw === null || raw === "") readingMinutes = null;
+    else if (typeof raw === "number" && Number.isFinite(raw)) readingMinutes = Math.max(0, Math.round(raw));
+    else if (typeof raw === "string" && raw.trim()) {
+      const parsed = Number(raw);
+      readingMinutes = Number.isFinite(parsed) ? Math.max(0, Math.round(parsed)) : null;
+    }
+  }
+  return {
+    growth: has("growth")
+      ? isKnowledgeGrowth(body.growth)
+        ? body.growth
+        : body.growth === null || body.growth === ""
+          ? null
+          : base.growth
+      : base.growth,
+    readingMinutes,
+    lineFa: has("lineFa") ? nullableText(body.lineFa, base.lineFa) : base.lineFa,
+    questionFa: has("questionFa") ? nullableText(body.questionFa, base.questionFa) : base.questionFa,
+    rootFa: has("rootFa") ? nullableText(body.rootFa, base.rootFa) : base.rootFa,
+    firstStepFa: has("firstStepFa") ? nullableText(body.firstStepFa, base.firstStepFa) : base.firstStepFa,
+    marginNoteFa: has("marginNoteFa") ? nullableText(body.marginNoteFa, base.marginNoteFa) : base.marginNoteFa,
+    prunedAt: has("prunedAt") ? nullableDate(body.prunedAt, base.prunedAt) : base.prunedAt,
+    audioUrl: has("audioUrl") ? nullableText(body.audioUrl, base.audioUrl) : base.audioUrl,
+    simulator: has("simulator") ? parseSimulator(body.simulator) : base.simulator,
+    closingQuestionFa: has("closingQuestionFa")
+      ? nullableText(body.closingQuestionFa, base.closingQuestionFa)
+      : base.closingQuestionFa,
+    closingOptions: has("closingOptions") ? parseClosingOptions(body.closingOptions) : base.closingOptions,
+    closingPromptFa: has("closingPromptFa") ? nullableText(body.closingPromptFa, base.closingPromptFa) : base.closingPromptFa,
+    relatedSlugs: has("relatedSlugs") ? parseRelatedSlugs(body.relatedSlugs) : base.relatedSlugs,
+  };
+}

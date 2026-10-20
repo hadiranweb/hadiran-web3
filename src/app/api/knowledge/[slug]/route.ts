@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { knowledge, knowledgeReferences, knowledgeSlides } from "@/db/schema";
-import { eq, inArray } from "drizzle-orm";
+import { knowledge, knowledgeSlides } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { slugify } from "@/lib/markdown";
 import { requireAccount } from "@/lib/auth/guard";
 import { getPublicKnowledgeBySlug } from "@/lib/knowledge/public";
-import { isKnowledgeGrowth, parseClosingOptions, parseSimulator } from "@/lib/knowledge/article";
+import { parseArticleLayers, parseClosingOptions, parseSimulator } from "@/lib/knowledge/article";
+import { replaceKnowledgeRelated } from "@/lib/knowledge/related";
 
 export const dynamic = "force-dynamic";
 
@@ -19,50 +20,30 @@ type SlideInput = {
   bodyEn?: string | null;
 };
 
-function nullableText(value: unknown, fallback: string | null) {
-  if (value === null) return null;
-  if (typeof value === "string") return value.trim() || null;
-  return fallback;
-}
-
-function nullableDate(value: unknown, fallback: Date | null) {
-  if (value === null || value === "") return null;
-  if (typeof value !== "string") return fallback;
-  const date = new Date(value.length === 10 ? `${value}T12:00:00+03:30` : value);
-  return Number.isNaN(date.getTime()) ? fallback : date;
-}
-
 function articleLayers(body: Record<string, unknown>, existing: typeof knowledge.$inferSelect) {
-  const minutesRaw = body.readingMinutes;
-  let readingMinutes = existing.readingMinutes;
-  if (minutesRaw === null || minutesRaw === "") readingMinutes = null;
-  else if (typeof minutesRaw === "number" && Number.isFinite(minutesRaw)) readingMinutes = Math.max(0, Math.round(minutesRaw));
-  else if (typeof minutesRaw === "string" && minutesRaw.trim()) {
-    const parsed = Number(minutesRaw);
-    if (Number.isFinite(parsed)) readingMinutes = Math.max(0, Math.round(parsed));
-  }
-
-  return {
-    growth: isKnowledgeGrowth(body.growth) ? body.growth : body.growth === null || body.growth === "" ? null : existing.growth,
-    readingMinutes,
-    summaryFa: nullableText(body.summaryFa, existing.summaryFa),
-    lineFa: nullableText(body.lineFa, existing.lineFa),
-    questionFa: nullableText(body.questionFa, existing.questionFa),
-    rootFa: nullableText(body.rootFa, existing.rootFa),
-    firstStepFa: nullableText(body.firstStepFa, existing.firstStepFa),
-    marginNoteFa: nullableText(body.marginNoteFa, existing.marginNoteFa),
-    prunedAt: nullableDate(body.prunedAt, existing.prunedAt),
-    audioUrl: nullableText(body.audioUrl, existing.audioUrl),
-    simulator: Object.prototype.hasOwnProperty.call(body, "simulator")
-      ? parseSimulator(body.simulator)
-      : existing.simulator,
-    closingQuestionFa: nullableText(body.closingQuestionFa, existing.closingQuestionFa),
-    closingOptions: Object.prototype.hasOwnProperty.call(body, "closingOptions")
-      ? parseClosingOptions(body.closingOptions)
-      : existing.closingOptions,
-    closingPromptFa: nullableText(body.closingPromptFa, existing.closingPromptFa),
-    updatedAt: new Date(),
-  };
+  const layers = parseArticleLayers(body, {
+    growth: existing.growth,
+    readingMinutes: existing.readingMinutes,
+    lineFa: existing.lineFa,
+    questionFa: existing.questionFa,
+    rootFa: existing.rootFa,
+    firstStepFa: existing.firstStepFa,
+    marginNoteFa: existing.marginNoteFa,
+    prunedAt: existing.prunedAt,
+    audioUrl: existing.audioUrl,
+    simulator: parseSimulator(existing.simulator),
+    closingQuestionFa: existing.closingQuestionFa,
+    closingOptions: parseClosingOptions(existing.closingOptions),
+    closingPromptFa: existing.closingPromptFa,
+  });
+  const summaryFa =
+    typeof body.summaryFa === "string" || body.summaryFa === null
+      ? typeof body.summaryFa === "string"
+        ? body.summaryFa.trim() || null
+        : null
+      : existing.summaryFa;
+  const { relatedSlugs: _related, ...columns } = layers;
+  return { ...columns, summaryFa, updatedAt: new Date() };
 }
 
 async function replaceSlides(knowledgeId: number, slides: SlideInput[]) {
@@ -78,25 +59,6 @@ async function replaceSlides(knowledgeId: number, slides: SlideInput[]) {
       bodyEn: slide.bodyEn || null,
     })),
   );
-}
-
-async function replaceRelated(sourceId: number, slugs: unknown) {
-  if (!Array.isArray(slugs)) return;
-  const wanted = [...new Set(slugs.map((row) => (typeof row === "string" ? row.trim() : "")).filter(Boolean))];
-  await db.delete(knowledgeReferences).where(eq(knowledgeReferences.sourceKnowledgeId, sourceId));
-  if (wanted.length === 0) return;
-  const targets = await db
-    .select({ id: knowledge.id, slug: knowledge.slug })
-    .from(knowledge)
-    .where(inArray(knowledge.slug, wanted));
-  const rows = targets
-    .filter((row) => row.id !== sourceId)
-    .map((row) => ({
-      sourceKnowledgeId: sourceId,
-      targetKnowledgeId: row.id,
-      relation: "thread",
-    }));
-  if (rows.length) await db.insert(knowledgeReferences).values(rows);
 }
 
 interface Ctx {
@@ -124,7 +86,7 @@ export async function PATCH(request: Request, { params }: Ctx) {
 
     if (existing.memoryItemId) {
       const [updated] = await db.update(knowledge).set(layers).where(eq(knowledge.id, existing.id)).returning();
-      await replaceRelated(existing.id, body.relatedSlugs);
+      await replaceKnowledgeRelated(existing.id, body.relatedSlugs);
       return NextResponse.json({ ok: true, slug: updated.slug, id: updated.id });
     }
 
@@ -164,7 +126,7 @@ export async function PATCH(request: Request, { params }: Ctx) {
         console.error("knowledge slides save:", slideError);
       }
     }
-    await replaceRelated(existing.id, body.relatedSlugs);
+    await replaceKnowledgeRelated(existing.id, body.relatedSlugs);
 
     return NextResponse.json({ ok: true, slug: updated.slug, id: updated.id });
   } catch (error) {

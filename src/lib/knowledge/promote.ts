@@ -11,6 +11,8 @@ import {
 } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { slugify } from "@/lib/markdown";
+import { parseClosingOptions, parseRelatedSlugs, parseSimulator } from "@/lib/knowledge/article";
+import { replaceKnowledgeRelated } from "@/lib/knowledge/related";
 import { newCanonicalId } from "./ids";
 import {
   RELATION_PROMOTED_AS,
@@ -137,19 +139,34 @@ export async function promoteSemanticRecord(opts: {
 
   const [existingKnowledge] = await db.select().from(knowledge).where(eq(knowledge.memoryItemId, memoryId));
   let publicSlug = existingKnowledge?.slug ?? slug;
+  let knowledgeId = existingKnowledge?.id ?? null;
   if (!existingKnowledge) {
     const [dup] = await db.select({ id: knowledge.id }).from(knowledge).where(eq(knowledge.slug, publicSlug));
     if (dup) publicSlug = `${publicSlug}-${memoryId.slice(-4)}`;
-    await db.insert(knowledge).values({
+    const [created] = await db.insert(knowledge).values({
       slug: publicSlug,
       type: "article",
       titleFa: record.titleFa,
       titleEn: record.titleEn,
       summaryFa: record.summaryFa,
       bodyFa: record.bodyFa,
+      growth: record.growth,
+      readingMinutes: record.readingMinutes,
+      lineFa: record.lineFa,
+      questionFa: record.questionFa,
+      rootFa: record.rootFa,
+      firstStepFa: record.firstStepFa,
+      marginNoteFa: record.marginNoteFa,
+      prunedAt: record.prunedAt,
+      audioUrl: record.audioUrl,
+      simulator: parseSimulator(record.simulator),
+      closingQuestionFa: record.closingQuestionFa,
+      closingOptions: parseClosingOptions(record.closingOptions),
+      closingPromptFa: record.closingPromptFa,
       aiIndexable: visibility === "public",
       memoryItemId: memoryId,
-    });
+    }).returning({ id: knowledge.id });
+    knowledgeId = created?.id ?? null;
   } else {
     await db
       .update(knowledge)
@@ -158,10 +175,26 @@ export async function promoteSemanticRecord(opts: {
         titleEn: record.titleEn,
         summaryFa: record.summaryFa,
         bodyFa: record.bodyFa,
+        growth: record.growth,
+        readingMinutes: record.readingMinutes,
+        lineFa: record.lineFa,
+        questionFa: record.questionFa,
+        rootFa: record.rootFa,
+        firstStepFa: record.firstStepFa,
+        marginNoteFa: record.marginNoteFa,
+        prunedAt: record.prunedAt,
+        audioUrl: record.audioUrl,
+        simulator: parseSimulator(record.simulator),
+        closingQuestionFa: record.closingQuestionFa,
+        closingOptions: parseClosingOptions(record.closingOptions),
+        closingPromptFa: record.closingPromptFa,
         aiIndexable: visibility === "public",
         updatedAt: now,
       })
       .where(eq(knowledge.id, existingKnowledge.id));
+  }
+  if (knowledgeId) {
+    await replaceKnowledgeRelated(knowledgeId, parseRelatedSlugs(record.relatedSlugs));
   }
 
   if (!existingKnowledge) {

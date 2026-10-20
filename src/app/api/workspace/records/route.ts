@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { semanticRecords } from "@/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { requireOwner } from "@/lib/auth/guard";
+import { parseArticleLayers } from "@/lib/knowledge/article";
 import { newCanonicalId } from "@/lib/knowledge/ids";
 import { SCHEMA_VERSION } from "@/lib/knowledge/vocabulary";
 
@@ -28,6 +29,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "عنوان فارسی حداقل سه نویسه باشد." }, { status: 400 });
   }
   const id = newCanonicalId("SR");
+  const layers = parseArticleLayers(body);
   const [created] = await db
     .insert(semanticRecords)
     .values({
@@ -37,6 +39,20 @@ export async function POST(request: Request) {
       intent: typeof body.intent === "string" ? body.intent.trim() || null : null,
       summaryFa: typeof body.summaryFa === "string" ? body.summaryFa.trim() || null : null,
       bodyFa: typeof body.bodyFa === "string" ? body.bodyFa : null,
+      growth: layers.growth,
+      readingMinutes: layers.readingMinutes,
+      lineFa: layers.lineFa,
+      questionFa: layers.questionFa,
+      rootFa: layers.rootFa,
+      firstStepFa: layers.firstStepFa,
+      marginNoteFa: layers.marginNoteFa,
+      prunedAt: layers.prunedAt,
+      audioUrl: layers.audioUrl,
+      simulator: layers.simulator,
+      closingQuestionFa: layers.closingQuestionFa,
+      closingOptions: layers.closingOptions,
+      closingPromptFa: layers.closingPromptFa,
+      relatedSlugs: layers.relatedSlugs,
       status: "captured",
       visibility: "private",
       ownerId: auth.account.id,

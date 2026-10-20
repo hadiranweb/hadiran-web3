@@ -1,0 +1,14 @@
+ALTER TABLE semantic_records ADD COLUMN IF NOT EXISTS growth TEXT;
+ALTER TABLE semantic_records ADD COLUMN IF NOT EXISTS reading_minutes INTEGER;
+ALTER TABLE semantic_records ADD COLUMN IF NOT EXISTS line_fa TEXT;
+ALTER TABLE semantic_records ADD COLUMN IF NOT EXISTS question_fa TEXT;
+ALTER TABLE semantic_records ADD COLUMN IF NOT EXISTS root_fa TEXT;
+ALTER TABLE semantic_records ADD COLUMN IF NOT EXISTS first_step_fa TEXT;
+ALTER TABLE semantic_records ADD COLUMN IF NOT EXISTS margin_note_fa TEXT;
+ALTER TABLE semantic_records ADD COLUMN IF NOT EXISTS pruned_at TIMESTAMPTZ;
+ALTER TABLE semantic_records ADD COLUMN IF NOT EXISTS audio_url TEXT;
+ALTER TABLE semantic_records ADD COLUMN IF NOT EXISTS simulator JSONB;
+ALTER TABLE semantic_records ADD COLUMN IF NOT EXISTS closing_question_fa TEXT;
+ALTER TABLE semantic_records ADD COLUMN IF NOT EXISTS closing_options JSONB;
+ALTER TABLE semantic_records ADD COLUMN IF NOT EXISTS closing_prompt_fa TEXT;
+ALTER TABLE semantic_records ADD COLUMN IF NOT EXISTS related_slugs JSONB;

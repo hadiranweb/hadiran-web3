@@ -46,6 +46,20 @@ export default async function WorkspaceRecordPage({ params }: Props) {
           summaryFa: item.summaryFa,
           bodyFa: item.bodyFa,
           status: item.status,
+          growth: item.growth,
+          readingMinutes: item.readingMinutes,
+          lineFa: item.lineFa,
+          questionFa: item.questionFa,
+          rootFa: item.rootFa,
+          firstStepFa: item.firstStepFa,
+          marginNoteFa: item.marginNoteFa,
+          prunedAt: item.prunedAt,
+          audioUrl: item.audioUrl,
+          simulator: item.simulator,
+          closingQuestionFa: item.closingQuestionFa,
+          closingOptions: item.closingOptions,
+          closingPromptFa: item.closingPromptFa,
+          relatedSlugs: item.relatedSlugs,
         }}
       />
     </main>
