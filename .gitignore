@@ -13,7 +13,6 @@ tsconfig.tsbuildinfo
 .env.test.local
 .env.production
 .env.production.local
-uploads/
 hadiran-web3-v2/
 .DS_Store
 *.pem
