@@ -4,6 +4,7 @@
 
 .muted {
   color: var(--fg-muted);
+  font-weight: 300;
 }
 
 .display {
@@ -419,6 +420,7 @@
 .ws-overline {
   color: var(--fg-muted);
   font-size: 0.65rem;
+  font-weight: 300;
   line-height: 1.8;
 }
 
@@ -440,6 +442,7 @@
 .ws-page-heading p:last-child {
   color: var(--fg-muted);
   font-size: 0.8rem;
+  font-weight: 300;
 }
 
 .ws-button {
@@ -729,6 +732,7 @@
 
 .ws-muted {
   color: var(--fg-muted);
+  font-weight: 300;
 }
 
 @media (max-width: 1199px) {
@@ -1324,12 +1328,13 @@
   top: 0;
   z-index: 30;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
   min-height: 3.5rem;
-  padding: 0.35rem 0.75rem;
+  height: 3.5rem;
+  padding: 0 0.75rem;
   border-bottom: 1px solid var(--line);
   background: color-mix(in srgb, var(--bg) 92%, transparent);
   -webkit-backdrop-filter: blur(12px);
@@ -1348,11 +1353,14 @@
   display: flex;
   flex: 0 0 auto;
   align-items: center;
+  align-self: center;
   gap: 0.25rem;
+  height: 2.75rem;
 }
 
 .ws-topbar-tools .session-control {
   position: relative;
+  height: 2.75rem;
 }
 
 .ws-topbar-tools .profile-dropdown {
@@ -1361,9 +1369,11 @@
 }
 
 .ws-tool {
+  box-sizing: border-box;
   display: inline-flex;
-  min-height: 44px;
-  min-width: 44px;
+  height: 2.75rem;
+  min-height: 2.75rem;
+  min-width: 2.75rem;
   align-items: center;
   justify-content: center;
   padding: 0 0.7rem;
@@ -1371,6 +1381,7 @@
   color: var(--muted);
   font-size: 0.75rem;
   font-weight: 700;
+  line-height: 1;
 }
 
 .ws-tool:hover {
@@ -1449,7 +1460,7 @@
 }
 
 .ws-rail-link.is-active {
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .ws-rail-foot {
@@ -1484,7 +1495,7 @@
   padding: 0 0.2rem;
   color: var(--muted);
   font-size: 0.7rem;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .ws-mode-btn:hover {
@@ -1669,7 +1680,7 @@
 
 .article-sim-meters dd {
   font-size: 1.2rem;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .article-threads {

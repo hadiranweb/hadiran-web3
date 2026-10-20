@@ -15,6 +15,8 @@ const iranSharp = localFont({
   ],
   variable: "--font-iran-sharp",
   display: "swap",
+  preload: true,
+  fallback: ["Tahoma", "sans-serif"],
 });
 
 export const metadata: Metadata = {

@@ -91,28 +91,32 @@ export function SessionMenu({ chrome = "default" }: { chrome?: "default" | "site
 
   if (!loaded) {
     return (
-      <span
-        className={chrome === "site" ? "session-loading" : "inline-block h-10 w-10 rounded-full bg-elev"}
-        aria-hidden="true"
-      />
+      <span className="session-control">
+        <span
+          className={chrome === "site" ? "session-loading" : "inline-block h-11 w-11 rounded-full bg-elev"}
+          aria-hidden="true"
+        />
+      </span>
     );
   }
 
   if (!account) {
     if (pathname === "/signin") return null;
     return (
-      <Link
-        href="/signin"
-        className={
-          chrome === "site"
-            ? "session-login-button"
-            : "inline-flex min-h-11 items-center gap-1.5 rounded-[var(--radius-sm)] px-2.5 text-sm font-medium text-ink hover:bg-elev"
-        }
-        aria-label="ورود"
-      >
-        <LogIn className="h-4 w-4" strokeWidth={1.5} />
-        <span>ورود</span>
-      </Link>
+      <span className="session-control">
+        <Link
+          href="/signin"
+          className={
+            chrome === "site"
+              ? "session-login-button"
+              : "inline-flex h-11 min-h-11 items-center gap-1.5 rounded-[var(--radius-sm)] px-2.5 text-sm font-medium leading-none text-ink hover:bg-elev"
+          }
+          aria-label="ورود"
+        >
+          <LogIn className="h-4 w-4 shrink-0" strokeWidth={1.5} />
+          <span>ورود</span>
+        </Link>
+      </span>
     );
   }
 
@@ -132,7 +136,7 @@ export function SessionMenu({ chrome = "default" }: { chrome?: "default" | "site
           aria-controls={id}
           onClick={toggle}
         >
-          <UserAvatar variant={avatar.variant} photoUrl={avatar.photoUrl} size={40} />
+          <UserAvatar variant={avatar.variant} photoUrl={avatar.photoUrl} size={44} />
           <span className="sr-only">{open ? "بستن منوی حساب" : `حساب ${name}`}</span>
         </button>
         <div
