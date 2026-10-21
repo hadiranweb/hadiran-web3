@@ -298,15 +298,16 @@ export async function createAssessmentOrder(input: {
   if (input.buyerRole === "owner") throw new AssessmentError("owner_cannot_buy", 403);
   if (!isAssessmentService(input.service)) throw new AssessmentError("invalid_service", 400);
   if (!Number.isInteger(input.attemptId) || input.attemptId <= 0) throw new AssessmentError("invalid_attempt", 400);
+  const service: AssessmentService = input.service;
   const attemptKind = attemptKindOf(input.slug);
   await ensureAssessmentLedgerSchema();
   return db.transaction(async (tx) => {
     await tx.execute(
-      sql`select pg_advisory_xact_lock(hashtext('hadiran:assessment'), hashtext(${`${input.buyerId}:${attemptKind}:${input.attemptId}:${input.service}`}))`,
+      sql`select pg_advisory_xact_lock(hashtext('hadiran:assessment'), hashtext(${`${input.buyerId}:${attemptKind}:${input.attemptId}:${service}`}))`,
     );
     const who = await actor(tx, input.buyerId);
     if (who.role === "owner") throw new AssessmentError("owner_cannot_buy", 403);
-    const tariff = await activeAssessmentTariff(input.slug, input.service, tx);
+    const tariff = await activeAssessmentTariff(input.slug, service, tx);
     if (!tariff) throw new AssessmentError("tariff_undefined", 409);
     const [entitled] = await tx
       .select({ id: assessmentEntitlements.id })
@@ -316,7 +317,7 @@ export async function createAssessmentOrder(input: {
           eq(assessmentEntitlements.accountId, who.id),
           eq(assessmentEntitlements.attemptKind, attemptKind),
           eq(assessmentEntitlements.attemptId, input.attemptId),
-          eq(assessmentEntitlements.service, input.service),
+          eq(assessmentEntitlements.service, service),
         ),
       )
       .limit(1);
@@ -329,7 +330,7 @@ export async function createAssessmentOrder(input: {
           eq(assessmentOrders.buyerId, who.id),
           eq(assessmentOrders.attemptKind, attemptKind),
           eq(assessmentOrders.attemptId, input.attemptId),
-          eq(assessmentOrders.service, input.service),
+          eq(assessmentOrders.service, service),
           inArray(assessmentOrders.state, [...OPEN_STATES]),
         ),
       )
@@ -340,7 +341,7 @@ export async function createAssessmentOrder(input: {
       code: input.discountCode,
       priceIRR: tariff.priceIrr,
       slug: input.slug,
-      service: input.service,
+      service,
       creatorId: tariff.creatorId,
     });
     const quote = await quoteFromTariff(tariff, discount.discountIRR);
@@ -354,7 +355,7 @@ export async function createAssessmentOrder(input: {
         analyzerSlug: input.slug,
         attemptKind,
         attemptId: input.attemptId,
-        service: input.service,
+        service,
         tariffId: tariff.id,
         tariffVersion: tariff.version,
         priceIrr: quote.priceIRR,
@@ -404,7 +405,7 @@ async function autoDeliverIfReady(order: OrderRow) {
     if (order.service === "interpretation") return await deliverAssessmentOrder({ orderId: order.id });
     if (order.service === "document") {
       const { readStoredInterpretation } = await import("@/lib/analyzers/persist-report");
-      const stored = await readStoredInterpretation(order.attemptKind, order.attemptId);
+      const stored = await readStoredInterpretation(order.attemptKind as "analyzer" | "casio", order.attemptId);
       if (stored) return await deliverAssessmentOrder({ orderId: order.id });
     }
   } catch (error) {
