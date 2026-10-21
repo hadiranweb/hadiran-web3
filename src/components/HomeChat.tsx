@@ -53,6 +53,8 @@ export function HomeChat() {
   useEffect(() => {
     const draft = readDraft<string>(COMPOSER_KEY);
     if (typeof draft === "string" && draft) {
+      // پیش‌نویس فقط بعد از هیدریشن خوانده می‌شود؛ سرور آن را نمی‌بیند.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setInput(draft);
       requestAnimationFrame(() => fitArea());
     }

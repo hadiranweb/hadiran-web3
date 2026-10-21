@@ -60,11 +60,15 @@ export function PeopleDesk() {
   }, []);
 
   useEffect(() => {
+    // بارگذاری اولیه بعد از mount؛ loadList با useCallback پایدار است.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadList();
   }, [loadList]);
 
   useEffect(() => {
     if (!selectedCode) {
+      // انتخاب برداشته شده؛ جزئیاتِ قبلی نباید بماند.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPerson(null);
       return;
     }
@@ -187,12 +191,15 @@ function PersonPanel({
   const [attemptCodes, setAttemptCodes] = useState<Record<string, string>>({});
 
   useEffect(() => {
+    // فرم با تغییر عضو انتخاب‌شده از نو پر می‌شود.
+    /* eslint-disable react-hooks/set-state-in-effect */
     setRole(person.role === "author" ? "author" : "member");
     setReferrer(person.referredBy ?? "");
     setChildCodes({});
     setAttemptCodes(
       Object.fromEntries(person.attempts.map((item) => [`${item.kind}-${item.id}`, item.referrerCode ?? ""])),
     );
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [person]);
 
   const locked = person.locked;

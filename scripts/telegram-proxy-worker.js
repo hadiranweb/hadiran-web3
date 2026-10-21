@@ -29,7 +29,7 @@ function hadiranOrigin(env) {
   }
 }
 
-export default {
+const worker = {
   async fetch(request, env) {
     const url = new URL(request.url);
 
@@ -105,3 +105,5 @@ export default {
     return new Response("Not found", { status: 404, headers: { "Cache-Control": "no-store" } });
   },
 };
+
+export default worker;

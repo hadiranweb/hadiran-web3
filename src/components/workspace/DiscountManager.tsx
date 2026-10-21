@@ -29,6 +29,8 @@ export function DiscountManager() {
   }
 
   useEffect(() => {
+    // بارگذاری اولیه بعد از mount؛ وابستگی به load لازم نیست.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
   }, []);
 

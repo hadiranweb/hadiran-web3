@@ -47,15 +47,16 @@ export default async function ShopPage({ searchParams }: Props) {
       return 0;
     });
 
+  const keepSort = sort === "new" ? undefined : sort;
   const filters = [
-    { href: shopHref({ q }), label: "همه", active: !kindFilter },
-    { href: shopHref({ q, kind: "physical_good" }), label: "فیزیکی", active: kindFilter === "physical_good" },
+    { href: shopHref({ q, sort: keepSort }), label: "همه", active: !kindFilter },
+    { href: shopHref({ q, kind: "physical_good", sort: keepSort }), label: "فیزیکی", active: kindFilter === "physical_good" },
     {
-      href: shopHref({ q, kind: "digital_entitlement" }),
+      href: shopHref({ q, kind: "digital_entitlement", sort: keepSort }),
       label: "دیجیتال",
       active: kindFilter === "digital_entitlement",
     },
-    { href: shopHref({ q, kind: "course_access" }), label: "دوره", active: kindFilter === "course_access" },
+    { href: shopHref({ q, kind: "course_access", sort: keepSort }), label: "دوره", active: kindFilter === "course_access" },
   ];
 
   return (

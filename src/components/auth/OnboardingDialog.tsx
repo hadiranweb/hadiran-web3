@@ -39,8 +39,11 @@ export function OnboardingDialog() {
 
   useEffect(() => {
     if (pathname === "/signin" || pathname === "/privacy") {
+      // در این دو مسیر دیالوگ اصلاً باز نمی‌شود؛ وضعیت بعد از mount تعیین می‌شود.
+      /* eslint-disable react-hooks/set-state-in-effect */
       setOpen(false);
       setReady(true);
+      /* eslint-enable react-hooks/set-state-in-effect */
       return;
     }
     let cancelled = false;

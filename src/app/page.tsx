@@ -47,7 +47,8 @@ function homeJsonLd(nameFa: string, nameEn: string) {
 export default async function HomePage() {
   const copy = await getSiteCopy();
   const { rooms, voice, homeFlow, site } = copy;
-  const worlds = [rooms.house, rooms.knowledge, rooms.lab, rooms.mirrors, rooms.courses, rooms.person];
+  // همان شش مقصد نقشهٔ /ecosystem؛ «خانه» خودِ همین صفحه است و کارت جدا نمی‌گیرد.
+  const worlds = [rooms.knowledge, rooms.lab, rooms.mirrors, rooms.courses, rooms.shop, rooms.person];
   const marquee = [rooms.house, rooms.knowledge, rooms.lab, rooms.mirrors, rooms.courses, rooms.shop];
   const jsonLd = homeJsonLd(site.nameFa, site.nameEn);
 

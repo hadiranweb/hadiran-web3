@@ -87,10 +87,13 @@ export function AnalyzerRun({ pack }: { pack: AnalyzerPack }) {
 
   useEffect(() => {
     const draft = readDraft<DraftState>(draftKey) ?? { consent: false, answers: {}, index: 0 };
+    // پیش‌نویس فقط بعد از هیدریشن خوانده می‌شود؛ سرور آن را نمی‌بیند.
+    /* eslint-disable react-hooks/set-state-in-effect */
     setConsent(draft.consent);
     setAnswers(draft.answers);
     setIndex(Math.min(Math.max(draft.index, 0), Math.max(allItems.length - 1, 0)));
     setReady(true);
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     void (async () => {
       const res = await fetch(api, { cache: "no-store" });
@@ -136,6 +139,8 @@ export function AnalyzerRun({ pack }: { pack: AnalyzerPack }) {
 
   useEffect(() => {
     if (item?.kind === "text") {
+      // کادر متن با پاسخ ذخیره‌شده هم‌گام می‌شود (بارگذاری پیش‌نویس یا پرش بین پرسش‌ها).
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTextDraft(typeof answers[item.id] === "string" ? String(answers[item.id]) : "");
     }
   }, [item, answers]);

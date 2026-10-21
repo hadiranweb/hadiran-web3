@@ -12,6 +12,12 @@ export function CollectionSearch({
   placeholder: string;
   hidden?: Record<string, string | undefined>;
 }) {
+  const kept = Object.entries(hidden)
+    .filter(([, value]) => value)
+    .map(([name, value]) => `${name}=${encodeURIComponent(value as string)}`)
+    .join("&");
+  const clearHref = kept ? `${action}?${kept}` : action;
+
   return (
     <form action={action} method="get" className="mb-4 flex w-full max-w-xl flex-wrap items-center gap-2">
       {Object.entries(hidden).map(([name, value]) =>
@@ -29,8 +35,8 @@ export function CollectionSearch({
         جستجو
       </button>
       {q ? (
-        <Link href={action} className="shrink-0 text-sm text-muted hover:text-ink">
-          پاک کردن
+        <Link href={clearHref} className="shrink-0 text-sm text-muted hover:text-ink" aria-label="پاک کردن جست‌وجو">
+          پاک کردن جست‌وجو
         </Link>
       ) : null}
     </form>

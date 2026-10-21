@@ -22,19 +22,29 @@ export function AnalyzerResponses({ slug }: { slug: string }) {
 
   useEffect(() => {
     let cancelled = false;
-    setItems(null);
-    setError(null);
-    void (async () => {
-      const res = await fetch(`/api/workspace/analyzers/${slug}/attempts`, { cache: "no-store" });
-      const data = (await res.json()) as { items?: WorkspaceAttemptRow[]; error?: string };
-      if (cancelled) return;
-      if (!res.ok) {
-        setError(data.error === "not_found" ? "آزمون پیدا نشد." : "فهرست بارگذاری نشد.");
-        setItems([]);
-        return;
-      }
-      setItems(data.items ?? []);
-    })();
+    fetch(`/api/workspace/analyzers/${slug}/attempts`, { cache: "no-store" })
+      .then(
+        (res) =>
+          res.json().then((data: { items?: WorkspaceAttemptRow[]; error?: string }) => ({
+            ok: res.ok,
+            data,
+          })),
+      )
+      .then(({ ok, data }) => {
+        if (cancelled) return;
+        if (!ok) {
+          setError(data.error === "not_found" ? "آزمون پیدا نشد." : "فهرست بارگذاری نشد.");
+          setItems([]);
+          return;
+        }
+        setItems(data.items ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setError("فهرست بارگذاری نشد.");
+          setItems([]);
+        }
+      });
     return () => {
       cancelled = true;
     };

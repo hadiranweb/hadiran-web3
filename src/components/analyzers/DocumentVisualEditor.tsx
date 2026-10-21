@@ -64,9 +64,12 @@ export function DocumentVisualEditor({
     startRight: number;
   } | null>(null);
 
-  editingRef.current = editing;
-  hidRef.current = hid;
-  htmlRef.current = chrome.html;
+  // رفرنس‌ها همگام با آخرین رندر نگه داشته می‌شوند؛ خواندنشان خارج از رندر است.
+  useLayoutEffect(() => {
+    editingRef.current = editing;
+    hidRef.current = hid;
+    htmlRef.current = chrome.html;
+  });
 
   const preview = renderChromeDocument(chrome, sampleInterpretationDocument(templateId));
 
@@ -107,11 +110,15 @@ export function DocumentVisualEditor({
   useLayoutEffect(() => {
     if (!hid) return;
     if (!liveEl(hid)) {
+      // عنصر انتخاب‌شده بعد از رندر واقعی وجود ندارد؛ پاک‌سازی وضعیت همین‌جا درست است.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setHid(null);
       setBox(null);
       return;
     }
     refreshBox(hid);
+    // refreshBox هر رندر بازسازی می‌شود؛ افزودنش به وابستگی‌ها حلقه می‌سازد.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hid, preview.html]);
 
   useEffect(() => {
@@ -132,6 +139,8 @@ export function DocumentVisualEditor({
     }
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
+    // finishTextEdit عمداً یک‌بار در mount بسته می‌شود؛ وگرنه با هر تایپ دوباره سیم‌کشی می‌شد.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function selectFromEvent(event: ReactPointerEvent<HTMLDivElement>) {
@@ -278,8 +287,12 @@ export function DocumentVisualEditor({
 
   const locked = hid ? sourceHasMustache(chrome.html, hid) : false;
   const tag = hid ? elementTag(chrome.html, hid) : "";
+  /* عنصر زندهٔ پیش‌نمایش فقط برای خواندن استایل محاسبه‌شده خوانده می‌شود؛
+     این کامپوننت ویرایشگر WYSIWYG است و همان DOM مرجعش است. */
+  /* eslint-disable react-hooks/refs */
   const live = hid ? liveEl(hid) : null;
   const cs = live ? getComputedStyle(live) : null;
+  /* eslint-enable react-hooks/refs */
 
   return (
     <div className="space-y-3">

@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 export default function Error({
   reset,
 }: {
@@ -19,9 +21,9 @@ export default function Error({
         >
           تلاش دوباره
         </button>
-        <a href="/" className="inline-flex min-h-11 items-center rounded-[var(--radius-sm)] px-4 text-sm font-medium text-ink hover:bg-elev">
+        <Link href="/" className="inline-flex min-h-11 items-center rounded-[var(--radius-sm)] px-4 text-sm font-medium text-ink hover:bg-elev">
           خانه
-        </a>
+        </Link>
       </div>
     </main>
   );

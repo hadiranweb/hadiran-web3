@@ -157,6 +157,8 @@ export function KnowledgeComposer({
   useEffect(() => {
     const draft = readDraft<Record<string, unknown>>(draftKey);
     if (draft) {
+      // پیش‌نویس فقط بعد از هیدریشن خوانده می‌شود؛ یک‌بار در هر کلید پیش‌نویس.
+      /* eslint-disable react-hooks/set-state-in-effect */
       if (typeof draft.titleFa === "string") setTitleFa(draft.titleFa);
       if (typeof draft.titleEn === "string") setTitleEn(draft.titleEn);
       if (typeof draft.slug === "string") setSlug(draft.slug);
@@ -181,6 +183,7 @@ export function KnowledgeComposer({
       if (typeof draft.closingPromptFa === "string") setClosingPromptFa(draft.closingPromptFa);
       if (typeof draft.relatedSlugs === "string") setRelatedSlugs(draft.relatedSlugs);
       if (Array.isArray(draft.slides)) setSlides(draft.slides as SlideDraft[]);
+      /* eslint-enable react-hooks/set-state-in-effect */
     }
     skipDraftWrite.current = true;
   }, [draftKey]);

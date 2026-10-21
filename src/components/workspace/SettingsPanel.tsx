@@ -1,21 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
-
-const COOKIE = "hadiran-workspace-locale";
+import { readWorkspaceLocale, setWorkspaceLocale, subscribeWorkspaceLocale } from "./workspaceLocaleStore";
 
 export function SettingsPanel() {
-  const [locale, setLocale] = useState<"fa" | "en">("fa");
-
-  useEffect(() => {
-    const match = document.cookie.match(/(?:^|; )hadiran-workspace-locale=([^;]*)/);
-    setLocale(match?.[1] === "en" ? "en" : "fa");
-  }, []);
+  const locale = useSyncExternalStore(subscribeWorkspaceLocale, readWorkspaceLocale, () => "fa" as const);
 
   function changeLocale(next: "fa" | "en") {
-    setLocale(next);
-    document.cookie = `${COOKIE}=${next}; Path=/; Max-Age=31536000; SameSite=Lax`;
+    setWorkspaceLocale(next);
   }
 
   return (

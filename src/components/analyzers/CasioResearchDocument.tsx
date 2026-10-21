@@ -45,6 +45,8 @@ function CasioPageFooter({ page, total, label }: { page: number; total: number; 
           <div>PROFILE 02</div>
           <div>RESEARCH</div>
         </div>
+        {/* SVG جاسازی‌شده در قالب چاپ؛ next/image برای SVG بهینه‌سازی نمی‌کند. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img className="casio-footer-seal" src="/casio-ss/logos/casio_seal_red.svg" alt="" />
         <div className="casio-footer-page">
           صفحهٔ {faNum(page)} از {faNum(total)} · {label}
@@ -71,6 +73,7 @@ export function CasioResearchDocument({ doc }: { doc: InterpretationDocument }) 
       <style>{CASIO_DOC_CSS}</style>
 
       <section className="doc-page casio-page casio-cover">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img className="casio-cover-logo" src="/casio-ss/logos/casio_logo_light.svg" alt="لوگوی کاسیو" />
         <div className="casio-cover-tag">PROFILE 02 · RESEARCH</div>
         <div className="casio-cover-title-block">

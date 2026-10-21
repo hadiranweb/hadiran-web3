@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
   BOT_BUTTON_STYLE_OPTIONS,
@@ -284,16 +285,16 @@ function StagePanel({
           {bound ? (
             <>
               محدود به{" "}
-              <a className="text-indigo-700" href={`/workspace/analyzers/${bound.slug}`}>
+              <Link className="text-indigo-700" href={`/workspace/analyzers/${bound.slug}`}>
                 {bound.nameFa}
-              </a>
+              </Link>
             </>
           ) : (
             <>
               همهٔ آزمون‌های باز. مسیر هر آزمون را در{" "}
-              <a className="text-indigo-700" href="/workspace/analyzers">
+              <Link className="text-indigo-700" href="/workspace/analyzers">
                 میز آزمون‌ساز
-              </a>{" "}
+              </Link>{" "}
               ببینید.
             </>
           )}

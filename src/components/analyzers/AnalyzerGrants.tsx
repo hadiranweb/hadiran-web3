@@ -17,8 +17,18 @@ export function AnalyzerGrants({ slug }: { slug: string }) {
   }
 
   useEffect(() => {
-    void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    let cancelled = false;
+    fetch(`/api/workspace/analyzers/${slug}/grants`, { cache: "no-store" })
+      .then((res) => res.json() as Promise<{ items?: Grant[] }>)
+      .then((data) => {
+        if (!cancelled) setItems(data.items ?? []);
+      })
+      .catch(() => {
+        /* فهرست خالی می‌ماند؛ خطای ساخت در add دیده می‌شود */
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [slug]);
 
   async function add() {

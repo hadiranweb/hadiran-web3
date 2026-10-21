@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import {
   BookOpen,
@@ -106,39 +106,130 @@ function writeNavMode(value: NavMode) {
   }
 }
 
+/* Locale و navMode در کوکی/localStorage می‌مانند. خواندنشان با useSyncExternalStore
+   انجام می‌شود تا نه setState داخل effect لازم باشد و نه هیدریشن به‌هم بخورد. */
+const localeListeners = new Set<() => void>();
+let localeCache: Locale | null = null;
+const navListeners = new Set<() => void>();
+let navCache: NavMode | null = null;
+
+function subscribeLocale(listener: () => void) {
+  localeListeners.add(listener);
+  return () => localeListeners.delete(listener);
+}
+
+function getLocaleSnapshot(): Locale {
+  if (localeCache === null) localeCache = readLocale();
+  return localeCache;
+}
+
+function getLocaleServerSnapshot(): Locale {
+  return "fa";
+}
+
+function setLocaleValue(next: Locale) {
+  localeCache = next;
+  writeLocale(next);
+  for (const listener of localeListeners) listener();
+}
+
+function subscribeNavMode(listener: () => void) {
+  navListeners.add(listener);
+  return () => navListeners.delete(listener);
+}
+
+function getNavModeSnapshot(): NavMode {
+  if (navCache === null) navCache = readNavMode();
+  return navCache;
+}
+
+function getNavModeServerSnapshot(): NavMode {
+  return "pinned";
+}
+
+function setNavModeValue(next: NavMode) {
+  navCache = next;
+  writeNavMode(next);
+  for (const listener of navListeners) listener();
+}
+
 function isActive(pathname: string, link: ModuleLink) {
   return link.exact ? pathname === link.href : pathname === link.href || pathname.startsWith(`${link.href}/`);
 }
 
 const DESKTOP_NAV = "(min-width: 48rem)";
 
+function subscribeDesktop(listener: () => void) {
+  const media = window.matchMedia(DESKTOP_NAV);
+  media.addEventListener("change", listener);
+  return () => media.removeEventListener("change", listener);
+}
+
+function getDesktopSnapshot() {
+  return window.matchMedia(DESKTOP_NAV).matches;
+}
+
+function getDesktopServerSnapshot() {
+  return false;
+}
+
 function useDesktopNav() {
-  const [desktop, setDesktop] = useState(false);
-  useEffect(() => {
-    const media = window.matchMedia(DESKTOP_NAV);
-    const apply = () => setDesktop(media.matches);
-    apply();
-    media.addEventListener("change", apply);
-    return () => media.removeEventListener("change", apply);
-  }, []);
-  return desktop;
+  return useSyncExternalStore(subscribeDesktop, getDesktopSnapshot, getDesktopServerSnapshot);
+}
+
+function NavList({
+  modules,
+  pathname,
+  labeled,
+  label,
+  translate,
+  onNavigate,
+}: {
+  modules: ModuleLink[];
+  pathname: string;
+  labeled: boolean;
+  label: string;
+  translate: (fa: string, en: string) => string;
+  onNavigate: () => void;
+}) {
+  return (
+    <nav className="ws-rail-nav" aria-label={label}>
+      {modules.map((link) => {
+        const active = isActive(pathname, link);
+        const Icon = link.icon;
+        const itemLabel = translate(link.fa, link.en);
+        return (
+          <Link
+            key={link.href}
+            href={link.href}
+            title={itemLabel}
+            data-label={itemLabel}
+            aria-current={active ? "page" : undefined}
+            onClick={onNavigate}
+            className={`ws-rail-link ${active ? "is-active" : ""} ${labeled ? "is-labeled" : "is-icon"}`}
+          >
+            <Icon className="h-4 w-4 shrink-0" strokeWidth={1.7} />
+            {labeled ? <span>{itemLabel}</span> : <span className="sr-only">{itemLabel}</span>}
+          </Link>
+        );
+      })}
+    </nav>
+  );
 }
 
 export function WorkspaceChrome({ children }: { children?: ReactNode }) {
   const pathname = usePathname();
   const [account, setAccount] = useState<{ role?: string; analyzerDesk?: boolean } | null>(null);
-  const [locale, setLocale] = useState<Locale>("fa");
+  const locale = useSyncExternalStore(subscribeLocale, getLocaleSnapshot, getLocaleServerSnapshot);
   const desktop = useDesktopNav();
-  const [navMode, setNavMode] = useState<NavMode>("pinned");
-  const [drawer, setDrawer] = useState(false);
+  const navMode = useSyncExternalStore(subscribeNavMode, getNavModeSnapshot, getNavModeServerSnapshot);
+  const [drawerPath, setDrawerPath] = useState<string | null>(null);
+  // کشو با مسیر کلید می‌خورد: با رفتن به صفحهٔ دیگر خودبه‌خود بسته است و desktop آن را نادیده می‌گیرد.
+  const drawer = drawerPath === pathname && !desktop;
+  const setDrawer = (open: boolean) => setDrawerPath(open ? pathname : null);
   const [query, setQuery] = useState("");
   const searchDialog = useRef<HTMLDialogElement>(null);
   const menuButton = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    setLocale(readLocale());
-    setNavMode(readNavMode());
-  }, []);
 
   useEffect(() => {
     fetch("/api/auth/me", { cache: "no-store" })
@@ -150,21 +241,13 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
   }, [pathname]);
 
   useEffect(() => {
-    setDrawer(false);
-  }, [pathname]);
-
-  useEffect(() => {
-    if (desktop) setDrawer(false);
-  }, [desktop]);
-
-  useEffect(() => {
     if (!drawer) return;
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
-        setDrawer(false);
+        setDrawerPath(null);
         menuButton.current?.focus();
       }
     };
@@ -198,49 +281,20 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
       : { Icon: Menu, fa: "باز کردن فهرست", en: "Open navigation" };
 
   function toggleLocale() {
-    const next: Locale = locale === "fa" ? "en" : "fa";
-    setLocale(next);
-    writeLocale(next);
+    setLocaleValue(locale === "fa" ? "en" : "fa");
   }
 
   function onNavControl() {
     if (!desktop) {
-      setDrawer((open) => !open);
+      setDrawer(!drawer);
       return;
     }
-    setNavMode(cycle.next);
-    writeNavMode(cycle.next);
+    setNavModeValue(cycle.next);
   }
 
   function closeOverlay() {
     setDrawer(false);
     menuButton.current?.focus();
-  }
-
-  function NavList({ labeled }: { labeled: boolean }) {
-    return (
-      <nav className="ws-rail-nav" aria-label={t("ناوبری فضای کار", "Workspace navigation")}>
-        {modules.map((link) => {
-          const active = isActive(pathname, link);
-          const Icon = link.icon;
-          const label = t(link.fa, link.en);
-          return (
-            <Link
-              key={link.href}
-              href={link.href}
-              title={label}
-              data-label={label}
-              aria-current={active ? "page" : undefined}
-              onClick={() => setDrawer(false)}
-              className={`ws-rail-link ${active ? "is-active" : ""} ${labeled ? "is-labeled" : "is-icon"}`}
-            >
-              <Icon className="h-4 w-4 shrink-0" strokeWidth={1.7} />
-              {labeled ? <span>{label}</span> : <span className="sr-only">{label}</span>}
-            </Link>
-          );
-        })}
-      </nav>
-    );
   }
 
   return (
@@ -290,7 +344,14 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
           {showLabels ? <span>{t("جست‌وجوی بخش‌ها", "Find a module")}</span> : null}
         </button>
 
-        <NavList labeled={showLabels} />
+        <NavList
+          modules={modules}
+          pathname={pathname}
+          labeled={showLabels}
+          label={t("ناوبری فضای کار", "Workspace navigation")}
+          translate={t}
+          onNavigate={() => setDrawer(false)}
+        />
 
         <div className="ws-rail-foot">
           <Link

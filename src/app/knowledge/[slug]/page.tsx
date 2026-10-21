@@ -21,6 +21,9 @@ import { ReadingTools } from "@/components/knowledge/ReadingTools";
 import { getCurrentAccount } from "@/lib/auth/session";
 import { getPublicKnowledgeBySlug } from "@/lib/knowledge/public";
 import { growthLabel, minutesFa, type KnowledgeGrowth } from "@/lib/knowledge/article";
+import { readPublic } from "@/lib/public/source";
+import { PublicSourceNotice } from "@/components/ui/PublicSourceNotice";
+import { PageShell } from "@/components/ui/PageShell";
 
 export const dynamic = "force-dynamic";
 
@@ -30,8 +33,8 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const item = await getPublicKnowledgeBySlug(slug);
-  if (!item) return { title: "یافت نشد", robots: { index: false, follow: false } };
+  const { data: item } = await readPublic("public knowledge meta", () => getPublicKnowledgeBySlug(slug));
+  if (!item) return { title: "نوشته", robots: { index: false, follow: false } };
   return {
     title: item.titleFa,
     description: item.lineFa || item.summaryFa || undefined,
@@ -47,8 +50,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function KnowledgeItemPage({ params }: Props) {
   const { slug } = await params;
-  const item = await getPublicKnowledgeBySlug(slug);
-  if (!item) notFound();
+  const article = await readPublic("public knowledge item", () => getPublicKnowledgeBySlug(slug));
+  if (!article.data) {
+    // بدون اتصال، «یافت نشد» گفتن دروغ است؛ صفحه باید بالا بیاید و وضعیت را بگوید.
+    if (article.source === "live") notFound();
+    return (
+      <PageShell width="narrow">
+        <PublicSourceNotice source={article.source} />
+      </PageShell>
+    );
+  }
+  const item = article.data;
   const account = await getCurrentAccount();
   let editHref: string | null = null;
   if (account?.role === "owner") {

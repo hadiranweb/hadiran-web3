@@ -23,19 +23,26 @@ export function AnalyzerInterpretation({ slug, pack }: { slug: string; pack: Ana
 
   useEffect(() => {
     let cancelled = false;
-    setItems(null);
-    setError(null);
-    void (async () => {
-      const res = await fetch(`/api/workspace/analyzers/${slug}/attempts`, { cache: "no-store" });
-      const data = (await res.json()) as { items?: WorkspaceAttemptRow[]; error?: string };
-      if (cancelled) return;
-      if (!res.ok) {
-        setError(data.error === "not_found" ? "آزمون پیدا نشد." : "فهرست بارگذاری نشد.");
-        setItems([]);
-        return;
-      }
-      setItems(data.items ?? []);
-    })();
+    fetch(`/api/workspace/analyzers/${slug}/attempts`, { cache: "no-store" })
+      .then(
+        (res) =>
+          res.json().then((data: { items?: WorkspaceAttemptRow[]; error?: string }) => ({ ok: res.ok, data })),
+      )
+      .then(({ ok, data }) => {
+        if (cancelled) return;
+        if (!ok) {
+          setError(data.error === "not_found" ? "آزمون پیدا نشد." : "فهرست بارگذاری نشد.");
+          setItems([]);
+          return;
+        }
+        setItems(data.items ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setError("فهرست بارگذاری نشد.");
+          setItems([]);
+        }
+      });
     return () => {
       cancelled = true;
     };
@@ -111,24 +118,22 @@ export function AnalyzerInterpretation({ slug, pack }: { slug: string; pack: Ana
 
 function AttemptInterpretation({ pack, row }: { pack: AnalyzerPack; row: WorkspaceAttemptRow }) {
   const gate = row.gate ?? gateOf(pack, row.rawResults);
+  type View =
+    | { kind: "casio"; report: ReturnType<typeof buildCasioReport> }
+    | { kind: "generic"; report: ReturnType<typeof buildGenericReport> };
+
+  // بازتولید تفسیر داده است، نه رندر؛ خطا را همین‌جا می‌گیریم و JSX را بیرون از try می‌سازیم.
+  let view: View | null = null;
   try {
-    if (pack.slug === "casio-ss") {
-      const report = buildCasioReport(pack, row.rawAnswers, row.rawResults);
-      return (
-        <div className="space-y-4 px-4 py-4">
-          {gate ? <GateStatus gate={gate} /> : null}
-          <CasioSsReport report={report} showHubLink={false} />
-        </div>
-      );
-    }
-    const report = buildGenericReport(pack, row.rawAnswers, row.rawResults);
-    return (
-      <div className="space-y-4 px-4 py-4">
-        {gate ? <GateStatus gate={gate} /> : null}
-        <GenericReportView report={report} hubHref={null} />
-      </div>
-    );
+    view =
+      pack.slug === "casio-ss"
+        ? { kind: "casio", report: buildCasioReport(pack, row.rawAnswers, row.rawResults) }
+        : { kind: "generic", report: buildGenericReport(pack, row.rawAnswers, row.rawResults) };
   } catch {
+    view = null;
+  }
+
+  if (!view) {
     return (
       <div className="space-y-4 px-4 py-4">
         {gate ? <GateStatus gate={gate} /> : null}
@@ -136,4 +141,15 @@ function AttemptInterpretation({ pack, row }: { pack: AnalyzerPack; row: Workspa
       </div>
     );
   }
+
+  return (
+    <div className="space-y-4 px-4 py-4">
+      {gate ? <GateStatus gate={gate} /> : null}
+      {view.kind === "casio" ? (
+        <CasioSsReport report={view.report} showHubLink={false} />
+      ) : (
+        <GenericReportView report={view.report} hubHref={null} />
+      )}
+    </div>
+  );
 }

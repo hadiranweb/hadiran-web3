@@ -42,6 +42,15 @@ export default async function AnalyzersPage({ searchParams }: Props) {
   const { q = "", status = "" } = await searchParams;
   const analyzers = await loadAnalyzers();
   const query = q.trim().toLowerCase();
+  const withQuery = (patch: Record<string, string | undefined>) => {
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries({ q: q.trim() || undefined, ...patch })) {
+      if (value) params.set(key, value);
+    }
+    const search = params.toString();
+    return search ? `/analyzers?${search}` : "/analyzers";
+  };
+
   const visible = analyzers
     .filter((item) => (status ? item.status === status : true))
     .filter((item) => (query ? `${item.nameFa} ${item.summaryFa}`.toLowerCase().includes(query) : true));
@@ -73,10 +82,10 @@ export default async function AnalyzersPage({ searchParams }: Props) {
       <CollectionChips
         label="وضعیت"
         links={[
-          { href: "/analyzers", label: "همه", active: !status },
-          { href: "/analyzers?status=open", label: "باز", active: status === "open" },
-          { href: "/analyzers?status=preparing", label: "در آماده‌سازی", active: status === "preparing" },
-          { href: "/analyzers?status=archived", label: "بایگانی", active: status === "archived" },
+          { href: withQuery({ status: undefined }), label: "همه", active: !status },
+          { href: withQuery({ status: "open" }), label: "باز", active: status === "open" },
+          { href: withQuery({ status: "preparing" }), label: "در آماده‌سازی", active: status === "preparing" },
+          { href: withQuery({ status: "archived" }), label: "بایگانی", active: status === "archived" },
         ]}
       />
 

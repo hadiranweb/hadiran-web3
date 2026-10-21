@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import type { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { insertAtCursor, TemplateCodeField } from "@/components/analyzers/TemplateCodeField";
 import {
@@ -37,13 +37,13 @@ export function BotDisplayEditor({
   const guideTemplate = botGuideTemplateOf(pack);
   const item = items[Math.min(previewIndex, Math.max(0, items.length - 1))] ?? null;
   const vars = item ? botQuestionVars(pack, item, items.indexOf(item)) : null;
-  const preview = useMemo(() => {
-    if (!item || !vars) return { question: "", guide: "" };
-    return {
-      question: telegramQuestionHtml(interpolateBotQuestion(questionTemplate, vars)),
-      guide: telegramQuestionHtml(interpolateBotQuestion(guideTemplate, vars)),
-    };
-  }, [guideTemplate, item, questionTemplate, vars]);
+  const preview =
+    item && vars
+      ? {
+          question: telegramQuestionHtml(interpolateBotQuestion(questionTemplate, vars)),
+          guide: telegramQuestionHtml(interpolateBotQuestion(guideTemplate, vars)),
+        }
+      : { question: "", guide: "" };
 
   function insert(token: string) {
     if (!canEdit) return;

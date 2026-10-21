@@ -13,7 +13,10 @@ export function useSyncedDraft<T>(storageKey: string, server: T) {
   const [value, setValue] = useState(server);
   const dirtyRef = useRef(false);
   const serverRef = useRef(server);
-  serverRef.current = server;
+
+  useEffect(() => {
+    serverRef.current = server;
+  }, [server]);
 
   useEffect(() => {
     const draft = readDraft<T>(storageKey);

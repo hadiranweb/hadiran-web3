@@ -1057,13 +1057,10 @@ button,
   font-weight: 700;
 }
 
-/* Article reading scale (toolbar writes --reading-scale on <html>). */
-.reading-surface {
-  --reading-scale: 1;
-}
-
+/* Article reading scale: the toolbar writes --reading-scale on <html>.
+   The surface must NOT redeclare it here, or the local value shadows the reader's choice. */
 .reading-surface :is(.prose-reading, .article-paragraph p, .article-line p, .article-threads) {
-  font-size: calc(1em * var(--reading-scale));
+  font-size: calc(1em * var(--reading-scale, 1));
 }
 
 @media print {
