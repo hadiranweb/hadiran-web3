@@ -5,6 +5,10 @@ import { requirePageAnalyzerDesk } from "@/lib/auth/guard";
 import { isOwner } from "@/lib/auth/roles";
 import { analyzerAccess } from "@/lib/analyzers/access";
 import { AnalyzerEditor } from "@/components/analyzers/AnalyzerEditor";
+import { AssessmentTariffForm } from "@/components/analyzers/AssessmentTariffForm";
+import { ASSESSMENT_SERVICES } from "@/lib/commerce/assessment-policy";
+import { listAssessmentTariffs } from "@/lib/finance/assessment-orders";
+import { irrToTomanInput } from "@/lib/finance/journal";
 import { readAuthoredPack } from "@/lib/analyzers/authored";
 import { listBots } from "@/lib/bots/store";
 
@@ -24,6 +28,12 @@ export default async function EditAnalyzerPage({ params }: Props) {
   if (!pack) notFound();
   const access = await analyzerAccess(account, slug);
   if (!access.view) notFound();
+  let tariffs: Awaited<ReturnType<typeof listAssessmentTariffs>> = [];
+  try {
+    tariffs = await listAssessmentTariffs(pack.slug);
+  } catch (error) {
+    console.error("[hadiran] assessment tariffs", error);
+  }
   const bots = isOwner(account.role)
     ? (await listBots(account.id))
         .filter((bot) => bot.service === "analyzers" && (!bot.analyzerSlug || bot.analyzerSlug === pack.slug))
@@ -54,6 +64,24 @@ export default async function EditAnalyzerPage({ params }: Props) {
         canReadResponses={access.responses}
         canGrant={access.grant}
         bots={bots}
+      />
+      <AssessmentTariffForm
+        slug={pack.slug}
+        canPrice={access.edit}
+        canCommission={isOwner(account.role)}
+        initial={ASSESSMENT_SERVICES.map((service) => {
+          const matches = tariffs.filter((item) => item.service === service);
+          const row = matches.find((item) => item.active) ?? matches[0];
+          return {
+            service,
+            priceToman: row ? irrToTomanInput(row.priceIrr) : "",
+            commissionPercent:
+              row?.commissionBps == null ? "" : (row.commissionBps / 100).toFixed(row.commissionBps % 100 ? 2 : 0),
+            rounding: row?.rounding === "floor" || row?.rounding === "ceil" ? row.rounding : "",
+            active: Boolean(row?.active),
+            version: row?.version ?? null,
+          };
+        })}
       />
     </main>
   );

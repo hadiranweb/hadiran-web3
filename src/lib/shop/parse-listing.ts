@@ -1,3 +1,4 @@
+import { parseTomanInput } from "@/lib/finance/journal";
 import { slugify } from "@/lib/markdown";
 import { isShopKind, type ShopKind } from "./kinds";
 import type { ShopSpec } from "@/db/schema";
@@ -70,10 +71,16 @@ export function parseListingBody(body: Record<string, unknown>, existingSlug?: s
   const titleEn = typeof body.titleEn === "string" ? body.titleEn.trim() : "";
   const requested = typeof body.slug === "string" ? slugify(body.slug) : "";
   const slug = requested || slugify(titleEn) || existingSlug || "";
-  const amount = Number(body.amount);
   if (titleFa.length < 3 || !slug) return null;
   if (["orders", "new", "edit"].includes(slug)) return null;
-  if (!Number.isFinite(amount) || amount <= 0) return null;
+  let amountIrr: bigint;
+  try {
+    amountIrr = parseTomanInput(String(body.amount ?? ""));
+  } catch {
+    return null;
+  }
+  if (amountIrr <= BigInt(0) || amountIrr > BigInt(2147483647)) return null;
+  const amount = Number(amountIrr);
   const kindRaw = typeof body.kind === "string" ? body.kind : "digital_entitlement";
   const kind: ShopKind = isShopKind(kindRaw) ? kindRaw : "digital_entitlement";
   const courseIdRaw = body.courseId;
@@ -89,10 +96,15 @@ export function parseListingBody(body: Record<string, unknown>, existingSlug?: s
       ? null
       : Number(usdRaw);
   const compareRaw = body.comparePrice;
-  const comparePrice =
-    compareRaw === "" || compareRaw === null || compareRaw === undefined
-      ? null
-      : Number(compareRaw);
+  let comparePrice: number | null = null;
+  if (compareRaw !== "" && compareRaw != null) {
+    try {
+      const compareIrr = parseTomanInput(String(compareRaw));
+      if (compareIrr > BigInt(0) && compareIrr <= BigInt(2147483647)) comparePrice = Number(compareIrr);
+    } catch {
+      comparePrice = null;
+    }
+  }
   return {
     slug,
     titleFa,

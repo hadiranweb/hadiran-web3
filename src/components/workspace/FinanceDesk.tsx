@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { orderStateFa } from "@/lib/shop/states";
+import { financeDateFa } from "@/lib/finance/period";
 import { financeHref, financeMoney, type FinanceSnapshot } from "@/lib/finance/types";
 
 const titles = {
@@ -196,10 +197,17 @@ export function FinanceDesk({
           {snapshot.rows.map((row) => (
             <li key={row.id} className="rounded-[var(--radius-md)] border border-line bg-elev p-4">
               <p className="font-medium text-ink">{row.title}</p>
+              <p className="mt-1 text-xs text-muted" dir="ltr">
+                {row.id}
+              </p>
               <p className="mt-1 text-xs text-muted">
                 {orderStateFa(row.state)} · {financeMoney(row.amount, row.currency)}
                 {row.buyer ? ` · ${row.buyer}` : ""}
                 {row.entitled ? " · دسترسی صادر شده" : " · دسترسی صادر نشده"}
+              </p>
+              <p className="mt-1 text-xs text-muted">
+                ثبت {financeDateFa(row.createdAt)}
+                {row.settledAt ? ` · تسویه ${financeDateFa(row.settledAt)}` : ""}
               </p>
             </li>
           ))}

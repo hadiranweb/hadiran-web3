@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { db } from "@/db";
-import { accounts, shopListings, shopOrders, shopPayoutDestinations } from "@/db/schema";
-import { desc, eq } from "drizzle-orm";
+import { accounts, assessmentOrders, shopListings, shopOrders, shopPayoutDestinations } from "@/db/schema";
+import { desc, eq, inArray } from "drizzle-orm";
 import { requirePageOwner } from "@/lib/auth/guard";
+import { financeDateFa } from "@/lib/finance/period";
+import { financeMoney } from "@/lib/finance/types";
 import { formatMoney } from "@/lib/shop/money";
 import { orderStateFa } from "@/lib/shop/states";
 import { PayoutForm } from "@/components/shop/PayoutForm";
 import { OwnerOrderActions } from "@/components/shop/OwnerOrderActions";
+import { AssessmentOrderActions } from "@/components/shop/AssessmentOrderActions";
 import { UsdRateForm } from "@/components/shop/UsdRateForm";
 import { getShopUsdRate } from "@/lib/shop/price-engine";
 import { shopKindFa } from "@/lib/shop/kinds";
@@ -30,8 +33,30 @@ export default async function WorkspaceShopPage() {
   }[] = [];
   let payout: typeof shopPayoutDestinations.$inferSelect | null = null;
   let usdRate: number | null = null;
+  let pending: {
+    order: typeof shopOrders.$inferSelect;
+    listingTitle: string;
+    listingSlug: string;
+    buyerPhone: string;
+  }[] = [];
+  let assessmentPending: {
+    order: typeof assessmentOrders.$inferSelect;
+    buyerPhone: string;
+  }[] = [];
   try {
     listings = await db.select().from(shopListings).orderBy(desc(shopListings.updatedAt));
+    pending = await db
+      .select({
+        order: shopOrders,
+        listingTitle: shopListings.titleFa,
+        listingSlug: shopListings.slug,
+        buyerPhone: accounts.phone,
+      })
+      .from(shopOrders)
+      .innerJoin(shopListings, eq(shopOrders.listingId, shopListings.id))
+      .innerJoin(accounts, eq(shopOrders.buyerId, accounts.id))
+      .where(eq(shopOrders.state, "awaiting_confirmation"))
+      .orderBy(desc(shopOrders.updatedAt));
     const orderRows = await db
       .select({
         order: shopOrders,
@@ -45,14 +70,26 @@ export default async function WorkspaceShopPage() {
       .orderBy(desc(shopOrders.updatedAt))
       .limit(40);
     orders = orderRows;
+    try {
+      assessmentPending = await db
+        .select({
+          order: assessmentOrders,
+          buyerPhone: accounts.phone,
+        })
+        .from(assessmentOrders)
+        .innerJoin(accounts, eq(assessmentOrders.buyerId, accounts.id))
+        .where(inArray(assessmentOrders.state, ["awaiting_confirmation", "captured"]))
+        .orderBy(desc(assessmentOrders.updatedAt));
+    } catch (error) {
+      console.error("[hadiran] workspace shop assessment", error);
+      assessmentPending = [];
+    }
     const [row] = await db.select().from(shopPayoutDestinations).where(eq(shopPayoutDestinations.id, 1));
     payout = row ?? null;
     usdRate = await getShopUsdRate();
   } catch (error) {
     console.error("[hadiran] workspace shop", error);
   }
-
-  const pending = orders.filter((row) => row.order.state === "awaiting_confirmation");
 
   return (
     <main className="mx-auto max-w-3xl space-y-10 px-4 py-8">
@@ -90,11 +127,46 @@ export default async function WorkspaceShopPage() {
             {pending.map(({ order, listingTitle, buyerPhone }) => (
               <li key={order.id} className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4">
                 <p className="font-medium text-slate-900">{listingTitle}</p>
+                <p className="text-xs text-slate-500" dir="ltr">
+                  {order.id}
+                </p>
                 <p className="text-xs text-slate-500">
                   {formatMoney(order.amount, order.currency)} · خریدار {buyerPhone} · پیگیری{" "}
                   <span dir="ltr">{order.paymentReference}</span>
                 </p>
+                <p className="text-xs text-slate-500">ثبت {financeDateFa(order.createdAt)}</p>
                 <OwnerOrderActions orderId={order.id} state={order.state} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section>
+        <h2 className="mb-3 text-lg font-bold text-slate-900">خدمات آزمون در انتظار</h2>
+        {assessmentPending.length === 0 ? (
+          <p className="text-sm text-slate-500">سفارش آزمونی منتظر تأیید یا برگشت نیست.</p>
+        ) : (
+          <ul className="space-y-4">
+            {assessmentPending.map(({ order, buyerPhone }) => (
+              <li key={order.id} className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4">
+                <p className="font-medium text-slate-900">
+                  {order.analyzerSlug} · {order.service === "document" ? "سند" : "تفسیر"}
+                </p>
+                <p className="text-xs text-slate-500" dir="ltr">
+                  {order.id}
+                </p>
+                <p className="text-xs text-slate-500">
+                  {financeMoney(String(order.payableIrr), order.currency)} · خریدار {buyerPhone}
+                  {order.paymentReference ? (
+                    <>
+                      {" "}
+                      · پیگیری <span dir="ltr">{order.paymentReference}</span>
+                    </>
+                  ) : null}
+                </p>
+                <p className="text-xs text-slate-500">ثبت {financeDateFa(order.createdAt)}</p>
+                <AssessmentOrderActions orderId={order.id} state={order.state} />
               </li>
             ))}
           </ul>
@@ -134,8 +206,11 @@ export default async function WorkspaceShopPage() {
             {orders.map(({ order, listingTitle, listingSlug }) => (
               <li key={order.id} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm">
                 <p className="font-medium text-slate-900">{listingTitle}</p>
+                <p className="text-xs text-slate-500" dir="ltr">
+                  {order.id}
+                </p>
                 <p className="text-xs text-slate-500">
-                  {orderStateFa(order.state)} · {formatMoney(order.amount, order.currency)}
+                  {orderStateFa(order.state)} · {formatMoney(order.amount, order.currency)} · ثبت {financeDateFa(order.createdAt)}
                 </p>
                 <Link href={`/shop/${listingSlug}`} className="text-xs text-indigo-600">
                   صفحهٔ عمومی

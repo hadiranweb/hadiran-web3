@@ -47,6 +47,14 @@ export async function POST(request: Request) {
   const scope = body.scope === "analyzer" || body.scope === "shop" ? body.scope : "any";
   const analyzerSlug = typeof body.analyzerSlug === "string" ? body.analyzerSlug.trim() || null : null;
   const maxUses = body.maxUses == null || body.maxUses === "" ? null : Number(body.maxUses);
+  const productId = typeof body.productId === "string" && body.productId.trim() ? body.productId.trim().slice(0, 128) : null;
+  const issuerAccountIdRaw = body.issuerAccountId == null ? null : Number(body.issuerAccountId);
+  const issuerAccountId =
+    productId && issuerAccountIdRaw != null && Number.isInteger(issuerAccountIdRaw) && issuerAccountIdRaw > 0
+      ? issuerAccountIdRaw
+      : productId
+        ? auth.account.id
+        : null;
   try {
     await db.insert(discountCodes).values({
       code,
@@ -56,6 +64,8 @@ export async function POST(request: Request) {
       analyzerSlug: scope === "analyzer" ? analyzerSlug : null,
       maxUses: maxUses != null && Number.isFinite(maxUses) ? Math.round(maxUses) : null,
       createdBy: auth.account.id,
+      productId,
+      issuerAccountId,
     });
   } catch {
     return NextResponse.json({ error: "این کد قبلاً هست." }, { status: 409 });

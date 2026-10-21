@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { AssessmentOffers } from "@/components/analyzers/AssessmentOffers";
 import { MemberDocument } from "@/components/analyzers/MemberDocument";
 import { RetakeButton } from "@/components/analyzers/RetakeButton";
 import { UserSummaryView } from "@/components/analyzers/UserSummary";
@@ -40,6 +41,7 @@ export default async function CasioSsReportPage() {
         </p>
         <PageHeader kicker="گزارش" title={pack.nameFa} lede="خلاصهٔ این نوبت. سند چندصفحه اگر آزمون‌ساز تبدیل کرده باشد اینجاست." />
         <UserSummaryView text={summary} />
+        <AssessmentOffers slug={pack.slug} attemptId={attempt.id} accountId={account.id} />
         <RetakeButton api="/api/analyzers/casio-ss" href="/analyzers/casio-ss" />
       </div>
       <MemberDocument pack={pack} accountId={account.id} />

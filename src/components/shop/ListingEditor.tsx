@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { irrToTomanInput } from "@/lib/finance/journal";
 import { shopKindFa, type ShopKind } from "@/lib/shop/kinds";
 
 type CourseOpt = { id: number; titleFa: string; slug: string };
@@ -56,7 +57,7 @@ export function ListingEditor({
       summaryFa: String(form.get("summaryFa") ?? ""),
       bodyFa: String(form.get("bodyFa") ?? ""),
       accessBodyFa: String(form.get("accessBodyFa") ?? ""),
-      amount: Number(form.get("amount")),
+      amount: String(form.get("amount") ?? ""),
       currency: String(form.get("currency") ?? "IRR"),
       kind,
       usdRatio: String(form.get("usdRatio") ?? "").trim() || null,
@@ -122,16 +123,29 @@ export function ListingEditor({
       </label>
       <div className="grid gap-3 sm:grid-cols-3">
         <label className="block text-sm">
-          مبلغ (ریال)
-          <input name="amount" type="number" min={1} required defaultValue={initial?.amount ?? 0} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" dir="ltr" />
+          مبلغ (تومان)
+          <input
+            name="amount"
+            required
+            defaultValue={initial ? irrToTomanInput(BigInt(initial.amount)) : ""}
+            className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+            dir="ltr"
+            inputMode="decimal"
+          />
         </label>
         <label className="block text-sm">
           نسبت دلاری (اختیاری)
           <input name="usdRatio" type="number" step="0.0001" min={0} defaultValue={initial?.usdRatio ?? ""} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" dir="ltr" />
         </label>
         <label className="block text-sm">
-          قیمت مقایسه (ریال)
-          <input name="comparePrice" type="number" min={0} defaultValue={initial?.comparePrice ?? ""} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" dir="ltr" />
+          قیمت مقایسه (تومان)
+          <input
+            name="comparePrice"
+            defaultValue={initial?.comparePrice ? irrToTomanInput(BigInt(initial.comparePrice)) : ""}
+            className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+            dir="ltr"
+            inputMode="decimal"
+          />
         </label>
       </div>
       <p className="text-xs text-slate-500">

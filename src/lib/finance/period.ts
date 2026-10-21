@@ -1,5 +1,19 @@
 const day = 86400000;
 export const REPORT_ZONE = "Asia/Tehran";
+
+export function financeDateFa(value: string | Date | null | undefined): string {
+  if (!value) return "—";
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: REPORT_ZONE,
+  }).format(date);
+}
 const formatter = new Intl.DateTimeFormat("en-US-u-ca-persian-nu-latn", {
   timeZone: REPORT_ZONE,
   year: "numeric",

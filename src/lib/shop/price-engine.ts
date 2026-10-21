@@ -38,10 +38,14 @@ export async function updateShopUsdRateAndPrices(rate: number): Promise<number> 
     const now = new Date();
     for (const row of rows) {
       if (row.usdRatio == null) continue;
+      const amount = charmAmountFromRatio(row.usdRatio, rate);
+      if (!Number.isSafeInteger(amount) || amount > 2147483647) {
+        throw new Error("amount_overflow");
+      }
       await tx
         .update(shopListings)
         .set({
-          amount: charmAmountFromRatio(row.usdRatio, rate),
+          amount,
           updatedAt: now,
         })
         .where(eq(shopListings.id, row.id));

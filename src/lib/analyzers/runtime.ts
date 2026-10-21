@@ -3,6 +3,7 @@ import { findItem, itemsOf, type AnalyzerPack, type Item } from "@/lib/analyzers
 export type AnswerMap = Record<string, number | string>;
 
 export type AttemptView = {
+  id: number;
   instrumentVersion: string;
   status: "in_progress" | "submitted";
   consentAt: string | null;

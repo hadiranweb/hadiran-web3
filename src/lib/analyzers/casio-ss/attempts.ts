@@ -23,6 +23,7 @@ async function livePack(): Promise<AnalyzerPack> {
 
 function view(
   row: {
+    id: number;
     instrumentVersion: string;
     status: string;
     consentAt: Date | null;
@@ -35,6 +36,7 @@ function view(
   pack: AnalyzerPack,
 ): AttemptView {
   return {
+    id: row.id,
     instrumentVersion: row.instrumentVersion,
     status: row.status === "submitted" ? "submitted" : "in_progress",
     consentAt: row.consentAt ? row.consentAt.toISOString() : null,

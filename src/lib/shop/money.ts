@@ -1,4 +1,6 @@
+import { financeMoney } from "@/lib/finance/types";
+
 export function formatMoney(amount: number, currency = "IRR"): string {
-  const unit = currency === "IRR" ? "ریال" : currency;
-  return `${amount.toLocaleString("fa-IR")} ${unit}`;
+  if (!Number.isInteger(amount)) return "—";
+  return financeMoney(amount, currency);
 }

@@ -2,6 +2,7 @@ import {
   pgTable,
   serial,
   integer,
+  bigint,
   text,
   varchar,
   boolean,
@@ -793,6 +794,8 @@ export const discountCodes = pgTable("discount_codes", {
   scope: varchar("scope", { length: 16 }).notNull().default("any"),
   analyzerSlug: varchar("analyzer_slug", { length: 64 }),
   listingId: text("listing_id"),
+  productId: varchar("product_id", { length: 128 }),
+  issuerAccountId: integer("issuer_account_id").references(() => accounts.id, { onDelete: "set null" }),
   maxUses: integer("max_uses"),
   usedCount: integer("used_count").notNull().default(0),
   startsAt: timestamp("starts_at", { withTimezone: true }),
@@ -847,6 +850,104 @@ export const shopOrderEvents = pgTable("shop_order_events", {
   toState: text("to_state").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+/** Exact IRR rials. Party null = platform/bank. */
+export const ledgerEntries = pgTable("ledger_entries", {
+  id: serial("id").primaryKey(),
+  eventKey: varchar("event_key", { length: 200 }).notNull().unique(),
+  kind: varchar("kind", { length: 32 }).notNull(),
+  sourceType: varchar("source_type", { length: 32 }).notNull(),
+  sourceId: varchar("source_id", { length: 120 }).notNull(),
+  description: varchar("description", { length: 500 }).notNull(),
+  currency: varchar("currency", { length: 8 }).notNull().default("IRR"),
+  payloadHash: text("payload_hash").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const ledgerLines = pgTable("ledger_lines", {
+  id: serial("id").primaryKey(),
+  entryId: integer("entry_id")
+    .notNull()
+    .references(() => ledgerEntries.id, { onDelete: "cascade" }),
+  account: varchar("account", { length: 32 }).notNull(),
+  partyId: integer("party_id").references(() => accounts.id, { onDelete: "restrict" }),
+  side: varchar("side", { length: 8 }).notNull(),
+  amountIrr: bigint("amount_irr", { mode: "bigint" }).notNull(),
+});
+
+export const assessmentTariffs = pgTable(
+  "assessment_tariffs",
+  {
+    id: text("id").primaryKey(),
+    analyzerSlug: varchar("analyzer_slug", { length: 64 }).notNull(),
+    service: varchar("service", { length: 32 }).notNull(),
+    creatorId: integer("creator_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "restrict" }),
+    priceIrr: bigint("price_irr", { mode: "bigint" }).notNull(),
+    commissionBps: integer("commission_bps"),
+    rounding: varchar("rounding", { length: 8 }),
+    version: integer("version").notNull().default(1),
+    active: boolean("active").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [unique().on(t.analyzerSlug, t.service, t.version)],
+);
+
+export const assessmentOrders = pgTable("assessment_orders", {
+  id: text("id").primaryKey(),
+  buyerId: integer("buyer_id")
+    .notNull()
+    .references(() => accounts.id, { onDelete: "cascade" }),
+  creatorId: integer("creator_id")
+    .notNull()
+    .references(() => accounts.id, { onDelete: "restrict" }),
+  analyzerSlug: varchar("analyzer_slug", { length: 64 }).notNull(),
+  attemptKind: varchar("attempt_kind", { length: 16 }).notNull(),
+  attemptId: integer("attempt_id").notNull(),
+  service: varchar("service", { length: 32 }).notNull(),
+  tariffId: text("tariff_id")
+    .notNull()
+    .references(() => assessmentTariffs.id, { onDelete: "restrict" }),
+  tariffVersion: integer("tariff_version").notNull(),
+  priceIrr: bigint("price_irr", { mode: "bigint" }).notNull(),
+  discountIrr: bigint("discount_irr", { mode: "bigint" }).notNull(),
+  payableIrr: bigint("payable_irr", { mode: "bigint" }).notNull(),
+  platformFeeIrr: bigint("platform_fee_irr", { mode: "bigint" }).notNull(),
+  authorCreditIrr: bigint("author_credit_irr", { mode: "bigint" }).notNull(),
+  authorNetIrr: bigint("author_net_irr", { mode: "bigint" }).notNull(),
+  commissionBps: integer("commission_bps").notNull(),
+  rounding: varchar("rounding", { length: 8 }),
+  currency: varchar("currency", { length: 8 }).notNull().default("IRR"),
+  state: varchar("state", { length: 32 }).notNull(),
+  discountCode: varchar("discount_code", { length: 32 }),
+  discountId: integer("discount_id"),
+  paymentReference: text("payment_reference"),
+  capturedAt: timestamp("captured_at", { withTimezone: true }),
+  deliveredAt: timestamp("delivered_at", { withTimezone: true }),
+  refundedAt: timestamp("refunded_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const assessmentEntitlements = pgTable(
+  "assessment_entitlements",
+  {
+    id: serial("id").primaryKey(),
+    accountId: integer("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    attemptKind: varchar("attempt_kind", { length: 16 }).notNull(),
+    attemptId: integer("attempt_id").notNull(),
+    service: varchar("service", { length: 32 }).notNull(),
+    orderId: text("order_id")
+      .notNull()
+      .references(() => assessmentOrders.id, { onDelete: "cascade" }),
+    grantedAt: timestamp("granted_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [unique().on(t.accountId, t.attemptKind, t.attemptId, t.service)],
+);
 
 export const conversations = pgTable("conversations", {
   id: serial("id").primaryKey(),

@@ -376,6 +376,8 @@ export async function convertAttemptDocument(input: {
     doc,
     chromeSnapshot: chrome as unknown as Record<string, unknown>,
   });
+  const { tryDeliverCapturedDocument } = await import("@/lib/finance/assessment-orders");
+  await tryDeliverCapturedDocument({ attemptKind, attemptId: input.attemptId, accountId });
   return { id, attemptId: input.attemptId, templateId, href: documentHref(id) };
 }
 
@@ -393,6 +395,10 @@ export async function readMemberConvertedDocument(
       .orderBy(desc(casioAttempts.submittedAt))
       .limit(1);
     if (!row) return null;
+    const { canReadPaidAssessmentService } = await import("@/lib/finance/assessment-access");
+    if (!(await canReadPaidAssessmentService({ slug: pack.slug, accountId, attemptId: row.id, service: "document" }))) {
+      return null;
+    }
     return readStoredInterpretation(attemptKind, row.id);
   }
   const [row] = await db
@@ -408,5 +414,9 @@ export async function readMemberConvertedDocument(
     .orderBy(desc(analyzerAttempts.submittedAt))
     .limit(1);
   if (!row) return null;
+  const { canReadPaidAssessmentService } = await import("@/lib/finance/assessment-access");
+  if (!(await canReadPaidAssessmentService({ slug: pack.slug, accountId, attemptId: row.id, service: "document" }))) {
+    return null;
+  }
   return readStoredInterpretation(attemptKind, row.id);
 }
