@@ -16,7 +16,9 @@ export async function GET(request: Request, context: Ctx) {
     return new NextResponse(null, { status: 304, headers: { ETag: etag } });
   }
 
-  return new NextResponse(file.bytes, {
+  // A Uint8Array is a valid BodyInit at runtime; the cast only bridges the
+  // ArrayBufferLike/ArrayBuffer mismatch in the DOM lib types under Node 20.
+  return new NextResponse(file.bytes as unknown as BodyInit, {
     headers: {
       "Content-Type": file.mime,
       "Cache-Control": "public, max-age=60, must-revalidate",
