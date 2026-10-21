@@ -17,6 +17,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Hash, FlaskConical, Pencil } from "lucide-react";
 import type { Metadata } from "next";
 import { KnowledgeArticle } from "@/components/knowledge/KnowledgeArticle";
+import { ReadingTools } from "@/components/knowledge/ReadingTools";
 import { getCurrentAccount } from "@/lib/auth/session";
 import { getPublicKnowledgeBySlug } from "@/lib/knowledge/public";
 import { growthLabel, minutesFa, type KnowledgeGrowth } from "@/lib/knowledge/article";
@@ -118,7 +119,9 @@ export default async function KnowledgeItemPage({ params }: Props) {
         ) : null}
       </div>
 
-      <article className="surface p-6 sm:p-10">
+      <ReadingTools title={item.titleFa} />
+
+      <article className="surface reading-surface p-6 sm:p-10">
         <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-mark">
           {growth ? <span className="chip">{growth}</span> : null}
           {topicLine ? <span className="muted">موضوع: {topicLine}</span> : null}

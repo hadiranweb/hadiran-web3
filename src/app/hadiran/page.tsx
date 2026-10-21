@@ -18,6 +18,8 @@ import { HadiranMark } from "@/components/HadiranMark";
 import { PageShell } from "@/components/ui/PageShell";
 import { Surface } from "@/components/ui/Surface";
 import { personCopy, voice } from "@/lib/copy";
+import { readPublic } from "@/lib/public/source";
+import { PublicSourceNotice } from "@/components/ui/PublicSourceNotice";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +30,35 @@ export const metadata: Metadata = {
 };
 
 export default async function HadiranPage() {
-  const [hadiran] = await db.select().from(person).where(eq(person.slug, "hadiran"));
+  const profile = await readPublic("public person profile", async () => {
+    const [personRow] = await db.select().from(person).where(eq(person.slug, "hadiran"));
+    if (!personRow) return null;
+    const [personSkillsList, personTopicsList, personOrganizationsList] = await Promise.all([
+      db
+        .select({ id: skills.id, labelFa: skills.labelFa, slug: skills.slug })
+        .from(personSkills)
+        .innerJoin(skills, eq(personSkills.skillId, skills.id))
+        .where(eq(personSkills.personId, personRow.id)),
+      db
+        .select({ id: topics.id, labelFa: topics.labelFa, slug: topics.slug })
+        .from(personTopics)
+        .innerJoin(topics, eq(personTopics.topicId, topics.id))
+        .where(eq(personTopics.personId, personRow.id)),
+      db
+        .select({
+          id: organizations.id,
+          nameFa: organizations.nameFa,
+          url: organizations.url,
+          roleFa: personOrganizations.roleFa,
+        })
+        .from(personOrganizations)
+        .innerJoin(organizations, eq(personOrganizations.organizationId, organizations.id))
+        .where(eq(personOrganizations.personId, personRow.id)),
+    ]);
+    return { hadiran: personRow, personSkillsList, personTopicsList, personOrganizationsList };
+  });
+
+  const hadiran = profile.data?.hadiran ?? null;
 
   if (!hadiran) {
     return (
@@ -36,32 +66,16 @@ export default async function HadiranPage() {
         <p className="text-sm font-medium text-mark">{voice.altTitle}</p>
         <h1 className="mt-2 text-2xl font-bold text-ink">هادی</h1>
         <p className="mt-4 max-w-3xl text-base leading-[1.85] text-ink">{personCopy.missing}</p>
+        {profile.source !== "live" ? (
+          <div className="mt-6">
+            <PublicSourceNotice source={profile.source} />
+          </div>
+        ) : null}
       </PageShell>
     );
   }
 
-  const personSkillsList = await db
-    .select({ id: skills.id, labelFa: skills.labelFa, slug: skills.slug })
-    .from(personSkills)
-    .innerJoin(skills, eq(personSkills.skillId, skills.id))
-    .where(eq(personSkills.personId, hadiran.id));
-
-  const personTopicsList = await db
-    .select({ id: topics.id, labelFa: topics.labelFa, slug: topics.slug })
-    .from(personTopics)
-    .innerJoin(topics, eq(personTopics.topicId, topics.id))
-    .where(eq(personTopics.personId, hadiran.id));
-
-  const personOrganizationsList = await db
-    .select({
-      id: organizations.id,
-      nameFa: organizations.nameFa,
-      url: organizations.url,
-      roleFa: personOrganizations.roleFa,
-    })
-    .from(personOrganizations)
-    .innerJoin(organizations, eq(personOrganizations.organizationId, organizations.id))
-    .where(eq(personOrganizations.personId, hadiran.id));
+  const { personSkillsList, personTopicsList, personOrganizationsList } = profile.data!;
 
   const contactMethods = hadiran.contactMethods ?? [];
   const sameAs = contactMethods

@@ -11,6 +11,7 @@ import { PublicSourceNotice } from "@/components/ui/PublicSourceNotice";
 import { labCopy } from "@/lib/copy";
 import { loadPublicProjects } from "@/lib/public/catalog";
 import { readPublicCollection } from "@/lib/public/source";
+import { CollectionChips, CollectionEmpty, CollectionSearch } from "@/components/ui/CollectionControls";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +32,23 @@ const statusLabels: Record<string, string> = {
   archived: "بایگانی‌شده",
 };
 
-export default async function LabPage() {
+interface Props {
+  searchParams: Promise<{ q?: string; status?: string }>;
+}
+
+const statusFilters = [
+  { value: "", label: "همه" },
+  { value: "idea", label: "ایده" },
+  { value: "concept", label: "مفهوم" },
+  { value: "research", label: "تحقیق" },
+  { value: "prototype", label: "نمونه اولیه" },
+  { value: "development", label: "توسعه" },
+  { value: "beta", label: "بتا" },
+  { value: "production", label: "تولید" },
+];
+
+export default async function LabPage({ searchParams }: Props) {
+  const { q = "", status = "" } = await searchParams;
   const list = await loadPublicProjects();
   const topicLinks = await readPublicCollection("public project topics", async () =>
     db
@@ -46,15 +63,48 @@ export default async function LabPage() {
     topicsMap[row.projectId].push({ labelFa: row.labelFa, slug: row.slug });
   }
 
+  const query = q.trim().toLowerCase();
+  const visible = list.items
+    .filter((project) => (status ? project.status === status : true))
+    .filter((project) =>
+      query
+        ? `${project.nameFa} ${project.descriptionFa ?? ""}`.toLowerCase().includes(query)
+        : true,
+    );
+
+  const statusLinks = statusFilters
+    .filter((filter) => !filter.value || list.items.some((project) => project.status === filter.value))
+    .map((filter) => {
+      const params = new URLSearchParams();
+      if (filter.value) params.set("status", filter.value);
+      if (q) params.set("q", q);
+      const search = params.toString();
+      return {
+        href: search ? `/lab?${search}` : "/lab",
+        label: filter.label,
+        active: status === filter.value,
+      };
+    });
+
   return (
     <RoomPage hero={<PageHeader title={labCopy.title} lede={labCopy.lede} />}>
+      <CollectionSearch
+        action="/lab"
+        q={q}
+        placeholder="جستجو در نام و توضیح پروژه‌ها..."
+        hidden={{ status }}
+      />
+      <CollectionChips label="وضعیت" links={statusLinks} />
+
       {list.source !== "live" ? (
         <PublicSourceNotice source={list.source} />
       ) : list.items.length === 0 ? (
         <EmptyState title="هنوز پروژه‌ای ثبت نشده." />
+      ) : visible.length === 0 ? (
+        <CollectionEmpty title="با این صافی پروژه‌ای نبود." hint="صافی وضعیت یا جستجو را بردار." />
       ) : (
         <ul className="section-cards listing-cards">
-          {list.items.map((project) => (
+          {visible.map((project) => (
             <li key={project.id}>
               <Link href={`/lab/${project.slug}`} className="card card-hover section-card">
                 <div className="section-card-copy">

@@ -7,6 +7,7 @@ import { RoomPage } from "@/components/ui/RoomPage";
 import { analyzerHref, loadAnalyzers } from "@/lib/analyzers/catalog";
 import { absoluteUrl } from "@/lib/site";
 import { mirrorsCopy } from "@/lib/copy";
+import { CollectionChips, CollectionEmpty, CollectionSearch } from "@/components/ui/CollectionControls";
 
 export const dynamic = "force-dynamic";
 
@@ -29,8 +30,17 @@ const statusFa: Record<"preparing" | "open" | "archived", string> = {
   archived: "بایگانی",
 };
 
-export default async function AnalyzersPage() {
+interface Props {
+  searchParams: Promise<{ q?: string; status?: string }>;
+}
+
+export default async function AnalyzersPage({ searchParams }: Props) {
+  const { q = "", status = "" } = await searchParams;
   const analyzers = await loadAnalyzers();
+  const query = q.trim().toLowerCase();
+  const visible = analyzers
+    .filter((item) => (status ? item.status === status : true))
+    .filter((item) => (query ? `${item.nameFa} ${item.summaryFa}`.toLowerCase().includes(query) : true));
 
   return (
     <RoomPage
@@ -50,8 +60,28 @@ export default async function AnalyzersPage() {
         </>
       }
     >
+      <CollectionSearch
+        action="/analyzers"
+        q={q}
+        placeholder="جستجو در نام آزمون‌ها..."
+        hidden={{ status }}
+      />
+      <CollectionChips
+        label="وضعیت"
+        links={[
+          { href: "/analyzers", label: "همه", active: !status },
+          { href: "/analyzers?status=open", label: "باز", active: status === "open" },
+          { href: "/analyzers?status=preparing", label: "در آماده‌سازی", active: status === "preparing" },
+          { href: "/analyzers?status=archived", label: "بایگانی", active: status === "archived" },
+        ]}
+      />
+
+      {visible.length === 0 ? (
+        <CollectionEmpty title="با این صافی آزمونی نبود." hint="صافی وضعیت یا جستجو را بردار." />
+      ) : null}
+
       <ul className="section-cards listing-cards">
-        {analyzers.map((item) => {
+        {visible.map((item) => {
           const href = analyzerHref(item);
           const body = (
             <>

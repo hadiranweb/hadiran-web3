@@ -15,8 +15,10 @@ export async function loadPublicWorldCounts(): Promise<{
   knowledge: PublicCount;
   projects: PublicCount;
   courses: PublicCount;
+  analyzers: PublicCount;
+  shop: PublicCount;
 }> {
-  const [knowledgeCount, projectCount, courseCount] = await Promise.all([
+  const [knowledgeCount, projectCount, courseCount, analyzerCount, shopCount] = await Promise.all([
     readPublicCount("public knowledge count", async () => {
       const [row] = await db
         .select({ value: count() })
@@ -33,9 +35,24 @@ export async function loadPublicWorldCounts(): Promise<{
       const [row] = await db.select({ value: count() }).from(courses).where(publicCourseFilter);
       return Number(row?.value ?? 0);
     }),
+    readPublicCount("public analyzer count", async () => {
+      const { loadAnalyzers } = await import("@/lib/analyzers/catalog");
+      const list = await loadAnalyzers();
+      return list.filter((item) => item.status === "open").length;
+    }),
+    readPublicCount("public shop count", async () => {
+      const [row] = await db.select({ value: count() }).from(shopListings).where(publicShopFilter);
+      return Number(row?.value ?? 0);
+    }),
   ]);
 
-  return { knowledge: knowledgeCount, projects: projectCount, courses: courseCount };
+  return {
+    knowledge: knowledgeCount,
+    projects: projectCount,
+    courses: courseCount,
+    analyzers: analyzerCount,
+    shop: shopCount,
+  };
 }
 
 export async function loadPublicKnowledgeList(q?: string): Promise<PublicCollection<typeof knowledge.$inferSelect>> {

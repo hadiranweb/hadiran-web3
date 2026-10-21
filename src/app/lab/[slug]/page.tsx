@@ -64,10 +64,16 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const [project] = await db.select().from(projects).where(eq(projects.slug, slug));
+  let project: typeof projects.$inferSelect | undefined;
+  try {
+    [project] = await db.select().from(projects).where(eq(projects.slug, slug));
+  } catch {
+    return { title: "کارگاه", robots: { index: false, follow: false } };
+  }
   if (!project) return { title: "یافت نشد" };
+  // noindex is not an access grant: an unpublished project keeps its name off public metadata.
   if (!project.published) {
-    return { title: project.nameFa, robots: { index: false, follow: false } };
+    return { title: "پروژهٔ منتشرنشده", robots: { index: false, follow: false } };
   }
   return {
     title: project.nameFa,

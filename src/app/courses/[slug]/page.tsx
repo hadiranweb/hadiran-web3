@@ -15,6 +15,24 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  try {
+    const [course] = await db.select().from(courses).where(eq(courses.slug, slug));
+    if (!course) return { title: "یافت نشد", robots: { index: false, follow: false } };
+    // Same rule as the lab: an unpublished row keeps its title off public metadata.
+    if (!course.published) return { title: "دورهٔ منتشرنشده", robots: { index: false, follow: false } };
+    return {
+      title: course.titleFa,
+      description: course.descriptionFa ?? undefined,
+      alternates: { canonical: `/courses/${slug}` },
+      openGraph: { title: course.titleFa, description: course.descriptionFa ?? undefined, locale: "fa_IR" },
+    };
+  } catch {
+    return { title: "دوره‌ها", robots: { index: false, follow: false } };
+  }
+}
+
 export default async function CoursePage({ params }: Props) {
   const { slug } = await params;
   const [course] = await db.select().from(courses).where(eq(courses.slug, slug));

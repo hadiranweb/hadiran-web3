@@ -1740,3 +1740,18 @@
   padding: 0.75rem;
   color: var(--ink);
 }
+
+/* Compact list view for public collections. */
+.section-cards.listing-cards.is-compact {
+  grid-template-columns: 1fr;
+}
+
+.section-cards.listing-cards.is-compact .card {
+  padding: 1rem 1.25rem;
+}
+
+@media (min-width: 900px) {
+  .section-cards.listing-cards.is-compact {
+    grid-template-columns: 1fr;
+  }
+}

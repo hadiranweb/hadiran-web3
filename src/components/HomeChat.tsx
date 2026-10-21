@@ -165,6 +165,62 @@ export function HomeChat() {
 
   return (
     <section className="flex min-h-[24rem] flex-1 flex-col" aria-label="گفتگو با هادیران">
+      <form
+        onSubmit={(event) => void handleSend(event)}
+        className={`composer-shell relative mb-3 ${isLoading ? "is-loading" : ""}`}
+        aria-busy={isLoading}
+      >
+        <label htmlFor="home-composer" className="sr-only">
+          مسئله، ایده یا سؤال
+        </label>
+        <textarea
+          id="home-composer"
+          ref={areaRef}
+          rows={1}
+          value={input}
+          onChange={(e) => {
+            const next = e.target.value;
+            setInput(next);
+            if (next.trim()) writeDraft(COMPOSER_KEY, next);
+            else clearDraft(COMPOSER_KEY);
+            fitArea();
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              e.currentTarget.form?.requestSubmit();
+            }
+          }}
+          placeholder="مسئله، ایده یا سؤالت را بنویس..."
+          className="w-full resize-none bg-transparent p-4 ps-4 pe-28 text-sm leading-7 text-ink outline-none placeholder:text-muted"
+        />
+        <button
+          type="submit"
+          disabled={isLoading || !input.trim()}
+          className="absolute top-2 bottom-2 left-2 inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-[var(--radius-sm)] bg-accent px-4 text-sm font-medium text-accent-fg transition hover:opacity-90 disabled:bg-line disabled:text-muted"
+        >
+          <Send className="h-4 w-4" strokeWidth={1.5} />
+          ارسال
+        </button>
+      </form>
+
+      {empty && !isLoading ? (
+        <ul className="mb-3 flex flex-wrap gap-2 px-1" aria-label="شروع گفتگو">
+          {STARTERS.map((item) => (
+            <li key={item.label}>
+              <button
+                type="button"
+                onClick={() => void sendText(item.prompt)}
+                className="min-h-11 rounded-full border border-line bg-elev px-3.5 py-2 text-xs font-medium text-ink transition hover:border-accent"
+              >
+                {item.label}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+
       {!empty ? (
         <div className="mb-2 flex items-center justify-between gap-3 px-1">
           <p className="text-xs text-muted">گفت‌وگو با هادیران</p>
@@ -255,60 +311,7 @@ export function HomeChat() {
         />
       </div>
 
-      {empty && !isLoading ? (
-        <ul className="mb-3 flex flex-wrap gap-2 px-1" aria-label="شروع گفتگو">
-          {STARTERS.map((item) => (
-            <li key={item.label}>
-              <button
-                type="button"
-                onClick={() => void sendText(item.prompt)}
-                className="min-h-11 rounded-full border border-line bg-elev px-3.5 py-2 text-xs font-medium text-ink transition hover:border-accent"
-              >
-                {item.label}
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : null}
 
-      <form
-        onSubmit={(event) => void handleSend(event)}
-        className={`composer-shell relative ${isLoading ? "is-loading" : ""}`}
-        aria-busy={isLoading}
-      >
-        <label htmlFor="home-composer" className="sr-only">
-          مسئله، ایده یا سؤال
-        </label>
-        <textarea
-          id="home-composer"
-          ref={areaRef}
-          rows={1}
-          value={input}
-          onChange={(e) => {
-            const next = e.target.value;
-            setInput(next);
-            if (next.trim()) writeDraft(COMPOSER_KEY, next);
-            else clearDraft(COMPOSER_KEY);
-            fitArea();
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              e.currentTarget.form?.requestSubmit();
-            }
-          }}
-          placeholder="مسئله، ایده یا سؤالت را بنویس..."
-          className="w-full resize-none bg-transparent p-4 ps-4 pe-28 text-sm leading-7 text-ink outline-none placeholder:text-muted"
-        />
-        <button
-          type="submit"
-          disabled={isLoading || !input.trim()}
-          className="absolute top-2 bottom-2 left-2 inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-[var(--radius-sm)] bg-accent px-4 text-sm font-medium text-accent-fg transition hover:opacity-90 disabled:bg-line disabled:text-muted"
-        >
-          <Send className="h-4 w-4" strokeWidth={1.5} />
-          ارسال
-        </button>
-      </form>
     </section>
   );
 }

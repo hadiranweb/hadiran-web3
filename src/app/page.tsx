@@ -59,6 +59,7 @@ export default function HomePage() {
             <p className="eyebrow">{voice.distinction}</p>
             <h1 className="display mt-5 text-ink">{voice.slogan}</h1>
             <p className="lede mt-4 max-w-xl">{voice.subSlogan}</p>
+            <p className="mt-3 max-w-xl text-sm leading-7 text-muted">{voice.roomsLine}</p>
             <p className="home-hero-note mt-6">
               <span className="home-status-dot" aria-hidden="true" />
               اول می‌بینیم، بعد می‌سازیم

@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { RoomPage } from "@/components/ui/RoomPage";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PublicSourceNotice } from "@/components/ui/PublicSourceNotice";
+import { CollectionChips, CollectionEmpty, CollectionSearch } from "@/components/ui/CollectionControls";
 
 export const dynamic = "force-dynamic";
 
@@ -19,19 +20,42 @@ export const metadata: Metadata = {
 };
 
 interface Props {
-  searchParams: Promise<{ kind?: string }>;
+  searchParams: Promise<{ kind?: string; q?: string; sort?: string }>;
+}
+
+function shopHref(patch: Record<string, string | undefined>) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(patch)) if (value) params.set(key, value);
+  const query = params.toString();
+  return query ? `/shop?${query}` : "/shop";
 }
 
 export default async function ShopPage({ searchParams }: Props) {
-  const { kind: kindRaw } = await searchParams;
+  const { kind: kindRaw, q = "", sort: sortRaw } = await searchParams;
   const kindFilter = kindRaw && isShopKind(kindRaw) ? kindRaw : null;
   const { source, items } = await loadPublicShopList(kindFilter);
+  const sort = sortRaw === "price-asc" || sortRaw === "price-desc" || sortRaw === "title" ? sortRaw : "new";
+  const query = q.trim().toLowerCase();
+
+  const visible = items
+    .filter((item) => (query ? `${item.titleFa} ${item.summaryFa ?? ""}`.toLowerCase().includes(query) : true))
+    .slice()
+    .sort((a, b) => {
+      if (sort === "price-asc") return a.amount - b.amount;
+      if (sort === "price-desc") return b.amount - a.amount;
+      if (sort === "title") return a.titleFa.localeCompare(b.titleFa, "fa");
+      return 0;
+    });
 
   const filters = [
-    { href: "/shop", label: "همه", active: !kindFilter },
-    { href: "/shop?kind=physical_good", label: "فیزیکی", active: kindFilter === "physical_good" },
-    { href: "/shop?kind=digital_entitlement", label: "دیجیتال", active: kindFilter === "digital_entitlement" },
-    { href: "/shop?kind=course_access", label: "دوره", active: kindFilter === "course_access" },
+    { href: shopHref({ q }), label: "همه", active: !kindFilter },
+    { href: shopHref({ q, kind: "physical_good" }), label: "فیزیکی", active: kindFilter === "physical_good" },
+    {
+      href: shopHref({ q, kind: "digital_entitlement" }),
+      label: "دیجیتال",
+      active: kindFilter === "digital_entitlement",
+    },
+    { href: shopHref({ q, kind: "course_access" }), label: "دوره", active: kindFilter === "course_access" },
   ];
 
   return (
@@ -51,13 +75,39 @@ export default async function ShopPage({ searchParams }: Props) {
         </PageHeader>
       }
     >
+      <CollectionSearch
+        action="/shop"
+        q={q}
+        placeholder="جستجو در نام و خلاصهٔ کالاها..."
+        hidden={{ kind: kindFilter ?? undefined, sort }}
+      />
+      <CollectionChips
+        label="مرتب‌سازی"
+        links={[
+          { href: shopHref({ q, kind: kindFilter ?? undefined, sort: "new" }), label: "تازه‌ترین", active: sort === "new" },
+          {
+            href: shopHref({ q, kind: kindFilter ?? undefined, sort: "price-asc" }),
+            label: "ارزان‌ترین",
+            active: sort === "price-asc",
+          },
+          {
+            href: shopHref({ q, kind: kindFilter ?? undefined, sort: "price-desc" }),
+            label: "گران‌ترین",
+            active: sort === "price-desc",
+          },
+          { href: shopHref({ q, kind: kindFilter ?? undefined, sort: "title" }), label: "الفبا", active: sort === "title" },
+        ]}
+      />
+
       {source !== "live" ? (
         <PublicSourceNotice source={source} />
       ) : items.length === 0 ? (
         <EmptyState title="هنوز کالای منتشرشده‌ای نیست." />
+      ) : visible.length === 0 ? (
+        <CollectionEmpty title="با این جستجو کالایی نبود." hint="جستجو را پاک کن؛ صافی نوع دست‌نخورده است." />
       ) : (
         <ul className="section-cards listing-cards">
-          {items.map((item) => (
+          {visible.map((item) => (
             <li key={item.id}>
               <Link href={`/shop/${item.slug}`} className="card card-hover section-card overflow-hidden p-0">
                 {item.coverImageUrl ? (

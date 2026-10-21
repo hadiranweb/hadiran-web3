@@ -16,7 +16,12 @@ export const dynamic = "force-dynamic";
 const PATH = analyzerPublicPath("casio-ss");
 
 async function livePack() {
-  return (await resolveLivePack("casio-ss")) ?? buildCasioAuthoredPack();
+  try {
+    return (await resolveLivePack("casio-ss")) ?? buildCasioAuthoredPack();
+  } catch {
+    // No connection: the code pack still opens the entry screen.
+    return buildCasioAuthoredPack();
+  }
 }
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -40,7 +45,12 @@ export default async function CasioSsPage() {
   const account = await getCurrentAccount();
   let resume = false;
   if (account) {
-    const attempt = await readAttempt(account.id);
+    let attempt: Awaited<ReturnType<typeof readAttempt>> | null = null;
+    try {
+      attempt = await readAttempt(account.id);
+    } catch {
+      attempt = null;
+    }
     if (attempt?.status === "submitted") {
       redirect(`${PATH}/report`);
     }

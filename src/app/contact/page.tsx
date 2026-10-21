@@ -8,6 +8,8 @@ import { absoluteUrl } from "@/lib/site";
 import { PageShell } from "@/components/ui/PageShell";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Surface } from "@/components/ui/Surface";
+import { PublicSourceNotice } from "@/components/ui/PublicSourceNotice";
+import { readPublic } from "@/lib/public/source";
 
 
 export const dynamic = "force-dynamic";
@@ -28,7 +30,11 @@ export const metadata: Metadata = {
 type ContactMethod = { label: string; value: string; url?: string };
 
 export default async function ContactPage() {
-  const [hadiran] = await db.select().from(person).where(eq(person.slug, "hadiran"));
+  const profile = await readPublic("public person contact", async () => {
+    const [row] = await db.select().from(person).where(eq(person.slug, "hadiran"));
+    return row ?? null;
+  });
+  const hadiran = profile.data ?? null;
   const methods: ContactMethod[] = hadiran?.contactMethods ?? [];
   const sameAs = methods
     .map((m) => m.url)
@@ -56,6 +62,8 @@ export default async function ContactPage() {
         title="راه‌های تماس"
         lede="این صفحه فقط روش‌های ارتباط است، نه بیوگرافی و نه فرم همکاری."
       />
+
+      {profile.source !== "live" ? <PublicSourceNotice source={profile.source} /> : null}
 
       <Surface className="p-6 sm:p-10">
         {methods.length === 0 ? (

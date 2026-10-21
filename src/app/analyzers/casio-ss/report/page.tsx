@@ -22,8 +22,18 @@ export const metadata: Metadata = {
 
 export default async function CasioSsReportPage() {
   const account = await requirePageAccount("/analyzers/casio-ss/report");
-  const pack = (await resolveLivePack("casio-ss")) ?? buildCasioAuthoredPack();
-  const attempt = await readAttempt(account.id);
+  let pack = buildCasioAuthoredPack();
+  try {
+    pack = (await resolveLivePack("casio-ss")) ?? pack;
+  } catch {
+    // Keep the code pack so a lost connection is not an error page.
+  }
+  let attempt: Awaited<ReturnType<typeof readAttempt>> | null = null;
+  try {
+    attempt = await readAttempt(account.id);
+  } catch {
+    attempt = null;
+  }
   if (!attempt || attempt.status !== "submitted") {
     redirect("/analyzers/casio-ss");
   }

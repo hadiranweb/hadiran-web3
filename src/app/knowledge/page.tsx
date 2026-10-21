@@ -5,13 +5,14 @@ import { getCurrentAccount } from "@/lib/auth/session";
 import { loadPublicKnowledgeList } from "@/lib/public/catalog";
 import { readPublicCollection } from "@/lib/public/source";
 import Link from "next/link";
-import { ArrowLeft, Search, PenLine } from "lucide-react";
+import { ArrowLeft, PenLine } from "lucide-react";
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { RoomPage } from "@/components/ui/RoomPage";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PublicSourceNotice } from "@/components/ui/PublicSourceNotice";
 import { knowledgeCopy } from "@/lib/copy";
+import { CollectionChips, CollectionEmpty, CollectionSearch } from "@/components/ui/CollectionControls";
 import { growthLabel, minutesFa, type KnowledgeGrowth } from "@/lib/knowledge/article";
 
 export const dynamic = "force-dynamic";
@@ -31,13 +32,16 @@ const typeLabels: Record<string, string> = {
 };
 
 interface Props {
-  searchParams: Promise<{ topic?: string; q?: string }>;
+  searchParams: Promise<{ topic?: string; q?: string; sort?: string; view?: string; short?: string }>;
 }
 
 export default async function KnowledgePage({ searchParams }: Props) {
-  const { topic, q } = await searchParams;
+  const { topic, q = "", sort: sortRaw, view: viewRaw, short } = await searchParams;
   const account = await getCurrentAccount();
   const list = await loadPublicKnowledgeList(q);
+  const sort = sortRaw === "old" || sortRaw === "title" ? sortRaw : "new";
+  const view = viewRaw === "list" ? "list" : "cards";
+  const shortOnly = short === "1";
 
   const topicLinks = await readPublicCollection("public knowledge topics", async () =>
     db
@@ -56,9 +60,23 @@ export default async function KnowledgePage({ searchParams }: Props) {
     topicsMap[row.knowledgeId].push({ labelFa: row.labelFa, slug: row.slug });
   }
 
-  const filteredKnowledge = topic
-    ? list.items.filter((item) => topicsMap[item.id]?.some((entry) => entry.slug === topic))
-    : list.items;
+  const baseList = list.items
+    .filter((item) => (topic ? topicsMap[item.id]?.some((entry) => entry.slug === topic) : true))
+    .filter((item) => (shortOnly ? typeof item.readingMinutes === "number" && item.readingMinutes <= 5 : true));
+  const filteredKnowledge = [...baseList].sort((a, b) => {
+    if (sort === "title") return a.titleFa.localeCompare(b.titleFa, "fa");
+    const at = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const bt = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return sort === "old" ? at - bt : bt - at;
+  });
+  const keep = { topic, q: q || undefined, sort, view, short: shortOnly ? "1" : undefined };
+  const withParams = (patch: Record<string, string | undefined>) => {
+    const merged = { ...keep, ...patch };
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(merged)) if (value) params.set(key, value);
+    const query = params.toString();
+    return query ? `/knowledge?${query}` : "/knowledge";
+  };
 
   const filterLabel =
     (topic &&
@@ -80,20 +98,33 @@ export default async function KnowledgePage({ searchParams }: Props) {
         </PageHeader>
       }
     >
-      <form action="/knowledge" method="get" className="mb-8 flex max-w-xl gap-2">
-        {topic ? <input type="hidden" name="topic" value={topic} /> : null}
-        <input
-          type="text"
-          name="q"
-          defaultValue={q || ""}
-          placeholder="جستجو در باغ دانش..."
-          className="flex-1 rounded-[var(--radius-md)] border border-line bg-elev px-4 py-2.5 text-sm text-ink outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
-        />
-        <button type="submit" className="ws-button ws-primary">
-          <Search className="h-4 w-4" strokeWidth={1.5} />
-          جستجو
-        </button>
-      </form>
+      <CollectionSearch
+        action="/knowledge"
+        q={q}
+        placeholder="جستجو در باغ دانش..."
+        hidden={{ topic, sort, view, short: shortOnly ? "1" : undefined }}
+      />
+
+      <CollectionChips
+        label="مرتب‌سازی"
+        links={[
+          { href: withParams({ sort: "new" }), label: "تازه‌ترین", active: sort === "new" },
+          { href: withParams({ sort: "old" }), label: "قدیمی‌ترین", active: sort === "old" },
+          { href: withParams({ sort: "title" }), label: "الفبا", active: sort === "title" },
+        ]}
+      />
+      <CollectionChips
+        label="نمایش"
+        links={[
+          { href: withParams({ view: "cards" }), label: "کارت", active: view === "cards" },
+          { href: withParams({ view: "list" }), label: "فهرست", active: view === "list" },
+          {
+            href: withParams({ short: shortOnly ? undefined : "1" }),
+            label: "نوشتهٔ کوتاه (≤۵ دقیقه)",
+            active: shortOnly,
+          },
+        ]}
+      />
 
       {topic ? (
         <div className="mb-6 flex flex-wrap items-center gap-2">
@@ -110,9 +141,16 @@ export default async function KnowledgePage({ searchParams }: Props) {
       {list.source !== "live" ? (
         <PublicSourceNotice source={list.source} />
       ) : filteredKnowledge.length === 0 ? (
-        <EmptyState title="هنوز مطلب منتشرشده‌ای نیست." />
+        list.items.length === 0 ? (
+          <EmptyState title="هنوز مطلب منتشرشده‌ای نیست." />
+        ) : (
+          <CollectionEmpty
+            title="با این صافی چیزی نبود."
+            hint="جستجو یا صافی کوتاه را بردار؛ فهرست منتشرشده دست‌نخورده است."
+          />
+        )
       ) : (
-        <ul className="section-cards listing-cards">
+        <ul className={view === "list" ? "section-cards listing-cards is-compact" : "section-cards listing-cards"}>
           {filteredKnowledge.map((item) => (
             <li key={item.id}>
               <Link href={`/knowledge/${item.slug}`} className="card card-hover section-card">
