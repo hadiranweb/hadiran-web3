@@ -1,27 +1,33 @@
 import Link from "next/link";
 import { HadiranMark } from "@/components/HadiranMark";
-import { rooms } from "@/lib/copy";
+import type { ChromeCopy } from "@/lib/content/registry";
 
-const sections = [
-  rooms.house,
-  rooms.knowledge,
-  rooms.topics,
-  rooms.lab,
-  rooms.mirrors,
-  rooms.courses,
-  rooms.shop,
-];
+function sectionsOf(copy: ChromeCopy) {
+  return [
+    copy.rooms.house,
+    copy.rooms.knowledge,
+    copy.rooms.topics,
+    copy.rooms.lab,
+    copy.rooms.mirrors,
+    copy.rooms.courses,
+    copy.rooms.shop,
+  ];
+}
 
-const identity = [
-  rooms.person,
-  rooms.contact,
-  rooms.privacy,
-  { href: "/account", label: "حساب من" },
-  { href: "/signin", label: "ورود" },
-  { href: "/workspace", label: "میز کار" },
-];
+function identityOf(copy: ChromeCopy) {
+  return [
+    copy.rooms.person,
+    copy.rooms.contact,
+    copy.rooms.privacy,
+    { href: "/account", label: "حساب من" },
+    { href: "/signin", label: "ورود" },
+    { href: "/workspace", label: "میز کار" },
+  ];
+}
 
-export function Footer() {
+export function Footer({ copy }: { copy: ChromeCopy }) {
+  const sections = sectionsOf(copy);
+  const identity = identityOf(copy);
   const year = new Intl.DateTimeFormat("fa-IR", { year: "numeric" }).format(new Date());
 
   return (
@@ -31,11 +37,9 @@ export function Footer() {
           <div className="space-y-4">
             <Link href="/" className="brand-link inline-flex items-center gap-2.5">
               <HadiranMark className="brand-mark h-[30px] w-[30px]" />
-              <span className="brand-name text-lg font-black">هادیران</span>
+              <span className="brand-name text-lg font-black">{copy.site.nameFa}</span>
             </Link>
-            <p className="soft max-w-sm text-sm leading-8">
-              فضای هم‌فکری، شفاف‌سازی مسئله و طراحی سیستم‌ها؛ جایی برای پیوند گفتگو، دانش و اقدام.
-            </p>
+            <p className="soft max-w-sm text-sm leading-8">{copy.site.tagline}</p>
           </div>
 
           <nav aria-label="بخش‌های خانه">
@@ -65,10 +69,10 @@ export function Footer() {
           </nav>
         </div>
 
-        <p className="footer-copy mt-12 border-t pt-5 text-xs">© {year} هادیران</p>
+        <p className="footer-copy mt-12 border-t pt-5 text-xs">© {year} {copy.site.nameFa}</p>
       </div>
       <div className="footer-wordmark pointer-events-none select-none" aria-hidden="true">
-        هادیران
+        {copy.site.nameFa}
       </div>
     </footer>
   );

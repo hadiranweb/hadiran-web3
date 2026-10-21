@@ -17,19 +17,23 @@ import { absoluteUrl } from "@/lib/site";
 import { HadiranMark } from "@/components/HadiranMark";
 import { PageShell } from "@/components/ui/PageShell";
 import { Surface } from "@/components/ui/Surface";
-import { personCopy, voice } from "@/lib/copy";
+import { getSiteCopy } from "@/lib/content/site-copy";
 import { readPublic } from "@/lib/public/source";
 import { PublicSourceNotice } from "@/components/ui/PublicSourceNotice";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "درباره من",
-  description: "اسمم هادی است؛ یعنی راهنما. راه‌حل نمی‌فروشم. اول می‌بینیم، بعد می‌سازیم.",
-  alternates: { canonical: "/hadiran" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const copy = await getSiteCopy();
+  return {
+    title: copy.rooms.person.label,
+    description: copy.personCopy.intro.slice(0, 2).join(" ").slice(0, 200),
+    alternates: { canonical: "/hadiran" },
+  };
+}
 
 export default async function HadiranPage() {
+  const copy = await getSiteCopy();
   const profile = await readPublic("public person profile", async () => {
     const [personRow] = await db.select().from(person).where(eq(person.slug, "hadiran"));
     if (!personRow) return null;
@@ -63,9 +67,9 @@ export default async function HadiranPage() {
   if (!hadiran) {
     return (
       <PageShell width="narrow">
-        <p className="text-sm font-medium text-mark">{voice.altTitle}</p>
+        <p className="text-sm font-medium text-mark">{copy.voice.altTitle}</p>
         <h1 className="mt-2 text-2xl font-bold text-ink">هادی</h1>
-        <p className="mt-4 max-w-3xl text-base leading-[1.85] text-ink">{personCopy.missing}</p>
+        <p className="mt-4 max-w-3xl text-base leading-[1.85] text-ink">{copy.personCopy.missing}</p>
         {profile.source !== "live" ? (
           <div className="mt-6">
             <PublicSourceNotice source={profile.source} />
@@ -90,7 +94,7 @@ export default async function HadiranPage() {
           "@type": "Person",
           name: hadiran.nameFa,
           alternateName: hadiran.nameEn || undefined,
-          description: personCopy.intro.join(" "),
+          description: copy.personCopy.intro.join(" "),
           url: absoluteUrl("/hadiran"),
           sameAs,
         }}
@@ -119,7 +123,7 @@ export default async function HadiranPage() {
         </div>
 
         <div className="max-w-3xl space-y-4 text-base leading-[1.85] text-ink">
-          {personCopy.intro.map((line) => (
+          {copy.personCopy.intro.map((line) => (
             <p key={line}>{line}</p>
           ))}
         </div>

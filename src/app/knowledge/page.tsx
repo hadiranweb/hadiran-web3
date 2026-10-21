@@ -11,17 +11,20 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { RoomPage } from "@/components/ui/RoomPage";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PublicSourceNotice } from "@/components/ui/PublicSourceNotice";
-import { knowledgeCopy } from "@/lib/copy";
+import { getSiteCopy } from "@/lib/content/site-copy";
 import { CollectionChips, CollectionEmpty, CollectionSearch } from "@/components/ui/CollectionControls";
 import { growthLabel, minutesFa, type KnowledgeGrowth } from "@/lib/knowledge/article";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: knowledgeCopy.title,
-  description: knowledgeCopy.lede,
-  alternates: { canonical: "/knowledge" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const copy = await getSiteCopy();
+  return {
+    title: copy.knowledgeCopy.title,
+    description: copy.knowledgeCopy.lede,
+    alternates: { canonical: "/knowledge" },
+  };
+}
 
 const typeLabels: Record<string, string> = {
   wiki: "ویکی",
@@ -36,6 +39,7 @@ interface Props {
 }
 
 export default async function KnowledgePage({ searchParams }: Props) {
+  const copy = await getSiteCopy();
   const { topic, q = "", sort: sortRaw, view: viewRaw, short } = await searchParams;
   const account = await getCurrentAccount();
   const list = await loadPublicKnowledgeList(q);
@@ -88,7 +92,7 @@ export default async function KnowledgePage({ searchParams }: Props) {
   return (
     <RoomPage
       hero={
-        <PageHeader title={knowledgeCopy.title} lede={knowledgeCopy.lede}>
+        <PageHeader title={copy.knowledgeCopy.title} lede={copy.knowledgeCopy.lede}>
           {account?.role === "owner" ? (
             <Link href="/workspace/capture" className="ws-button ws-primary mt-5">
               <PenLine className="h-4 w-4" strokeWidth={1.5} />

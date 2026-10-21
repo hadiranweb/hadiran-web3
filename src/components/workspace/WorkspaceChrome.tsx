@@ -42,6 +42,7 @@ const ownerModules: ModuleLink[] = [
   { href: "/workspace", fa: "نمای کلی", en: "Overview", icon: Layers, exact: true },
   { href: "/workspace/capture", fa: "ثبت جدید", en: "New capture", icon: PenLine },
   { href: "/workspace/knowledge", fa: "باغ دانش", en: "Knowledge garden", icon: BookOpen },
+  { href: "/workspace/content", fa: "متن و نام", en: "Copy & theme", icon: PenLine },
   { href: "/workspace/projects", fa: "پروژه‌ها", en: "Projects", icon: Layers },
   { href: "/workspace/collaborations", fa: "همکاری‌ها", en: "Collaborations", icon: Users },
   { href: "/workspace/actions", fa: "اقدام‌ها", en: "Work queue", icon: PenLine },

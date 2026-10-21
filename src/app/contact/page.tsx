@@ -10,26 +10,46 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Surface } from "@/components/ui/Surface";
 import { PublicSourceNotice } from "@/components/ui/PublicSourceNotice";
 import { readPublic } from "@/lib/public/source";
+import { getSiteCopy } from "@/lib/content/site-copy";
 
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "تماس",
+export async function generateMetadata(): Promise<Metadata> {
+  const copy = await getSiteCopy();
+  return {
+  title: copy.rooms.contact.label,
   description: "راه‌های ارتباط با هادیران: ایمیل و شبکه‌های عمومی. درخواست همکاری روی هر پروژه از صفحهٔ همان پروژه است.",
   alternates: { canonical: "/contact" },
   openGraph: {
-    title: "تماس با هادیران",
+    title: `${copy.rooms.contact.label} با ${copy.site.nameFa}`,
     description: "روش‌های تماس مستقیم؛ بدون فرم پیام.",
     url: "/contact",
     locale: "fa_IR",
     type: "website",
   },
-};
+  };
+}
 
 type ContactMethod = { label: string; value: string; url?: string };
 
+/** متن «راه ارتباط خالی است» قابل ویرایش است؛ اگر کلمهٔ «گفتگو» در آن باشد، همان لینک می‌شود. */
+function ContactEmpty({ text }: { text: string }) {
+  const parts = text.split("گفتگو");
+  if (parts.length < 2) return <>{text}</>;
+  return (
+    <>
+      {parts[0]}
+      <Link href="/" className="text-accent">
+        گفتگو
+      </Link>
+      {parts.slice(1).join("گفتگو")}
+    </>
+  );
+}
+
 export default async function ContactPage() {
+  const copy = await getSiteCopy();
   const profile = await readPublic("public person contact", async () => {
     const [row] = await db.select().from(person).where(eq(person.slug, "hadiran"));
     return row ?? null;
@@ -68,11 +88,7 @@ export default async function ContactPage() {
       <Surface className="p-6 sm:p-10">
         {methods.length === 0 ? (
           <p className="text-sm leading-7 text-muted">
-            راه ارتباط به‌زودی باز می‌شود. تا آن موقع، مسئله‌ات را در{" "}
-            <Link href="/" className="text-accent">
-              گفتگو
-            </Link>{" "}
-            بگو.
+            <ContactEmpty text={copy.contactCopy.empty} />
           </p>
         ) : (
           <ul className="space-y-3">

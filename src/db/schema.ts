@@ -1281,3 +1281,38 @@ export const messagesRelations = relations(messages, ({ one }) => ({
     references: [conversations.id],
   }),
 }));
+
+// ---------- Content control (متن/نام/عنوان) ----------
+
+export const siteCopy = pgTable(
+  "site_copy",
+  {
+    id: serial("id").primaryKey(),
+    key: varchar("key", { length: 120 }).notNull(),
+    locale: varchar("locale", { length: 8 }).notNull().default("fa"),
+    draftValue: text("draft_value"),
+    liveValue: text("live_value"),
+    liveRevision: integer("live_revision").notNull().default(0),
+    draftNote: text("draft_note"),
+    updatedBy: integer("updated_by").references(() => accounts.id, { onDelete: "set null" }),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+    publishedBy: integer("published_by").references(() => accounts.id, { onDelete: "set null" }),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+  },
+  (t) => [unique("site_copy_key_locale_uq").on(t.key, t.locale)],
+);
+
+export const contentRevision = pgTable(
+  "content_revision",
+  {
+    id: serial("id").primaryKey(),
+    entity: varchar("entity", { length: 32 }).notNull(),
+    entityKey: varchar("entity_key", { length: 160 }).notNull(),
+    revision: integer("revision").notNull(),
+    snapshot: jsonb("snapshot").$type<Record<string, unknown>>().notNull(),
+    note: text("note"),
+    actorId: integer("actor_id").references(() => accounts.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  },
+  (t) => [unique("content_revision_entity_key_rev_uq").on(t.entity, t.entityKey, t.revision)],
+);

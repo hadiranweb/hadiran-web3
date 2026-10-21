@@ -5,45 +5,52 @@ import { HomeChat } from "@/components/HomeChat";
 import { HadiranMark } from "@/components/HadiranMark";
 import { HomePortrait } from "@/components/portrait/HomePortrait";
 import { siteConfig } from "@/lib/site";
-import { homeFlow, rooms, voice } from "@/lib/copy";
+import { getSiteCopy } from "@/lib/content/site-copy";
 
-export const metadata: Metadata = {
-  title: {
-    absolute: voice.browserTitle,
-  },
-  description: voice.description,
-  alternates: {
-    canonical: siteConfig.url || "/",
-  },
-  openGraph: {
-    title: voice.altTitle,
-    description: voice.subSlogan,
-    url: siteConfig.url || "/",
-    type: "website",
-    locale: "fa_IR",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const copy = await getSiteCopy();
+  return {
+    title: {
+      absolute: copy.voice.browserTitle,
+    },
+    description: copy.voice.description,
+    alternates: {
+      canonical: siteConfig.url || "/",
+    },
+    openGraph: {
+      title: copy.voice.altTitle,
+      description: copy.voice.subSlogan,
+      url: siteConfig.url || "/",
+      type: "website",
+      locale: "fa_IR",
+    },
+  };
+}
 
-const worlds = [rooms.house, rooms.knowledge, rooms.lab, rooms.mirrors, rooms.courses, rooms.person];
+function homeJsonLd(nameFa: string, nameEn: string) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: nameFa,
+    alternateName: nameEn,
+    description: siteConfig.description,
+    url: siteConfig.url,
+    inLanguage: "fa",
+    potentialAction: {
+      "@type": "SearchAction",
+      target: `${siteConfig.url}/knowledge?q={search_term_string}`,
+      "query-input": "required name=search_term_string",
+    },
+  };
+}
 
-const marquee = [rooms.house, rooms.knowledge, rooms.lab, rooms.mirrors, rooms.courses, rooms.shop];
+export default async function HomePage() {
+  const copy = await getSiteCopy();
+  const { rooms, voice, homeFlow, site } = copy;
+  const worlds = [rooms.house, rooms.knowledge, rooms.lab, rooms.mirrors, rooms.courses, rooms.person];
+  const marquee = [rooms.house, rooms.knowledge, rooms.lab, rooms.mirrors, rooms.courses, rooms.shop];
+  const jsonLd = homeJsonLd(site.nameFa, site.nameEn);
 
-const jsonLd = {
-  "@context": "https://schema.org",
-  "@type": "WebSite",
-  name: siteConfig.nameFa,
-  alternateName: siteConfig.nameEn,
-  description: siteConfig.description,
-  url: siteConfig.url,
-  inLanguage: "fa",
-  potentialAction: {
-    "@type": "SearchAction",
-    target: `${siteConfig.url}/knowledge?q={search_term_string}`,
-    "query-input": "required name=search_term_string",
-  },
-};
-
-export default function HomePage() {
   return (
     <main>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
@@ -69,7 +76,7 @@ export default function HomePage() {
             <HomePortrait />
             <p className="home-portrait-brand">
               <HadiranMark className="h-7 w-7" />
-              <span>هادیران</span>
+              <span>{site.nameFa}</span>
             </p>
           </div>
         </div>
@@ -80,10 +87,10 @@ export default function HomePage() {
 
       <div className="marquee" aria-hidden="true">
         <div className="marquee-track">
-          {[0, 1].map((copy) => (
-            <p key={copy} className="marquee-item">
+          {[0, 1].map((tile) => (
+            <p key={tile} className="marquee-item">
               {marquee.map((room) => (
-                <span key={`${copy}-${room.href}`}>
+                <span key={`${tile}-${room.href}`}>
                   {room.label}
                   <span className="marquee-symbol"> · </span>
                 </span>

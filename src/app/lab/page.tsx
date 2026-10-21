@@ -8,18 +8,21 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { RoomPage } from "@/components/ui/RoomPage";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PublicSourceNotice } from "@/components/ui/PublicSourceNotice";
-import { labCopy } from "@/lib/copy";
+import { getSiteCopy } from "@/lib/content/site-copy";
 import { loadPublicProjects } from "@/lib/public/catalog";
 import { readPublicCollection } from "@/lib/public/source";
 import { CollectionChips, CollectionEmpty, CollectionSearch } from "@/components/ui/CollectionControls";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "کارگاه",
-  description: labCopy.lede,
-  alternates: { canonical: "/lab" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const copy = await getSiteCopy();
+  return {
+    title: copy.labCopy.title,
+    description: copy.labCopy.lede,
+    alternates: { canonical: "/lab" },
+  };
+}
 
 const statusLabels: Record<string, string> = {
   idea: "ایده",
@@ -48,6 +51,7 @@ const statusFilters = [
 ];
 
 export default async function LabPage({ searchParams }: Props) {
+  const copy = await getSiteCopy();
   const { q = "", status = "" } = await searchParams;
   const list = await loadPublicProjects();
   const topicLinks = await readPublicCollection("public project topics", async () =>
@@ -87,7 +91,7 @@ export default async function LabPage({ searchParams }: Props) {
     });
 
   return (
-    <RoomPage hero={<PageHeader title={labCopy.title} lede={labCopy.lede} />}>
+    <RoomPage hero={<PageHeader title={copy.labCopy.title} lede={copy.labCopy.lede} />}>
       <CollectionSearch
         action="/lab"
         q={q}

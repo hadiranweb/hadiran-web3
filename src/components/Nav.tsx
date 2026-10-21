@@ -19,24 +19,27 @@ import { SessionMenu } from "@/components/auth/SessionMenu";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { HadiranMark } from "@/components/HadiranMark";
 import { useDisclosure } from "@/components/navigation/useDisclosure";
-import { rooms } from "@/lib/copy";
+import type { ChromeCopy } from "@/lib/content/registry";
 
-const primaryLinks = [
-  { href: rooms.house.href, label: rooms.house.label, icon: Layers, note: "نگاه یکپارچه به هادیران" },
-  { href: rooms.person.href, label: rooms.person.label, icon: User, note: "مسیر و نگاه هادی" },
-  { href: rooms.knowledge.href, label: rooms.knowledge.label, icon: BookOpen, note: "از نهال تا درخت" },
-  { href: rooms.lab.href, label: rooms.lab.label, icon: FlaskConical, note: "ظرف‌ها و پروژه‌های باز" },
-  { href: rooms.mirrors.href, label: rooms.mirrors.label, icon: ScanSearch, note: "تصویری از خودت" },
-  { href: rooms.courses.href, label: rooms.courses.label, icon: GraduationCap, note: "مسیر یادگیری" },
-  { href: rooms.shop.href, label: rooms.shop.label, icon: ShoppingBag, note: "محصولات هادیران" },
-];
+function primaryLinks(copy: ChromeCopy) {
+  return [
+    { href: copy.rooms.house.href, label: copy.rooms.house.label, icon: Layers, note: copy.notes.house },
+    { href: copy.rooms.person.href, label: copy.rooms.person.label, icon: User, note: copy.notes.person },
+    { href: copy.rooms.knowledge.href, label: copy.rooms.knowledge.label, icon: BookOpen, note: copy.notes.knowledge },
+    { href: copy.rooms.lab.href, label: copy.rooms.lab.label, icon: FlaskConical, note: copy.notes.lab },
+    { href: copy.rooms.mirrors.href, label: copy.rooms.mirrors.label, icon: ScanSearch, note: copy.notes.mirrors },
+    { href: copy.rooms.courses.href, label: copy.rooms.courses.label, icon: GraduationCap, note: copy.notes.courses },
+    { href: copy.rooms.shop.href, label: copy.rooms.shop.label, icon: ShoppingBag, note: copy.notes.shop },
+  ];
+}
 
 function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function Nav() {
+export function Nav({ copy }: { copy: ChromeCopy }) {
   const pathname = usePathname();
+  const links = primaryLinks(copy);
   const { id, open, visible, panel, trigger, toggle, close } = useDisclosure();
 
   useEffect(() => {
@@ -69,7 +72,7 @@ export function Nav() {
           <div className="site-nav-start">
             <Link href="/" className="brand-link" onClick={() => close()}>
               <HadiranMark className="brand-mark h-7 w-7" />
-              <span className="brand-name">هادیران</span>
+              <span className="brand-name">{copy.site.nameFa}</span>
             </Link>
             <button
               ref={trigger}
@@ -84,7 +87,7 @@ export function Nav() {
             </button>
           </div>
           <nav aria-label="اتاق‌ها" className="site-desktop-navigation">
-            {primaryLinks.map((link) => (
+            {links.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
@@ -115,7 +118,7 @@ export function Nav() {
           </div>
           <nav aria-label="ناوبری بازشونده">
             <ul className="site-nav-grid">
-              {primaryLinks.map((link) => (
+              {links.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
@@ -136,12 +139,12 @@ export function Nav() {
             </ul>
           </nav>
           <div className="site-nav-dropdown-foot">
-            <Link href={rooms.contact.href} onClick={() => close()}>
-              {rooms.contact.label}
+            <Link href={copy.rooms.contact.href} onClick={() => close()}>
+              {copy.rooms.contact.label}
               <ArrowUpLeft size={15} />
             </Link>
-            <Link href={rooms.privacy.href} onClick={() => close()}>
-              {rooms.privacy.label}
+            <Link href={copy.rooms.privacy.href} onClick={() => close()}>
+              {copy.rooms.privacy.label}
             </Link>
           </div>
         </div>

@@ -1,12 +1,13 @@
 import type { MetadataRoute } from "next";
 import { siteConfig } from "@/lib/site";
-import { voice } from "@/lib/copy";
+import { getSiteCopy } from "@/lib/content/site-copy";
 
-export default function manifest(): MetadataRoute.Manifest {
+export default async function manifest(): Promise<MetadataRoute.Manifest> {
+  const copy = await getSiteCopy();
   return {
-    name: voice.browserTitle,
-    short_name: siteConfig.nameFa,
-    description: voice.description,
+    name: copy.voice.browserTitle,
+    short_name: copy.site.nameFa,
+    description: copy.voice.description,
     start_url: "/",
     scope: "/",
     display: "standalone",

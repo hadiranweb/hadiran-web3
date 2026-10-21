@@ -6,23 +6,26 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { RoomPage } from "@/components/ui/RoomPage";
 import { analyzerHref, loadAnalyzers } from "@/lib/analyzers/catalog";
 import { absoluteUrl } from "@/lib/site";
-import { mirrorsCopy } from "@/lib/copy";
+import { getSiteCopy } from "@/lib/content/site-copy";
 import { CollectionChips, CollectionEmpty, CollectionSearch } from "@/components/ui/CollectionControls";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: mirrorsCopy.title,
-  description: mirrorsCopy.lede,
-  alternates: { canonical: "/analyzers" },
-  openGraph: {
-    title: mirrorsCopy.title,
-    description: mirrorsCopy.lede,
-    url: "/analyzers",
-    locale: "fa_IR",
-    type: "website",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const copy = await getSiteCopy();
+  return {
+    title: copy.mirrorsCopy.title,
+    description: copy.mirrorsCopy.lede,
+    alternates: { canonical: "/analyzers" },
+    openGraph: {
+      title: copy.mirrorsCopy.title,
+      description: copy.mirrorsCopy.lede,
+      url: "/analyzers",
+      locale: "fa_IR",
+      type: "website",
+    },
+  };
+}
 
 const statusFa: Record<"preparing" | "open" | "archived", string> = {
   preparing: "در آماده‌سازی",
@@ -35,6 +38,7 @@ interface Props {
 }
 
 export default async function AnalyzersPage({ searchParams }: Props) {
+  const copy = await getSiteCopy();
   const { q = "", status = "" } = await searchParams;
   const analyzers = await loadAnalyzers();
   const query = q.trim().toLowerCase();
@@ -50,13 +54,13 @@ export default async function AnalyzersPage({ searchParams }: Props) {
             data={{
               "@context": "https://schema.org",
               "@type": "CollectionPage",
-              name: mirrorsCopy.title,
+              name: copy.mirrorsCopy.title,
               url: absoluteUrl("/analyzers"),
               inLanguage: "fa",
-              description: mirrorsCopy.lede,
+              description: copy.mirrorsCopy.lede,
             }}
           />
-          <PageHeader title={mirrorsCopy.title} lede={mirrorsCopy.lede} />
+          <PageHeader title={copy.mirrorsCopy.title} lede={copy.mirrorsCopy.lede} />
         </>
       }
     >

@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { rooms } from "@/lib/copy";
+import { getSiteCopy } from "@/lib/content/site-copy";
 
-export default function NotFound() {
+export default async function NotFound() {
+  const copy = await getSiteCopy();
   return (
     <main className="mx-auto max-w-xl px-4 py-16 text-center">
       <p className="mb-2 text-sm font-medium text-mark">۴۰۴</p>
@@ -17,10 +18,10 @@ export default function NotFound() {
           خانه
         </Link>
         <Link
-          href={rooms.house.href}
+          href={copy.rooms.house.href}
           className="inline-flex min-h-11 items-center rounded-[var(--radius-sm)] px-4 text-sm font-medium text-ink hover:bg-elev"
         >
-          {rooms.house.label}
+          {copy.rooms.house.label}
         </Link>
       </div>
     </main>

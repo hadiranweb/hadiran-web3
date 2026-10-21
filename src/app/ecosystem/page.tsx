@@ -3,27 +3,30 @@ import { ArrowLeft } from "lucide-react";
 import { HadiranMark } from "@/components/HadiranMark";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { RoomPage } from "@/components/ui/RoomPage";
-import { houseCopy, rooms } from "@/lib/copy";
+import { getSiteCopy } from "@/lib/content/site-copy";
 import { loadPublicWorldCounts } from "@/lib/public/catalog";
 import { publicCountLabel, type PublicCount } from "@/lib/public/source";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: {
-    absolute: "خانه هادیران | باغ دانش، کارگاه، آینه‌ها، دوره‌ها، فروشگاه، هادی",
-  },
-  description: houseCopy.lede,
-  alternates: { canonical: "/ecosystem" },
-  openGraph: {
-    title: "خانه هادیران",
-    description: houseCopy.lede,
-    url: "/ecosystem",
-    type: "website",
-    locale: "fa_IR",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const copy = await getSiteCopy();
+  return {
+    title: {
+      absolute: `${copy.houseCopy.title} ${copy.site.nameFa} | باغ دانش، کارگاه، آینه‌ها، دوره‌ها، فروشگاه، هادی`,
+    },
+    description: copy.houseCopy.lede,
+    alternates: { canonical: "/ecosystem" },
+    openGraph: {
+      title: `${copy.houseCopy.title} ${copy.site.nameFa}`,
+      description: copy.houseCopy.lede,
+      url: "/ecosystem",
+      type: "website",
+      locale: "fa_IR",
+    },
+  };
+}
 
 type World = {
   href: string;
@@ -35,7 +38,8 @@ type World = {
 };
 
 export default async function EcosystemPage() {
-  const counts = await loadPublicWorldCounts();
+  const [counts, copy] = await Promise.all([loadPublicWorldCounts(), getSiteCopy()]);
+  const { rooms, houseCopy } = copy;
 
   const worlds: World[] = [
     {
@@ -80,7 +84,7 @@ export default async function EcosystemPage() {
     },
     {
       href: rooms.person.href,
-      label: "هادی",
+      label: rooms.person.label,
       promise: "مسیر، نگاه و راه‌های ارتباط شخص.",
       cta: "درباره من و راه تماس",
       count: null,
