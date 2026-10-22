@@ -10,7 +10,23 @@ export const STUDIO_BLOCK_TYPES = [
   "BentoGrid",
   "CTABand",
   "Divider",
+  "KnowledgeList",
+  "ProjectPipeline",
+  "CourseGrid",
+  "AnalyzerGrid",
+  "TopicHub",
+  "ShopGrid",
 ] as const;
+
+/** بلوک‌های زنده: در Data فقط تنظیمات می‌ماند؛ آیتم‌ها هنگام رندر از دادهٔ واقعی resolve می‌شوند و ذخیره نمی‌شوند. */
+export const STUDIO_LIVE_BLOCKS: readonly StudioBlockType[] = [
+  "KnowledgeList",
+  "ProjectPipeline",
+  "CourseGrid",
+  "AnalyzerGrid",
+  "TopicHub",
+  "ShopGrid",
+];
 
 export type StudioBlockType = (typeof STUDIO_BLOCK_TYPES)[number];
 
@@ -41,6 +57,12 @@ const STRING_PROPS: Record<StudioBlockType, string[]> = {
   BentoGrid: ["title"],
   CTABand: ["title", "lead", "label"],
   Divider: [],
+  KnowledgeList: ["heading", "topicSlug"],
+  ProjectPipeline: ["heading"],
+  CourseGrid: ["heading"],
+  AnalyzerGrid: ["heading"],
+  TopicHub: ["heading"],
+  ShopGrid: ["heading", "kind"],
 };
 
 const HREF_PROPS: Record<StudioBlockType, string[]> = {
@@ -50,6 +72,12 @@ const HREF_PROPS: Record<StudioBlockType, string[]> = {
   BentoGrid: [],
   CTABand: ["href"],
   Divider: [],
+  KnowledgeList: [],
+  ProjectPipeline: [],
+  CourseGrid: [],
+  AnalyzerGrid: [],
+  TopicHub: [],
+  ShopGrid: [],
 };
 
 const ENUM_PROPS: Record<StudioBlockType, Record<string, string[]>> = {
@@ -59,6 +87,12 @@ const ENUM_PROPS: Record<StudioBlockType, Record<string, string[]>> = {
   BentoGrid: { columns: ["2", "3"] },
   CTABand: {},
   Divider: { space: ["sm", "md", "lg"] },
+  KnowledgeList: { limit: ["3", "6", "9"], layout: ["cards", "list"] },
+  ProjectPipeline: { limit: ["3", "6", "9"], layout: ["cards", "list"] },
+  CourseGrid: { limit: ["3", "6", "9"], layout: ["cards", "list"] },
+  AnalyzerGrid: { limit: ["3", "6", "9"], layout: ["cards", "list"] },
+  TopicHub: { limit: ["3", "6", "9"], layout: ["cards", "list"] },
+  ShopGrid: { limit: ["3", "6", "9"], layout: ["cards", "list"] },
 };
 
 function cleanProps(type: StudioBlockType, raw: Record<string, unknown>): Record<string, unknown> {
@@ -68,6 +102,8 @@ function cleanProps(type: StudioBlockType, raw: Record<string, unknown>): Record
   for (const [key, allowed] of Object.entries(ENUM_PROPS[type])) {
     out[key] = allowed.includes(String(raw[key])) ? String(raw[key]) : allowed[0];
   }
+  if (typeof out.topicSlug === "string" && !/^[a-z0-9][a-z0-9-_]{0,120}$/.test(out.topicSlug)) out.topicSlug = "";
+  if (typeof out.kind === "string" && !/^[a-z0-9-]{0,32}$/.test(out.kind)) out.kind = "";
   if (type === "BentoGrid") {
     const items = Array.isArray(raw.items) ? raw.items.slice(0, 8) : [];
     out.items = items.filter(isRecord).map((item) => ({

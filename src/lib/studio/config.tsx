@@ -22,6 +22,71 @@ type BentoProps = { title: string; columns: "2" | "3"; items: { title: string; b
 type CtaProps = { title: string; lead: string; label: string; href: string };
 type DividerProps = { space: "sm" | "md" | "lg" };
 
+export type StudioLiveItem = { title: string; href: string; meta: string };
+export type LiveListProps = {
+  heading: string;
+  topicSlug?: string;
+  kind?: string;
+  limit: "3" | "6" | "9";
+  layout: "cards" | "list";
+  items?: StudioLiveItem[];
+};
+
+function LiveList({ heading, layout, items }: LiveListProps) {
+  const list = items ?? [];
+  return (
+    <section className="py-6">
+      {heading ? <h2 className="mb-4 text-2xl font-black text-slate-900">{heading}</h2> : null}
+      {list.length === 0 ? (
+        <p className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500">
+          هنوز داده‌ای برای نمایش نیست.
+        </p>
+      ) : layout === "list" ? (
+        <ul className="space-y-2">
+          {list.map((item, i) => (
+            <li key={i}>
+              <a href={item.href} className="block rounded-2xl border border-slate-200 bg-white p-4 hover:border-indigo-200">
+                <span className="font-bold text-slate-900">{item.title}</span>
+                {item.meta ? <span className="mt-1 block text-sm leading-7 text-slate-600">{item.meta}</span> : null}
+              </a>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {list.map((item, i) => (
+            <a key={i} href={item.href} className="block rounded-2xl border border-slate-200 bg-white p-4 hover:border-indigo-200">
+              <span className="font-bold text-slate-900">{item.title}</span>
+              {item.meta ? <span className="mt-1 block text-sm leading-7 text-slate-600">{item.meta}</span> : null}
+            </a>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+const liveFields = {
+  heading: { type: "text", label: "عنوان بخش" },
+  limit: {
+    type: "select",
+    label: "تعداد",
+    options: [
+      { label: "۳", value: "3" },
+      { label: "۶", value: "6" },
+      { label: "۹", value: "9" },
+    ],
+  },
+  layout: {
+    type: "select",
+    label: "چیدمان",
+    options: [
+      { label: "کارت", value: "cards" },
+      { label: "فهرست", value: "list" },
+    ],
+  },
+} as const;
+
 export const studioConfig: Config<{
   PageHero: HeroProps;
   SectionHeader: SectionHeaderProps;
@@ -29,6 +94,12 @@ export const studioConfig: Config<{
   BentoGrid: BentoProps;
   CTABand: CtaProps;
   Divider: DividerProps;
+  KnowledgeList: LiveListProps;
+  ProjectPipeline: LiveListProps;
+  CourseGrid: LiveListProps;
+  AnalyzerGrid: LiveListProps;
+  TopicHub: LiveListProps;
+  ShopGrid: LiveListProps;
 }> = {
   root: {
     render: ({ children }) => (
@@ -39,6 +110,10 @@ export const studioConfig: Config<{
     structure: { title: "ساختار", components: ["PageHero", "SectionHeader", "Divider"] },
     content: { title: "محتوا", components: ["RichText", "BentoGrid"] },
     conversion: { title: "تصمیم و تبدیل", components: ["CTABand"] },
+    live: {
+      title: "دادهٔ زندهٔ هادیران",
+      components: ["KnowledgeList", "ProjectPipeline", "CourseGrid", "AnalyzerGrid", "TopicHub", "ShopGrid"],
+    },
   },
   components: {
     PageHero: {
@@ -189,6 +264,48 @@ export const studioConfig: Config<{
           </a>
         </section>
       ),
+    },
+    KnowledgeList: {
+      label: "فهرست دانش (زنده)",
+      fields: {
+        ...liveFields,
+        topicSlug: { type: "text", label: "اسلاگ موضوع (اختیاری)" },
+      },
+      defaultProps: { heading: "باغ دانش", limit: "6", layout: "cards", topicSlug: "", items: [] },
+      render: (props) => <LiveList {...props} />,
+    },
+    ProjectPipeline: {
+      label: "پروژه‌های کارگاه (زنده)",
+      fields: { ...liveFields },
+      defaultProps: { heading: "پروژه‌ها", limit: "6", layout: "cards", items: [] },
+      render: (props) => <LiveList {...props} />,
+    },
+    CourseGrid: {
+      label: "دوره‌ها (زنده)",
+      fields: { ...liveFields },
+      defaultProps: { heading: "دوره‌ها", limit: "6", layout: "cards", items: [] },
+      render: (props) => <LiveList {...props} />,
+    },
+    AnalyzerGrid: {
+      label: "آینه‌ها (زنده)",
+      fields: { ...liveFields },
+      defaultProps: { heading: "آینه‌ها", limit: "6", layout: "cards", items: [] },
+      render: (props) => <LiveList {...props} />,
+    },
+    TopicHub: {
+      label: "موضوع‌ها (زنده)",
+      fields: { ...liveFields },
+      defaultProps: { heading: "موضوع‌ها", limit: "6", layout: "cards", items: [] },
+      render: (props) => <LiveList {...props} />,
+    },
+    ShopGrid: {
+      label: "فروشگاه (زنده)",
+      fields: {
+        ...liveFields,
+        kind: { type: "text", label: "نوع کالا (اختیاری)" },
+      },
+      defaultProps: { heading: "فروشگاه", limit: "6", layout: "cards", kind: "", items: [] },
+      render: (props) => <LiveList {...props} />,
     },
     Divider: {
       label: "فاصله‌گذار",

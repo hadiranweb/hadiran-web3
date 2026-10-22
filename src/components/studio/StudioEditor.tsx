@@ -60,6 +60,21 @@ export function StudioEditor({ id }: { id: string }) {
     setNotice("پیش‌نویس ذخیره شد.");
   }
 
+  async function refreshLivePreview() {
+    setBusy(true);
+    setError(null);
+    const res = await fetch(`/api/workspace/studio/pages/${id}/preview`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ data }),
+    });
+    setBusy(false);
+    if (!res.ok) return setError("پیش‌نمایش زنده نشد.");
+    const json = (await res.json()) as { data: StudioData };
+    setData(json.data);
+    setNotice("پیش‌نمایش با دادهٔ زنده به‌روز شد (هنگام ذخیره، آیتم‌ها ذخیره نمی‌شوند؛ فقط تنظیمات می‌ماند).");
+  }
+
   async function publish() {
     setBusy(true);
     setError(null);
@@ -111,6 +126,9 @@ export function StudioEditor({ id }: { id: string }) {
           </button>
           <button type="button" className={btnCls} disabled={busy} onClick={() => void publish()}>
             انتشار
+          </button>
+          <button type="button" className={ghostCls} disabled={busy} onClick={() => void refreshLivePreview()}>
+            پیش‌نمایش دادهٔ زنده
           </button>
           <a className="text-sm font-bold text-indigo-700" href={`/p/${page.slug}`} target="_blank" rel="noreferrer">
             مشاهدهٔ عمومی

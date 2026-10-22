@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { StudioRender } from "@/components/studio/StudioRender";
 import { getPublishedBySlug } from "@/lib/studio/pages";
+import { resolveStudioData } from "@/lib/studio/resolve";
 import { validateStudioData } from "@/lib/studio/validate";
 
 export const dynamic = "force-dynamic";
@@ -27,5 +28,6 @@ export default async function StudioPublicPage({ params }: Props) {
   if (!page) notFound();
   const data = validateStudioData(page.publishedData);
   if (!data) notFound();
-  return <StudioRender data={data} />;
+  const resolved = await resolveStudioData(data);
+  return <StudioRender data={resolved} />;
 }
