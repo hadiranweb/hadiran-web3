@@ -414,3 +414,6 @@ async function retrieveFromDatabase(query: string): Promise<AIResponse> {
     related: related.slice(0, 8),
   };
 }
+
+/** استفادهٔ مجدد موتور MCP از همان توکن‌سازی و امتیازدهی چت (منبع واحد، بدون تغییر رفتار). */
+export { normalize as normalizeQueryTokens, score as scoreTextMatch };
