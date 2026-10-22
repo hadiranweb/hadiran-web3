@@ -65,3 +65,27 @@ test("تعدیل‌گر زمینه: وزن کلیدواژه با اندازهٔ 
   const kw = report.layers.flatMap((l) => l.keywords).find((k) => k.id === "L1-K2");
   assert.ok(typeof kw.contextWeight === "number" && typeof kw.contextWeightedDeficit === "number");
 });
+
+test("بانک ۸۹ سؤالی و کاوش عمیق تطبیقی: ماژول‌ها از کلیدواژه‌های ضعیف انتخاب و برگهٔ A3 ساخته می‌شود", async () => {
+  const { SCR_ITEMS, DIAG_DIMENSIONS, selectAdaptiveDeepDiveModules, buildA3ActionSheet } = await import("./deep-dive-a3.ts");
+  assert.equal(SCR_ITEMS.length, 15);
+  assert.equal(DIAG_DIMENSIONS.length, 9);
+  assert.equal(DIAG_DIMENSIONS.reduce((n, d) => n + d.items.length, 0), 54);
+
+  const { codePacks } = await import("@/lib/analyzers/registry.ts");
+  const { buildDiagnosisReport } = await import("./report.ts");
+  const sd = codePacks().find((p) => p.slug === "system-diagnosis");
+  const rangeIds = sd.sections.flatMap((s) => s.items.filter((i) => i.kind === "range").map((i) => i.id));
+  const answers = { "BIZ.1": "نمونه", "BIZ.2": "service", "BIZ.4": "6-20", "BIZ.6": "3-5" };
+  for (const id of rangeIds) {
+    const item = sd.sections.flatMap((s) => s.items).find((i) => i.id === id);
+    answers[id] = item.reverse ? 8 : 2;
+  }
+  const report = buildDiagnosisReport(sd, answers, null);
+  assert.ok(report.deepDive, "deep dive in report");
+  assert.equal(report.deepDive.totalBankItemsCount, 89);
+  assert.ok(report.deepDive.recommendedModules.length >= 1, "adaptive modules chosen");
+  assert.ok(report.deepDive.a3Sheet, "A3 sheet built");
+  const modules = selectAdaptiveDeepDiveModules(report.layers.flatMap((l) => l.keywords), answers, 2);
+  assert.ok(modules.every((m) => m.items.length > 0), "modules carry items");
+});

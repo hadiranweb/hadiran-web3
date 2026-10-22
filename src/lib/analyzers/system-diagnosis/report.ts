@@ -27,6 +27,10 @@ import {
   type BusinessContextProfile,
 } from "./context-modulation";
 import {
+  buildAdaptiveDeepDiveSummary,
+  type AdaptiveDeepDiveSummary,
+} from "./deep-dive-a3";
+import {
   INTERPRETATION_VERSION,
   crossPatterns as fallbackPatterns,
   layerBands as fallbackBands,
@@ -61,6 +65,7 @@ export type DiagnosisReport = {
   ontology?: OntologyDiagnosisSummary;
   causalGraph?: RespondentCausalGraphSummary;
   contextProfile?: BusinessContextProfile;
+  deepDive?: AdaptiveDeepDiveSummary;
   total: number;
   maturity: { id: string; labelFa: string };
   bottleneck: { id: string; titleFa: string; score: number };
@@ -590,6 +595,17 @@ export function buildDiagnosisReport(
     }
   }
   const ontology = buildOntologyDiagnosis(allKeywords);
+  const bottleneckLayer = layers.find((layer) => layer.isBottleneck);
+  const deepDive = buildAdaptiveDeepDiveSummary({
+    bottleneckLayerId: bottleneckLayer?.id ?? "",
+    bottleneckLayerTitleFa: bottleneckLayer?.titleFa ?? "",
+    bottleneckLayerScore: bottleneckLayer?.score ?? 0,
+    allKeywords,
+    bottleneckKeywords: bottleneckLayer?.keywords ?? [],
+    answers,
+    ontology,
+    contextProfile,
+  });
   const layerPatterns = matchingPatterns(pack, layerScores);
   const patterns = [...layerPatterns, ...detectContextualPatterns(contextProfile, layerScores, total)];
 
@@ -601,6 +617,7 @@ export function buildDiagnosisReport(
     ontology,
     causalGraph,
     contextProfile,
+    deepDive,
     total,
     maturity: { id: maturityId, labelFa: maturityLabel(pack, maturityId) },
     bottleneck: bottleneck
