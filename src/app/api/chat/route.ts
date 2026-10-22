@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { retrieveForQuery } from "@/lib/ai";
+import { getCurrentAccount } from "@/lib/auth/session";
 import { loadConversation, persistTurn } from "@/lib/chat-store";
+import { runMcpChatTurn } from "@/lib/mcp/orchestrator";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +39,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "message is required" }, { status: 400 });
     }
 
-    const result = await retrieveForQuery(message);
+    // حساب فقط از سشن سرور خوانده می‌شود؛ body کلاینت هیچ‌وقت شناسهٔ حساب نمی‌دهد.
+    const account = await getCurrentAccount();
+    const result = await runMcpChatTurn({
+      message,
+      conversationId: typeof body.conversationId === "number" ? body.conversationId : null,
+      account,
+    });
     const conversationId = await persistTurn({
       conversationId: typeof body.conversationId === "number" ? body.conversationId : null,
       userMessage: message,
@@ -51,6 +58,9 @@ export async function POST(request: Request) {
       references: result.references,
       related: result.related,
       conversationId,
+      modeUsed: result.modeUsed,
+      suggestedAnalyzer: result.suggestedAnalyzer,
+      followUpQuestions: result.followUpQuestions,
     });
   } catch (error) {
     console.error("Chat POST error:", error);
