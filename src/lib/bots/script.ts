@@ -194,11 +194,23 @@ export const DEFAULT_CUSTOM_KEYS: BotKey[] = DEFAULT_ANALYZER_KEYS.filter(
 
 export type BotScript = {
   service: BotService;
+  /** مدت بی‌فعالیتی که گفتگو را به شروع برمی‌گرداند. قابل تنظیم، نه ثابت. */
+  idleMinutes: number;
   flow: BotFlow;
   texts: BotTexts;
   keys: BotKey[];
   chrome: BotChrome;
 };
+
+export const DEFAULT_BOT_IDLE_MINUTES = 10;
+export const BOT_IDLE_MINUTES_MIN = 1;
+export const BOT_IDLE_MINUTES_MAX = 1440;
+
+export function parseIdleMinutes(raw: unknown): number {
+  const value = typeof raw === "string" ? Number(raw.trim()) : typeof raw === "number" ? raw : NaN;
+  if (!Number.isFinite(value)) return DEFAULT_BOT_IDLE_MINUTES;
+  return Math.min(BOT_IDLE_MINUTES_MAX, Math.max(BOT_IDLE_MINUTES_MIN, Math.round(value)));
+}
 
 const POLICY_DEFAULT = [privacySummary, "", ...privacyUseTerms, "", "جزئیات: {privacy}"].join("\n");
 
@@ -425,6 +437,7 @@ export function defaultScript(service: BotService = "analyzers"): BotScript {
   }
   return {
     service,
+    idleMinutes: DEFAULT_BOT_IDLE_MINUTES,
     flow,
     texts,
     chrome: { ...DEFAULT_BOT_CHROME },
@@ -468,7 +481,8 @@ export function parseBotScript(raw: unknown): BotScript {
   for (const key of Object.keys(DEFAULT_BOT_CHROME) as (keyof BotChrome)[]) {
     chrome[key] = parseButtonStyle(chromeRaw[key], DEFAULT_BOT_CHROME[key]);
   }
-  return { service, flow, texts, keys, chrome };
+  const idleMinutes = parseIdleMinutes(row.idleMinutes ?? base.idleMinutes);
+  return { service, idleMinutes, flow, texts, keys, chrome };
 }
 
 export function botVars(input: {

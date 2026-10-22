@@ -42,7 +42,7 @@ export const BOT_PATH_STAGES: PathStage[] = [
   {
     id: "start",
     titleFa: "شروع",
-    hintFa: " /start یا کلید شروع. اگر ده دقیقه بیکار باشد دوباره از همین‌جا ادامه می‌دهد.",
+    hintFa: " /start یا کلید شروع. اگر بیشتر از مدت بی‌فعالیتیِ تنظیم‌شده در همین میز بیکار بماند، از همین‌جا دوباره شروع می‌کند.",
     lane: "main",
     services: ["analyzers", "custom"],
     texts: ["welcome", "idleReply"],

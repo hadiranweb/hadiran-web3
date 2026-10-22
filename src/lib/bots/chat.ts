@@ -52,7 +52,6 @@ import {
 import { absoluteUrl } from "@/lib/site";
 
 const FA = "۰۱۲۳۴۵۶۷۸۹";
-const START_IDLE_MS = 10 * 60 * 1000;
 
 function faNum(value: number | string) {
   return String(value).replace(/\d/g, (digit) => FA[Number(digit)] ?? digit);
@@ -639,7 +638,8 @@ export async function handleTelegramUpdate(input: {
   const v = varsOf(titleFa);
   const lastMessageId = update.message?.message_id;
   const prior = await readSession(botId, telegramUserId);
-  const idle = Boolean(prior?.updatedAt && Date.now() - prior.updatedAt.getTime() >= START_IDLE_MS);
+  const idleMs = (script.idleMinutes || 10) * 60 * 1000;
+  const idle = Boolean(prior?.updatedAt && Date.now() - prior.updatedAt.getTime() >= idleMs);
   await patchSession(botId, telegramUserId, String(chatId), {});
 
   if (callback?.data === "retake" || callback?.data === "exams") {

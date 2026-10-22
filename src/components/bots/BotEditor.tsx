@@ -9,6 +9,9 @@ import {
   BOT_SERVICE_OPTIONS,
   BOT_TEXT_FIELDS,
   parseBotScript,
+  parseIdleMinutes,
+  BOT_IDLE_MINUTES_MAX,
+  BOT_IDLE_MINUTES_MIN,
   parseBotService,
   type BotFlow,
   type BotKey,
@@ -62,6 +65,10 @@ export function BotEditor({
 
   function setFlow(id: keyof BotFlow, value: boolean) {
     setScript((current) => ({ ...current, flow: { ...current.flow, [id]: value } }));
+  }
+
+  function setIdleMinutes(value: string) {
+    setScript((current) => ({ ...current, idleMinutes: parseIdleMinutes(value) }));
   }
 
   function setText(id: keyof BotTexts, value: string) {
@@ -254,6 +261,23 @@ export function BotEditor({
               </select>
               <span className="mt-1 block text-xs leading-6 text-slate-500">
                 {BOT_SERVICE_OPTIONS.find((item) => item.id === service)?.hintFa}
+              </span>
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1 block text-slate-600">مدت بی‌فعالیتی (دقیقه)</span>
+              <input
+                className={fieldClass}
+                type="number"
+                inputMode="numeric"
+                min={BOT_IDLE_MINUTES_MIN}
+                max={BOT_IDLE_MINUTES_MAX}
+                dir="ltr"
+                value={script.idleMinutes}
+                onChange={(event) => setIdleMinutes(event.target.value)}
+              />
+              <span className="mt-1 block text-xs leading-6 text-slate-500">
+                اگر گفتگو این‌قدر بی‌حرکت بماند، پیام بعدی از /start دوباره آغاز می‌شود. پیش‌فرض ۱۰ دقیقه؛ بین ۱ تا
+                ۱۴۴۰.
               </span>
             </label>
             <label className="block text-sm">
