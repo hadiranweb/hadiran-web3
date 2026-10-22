@@ -19,6 +19,14 @@ import {
   type RespondentCausalGraphSummary,
 } from "./coding-causal-graph";
 import {
+  contextKeywordWeight,
+  contextWeightedDeficit,
+  contextualizeKeyword,
+  detectContextualPatterns,
+  parseBusinessContext,
+  type BusinessContextProfile,
+} from "./context-modulation";
+import {
   INTERPRETATION_VERSION,
   crossPatterns as fallbackPatterns,
   layerBands as fallbackBands,
@@ -52,6 +60,7 @@ export type DiagnosisReport = {
   context: ReportContextField[];
   ontology?: OntologyDiagnosisSummary;
   causalGraph?: RespondentCausalGraphSummary;
+  contextProfile?: BusinessContextProfile;
   total: number;
   maturity: { id: string; labelFa: string };
   bottleneck: { id: string; titleFa: string; score: number };
@@ -232,6 +241,10 @@ function sortKeywordsByPriority(list: LayerKeyword[]): LayerKeyword[] {
   return [...list].sort((a, b) => {
     const rankDiff = bandOrderRank(a.bandId) - bandOrderRank(b.bandId);
     if (rankDiff !== 0) return rankDiff;
+    const defDiff = (b.contextWeightedDeficit ?? 0) - (a.contextWeightedDeficit ?? 0);
+    if (Math.abs(defDiff) > 0.05) return defDiff;
+    const netDiff = (b.netCauseEffect ?? 0) - (a.netCauseEffect ?? 0);
+    if (Math.abs(netDiff) > 0.05) return netDiff;
     return (a.score ?? 0) - (b.score ?? 0);
   });
 }
@@ -241,6 +254,7 @@ function keywordsForLayer(
   findingId: string,
   answers: Record<string, number | string>,
   scored: PackScore,
+  ctx: BusinessContextProfile,
 ): LayerKeyword[] {
   const toLayer = new Set(
     pack.edges.filter((edge) => edge.to === findingId).map((edge) => edge.from),
@@ -297,7 +311,16 @@ function keywordsForLayer(
       bandId,
       bandLabelFa,
     };
-    rawKeywords.push(baseKw);
+    rawKeywords.push(
+      contextualizeKeyword(
+        {
+          ...baseKw,
+          contextWeight: contextKeywordWeight(keyword.id, ctx),
+          contextWeightedDeficit: contextWeightedDeficit(score, keyword.id, ctx),
+        },
+        ctx,
+      ),
+    );
   }
 
   if (!rawKeywords.length) {
@@ -314,14 +337,19 @@ function keywordsForLayer(
         kw.children,
         score,
       );
-      return {
-        ...kw,
-        children,
-        scoredSubKeywords,
-        score,
-        bandId,
-        bandLabelFa: keywordBandLabelFaOf(bandId),
-      };
+      return contextualizeKeyword(
+        {
+          ...kw,
+          children,
+          scoredSubKeywords,
+          score,
+          bandId,
+          bandLabelFa: keywordBandLabelFaOf(bandId),
+          contextWeight: contextKeywordWeight(kw.id, ctx),
+          contextWeightedDeficit: contextWeightedDeficit(score, kw.id, ctx),
+        },
+        ctx,
+      );
     });
     return sortKeywordsByPriority(fallbackList);
   }
@@ -399,12 +427,13 @@ function layersOf(
   pack: AnalyzerPack,
   answers: Record<string, number | string>,
   scored: PackScore,
+  ctx: BusinessContextProfile,
 ) {
   const fromFindings = pack.findings.filter((finding) => finding.kind === "layer");
   if (fromFindings.length) {
     return fromFindings.map((finding) => {
       const fallback = fallbackLayers.find((layer) => layer.findingId === finding.id);
-      const keywords = keywordsForLayer(pack, finding.id, answers, scored);
+      const keywords = keywordsForLayer(pack, finding.id, answers, scored, ctx);
       const customAsIs =
         finding.asIsFa && !STATIC_DEFAULT_AS_IS.has(finding.asIsFa) ? finding.asIsFa : null;
       const customToBe =
@@ -433,7 +462,7 @@ function layersOf(
     });
   }
   return fallbackLayers.map((layer) => {
-    const keywords = keywordsForLayer(pack, layer.findingId, answers, scored);
+    const keywords = keywordsForLayer(pack, layer.findingId, answers, scored, ctx);
     const dynamic = synthesizeLayerCopyFromKeywords(
       keywords,
       layer.asIsFa,
@@ -492,7 +521,8 @@ export function buildDiagnosisReport(
   snapshot: PackScore | null,
 ): DiagnosisReport {
   const scored = snapshot ?? scorePack(pack, answers);
-  const layerDefs = layersOf(pack, answers, scored);
+  const contextProfile = parseBusinessContext(answers);
+  const layerDefs = layersOf(pack, answers, scored, contextProfile);
   const layerScores: Record<string, number> = {};
   for (const layer of layerDefs) {
     layerScores[layer.findingId] = asNumber(scored.scores[layer.findingId]);
@@ -560,7 +590,8 @@ export function buildDiagnosisReport(
     }
   }
   const ontology = buildOntologyDiagnosis(allKeywords);
-  const patterns = matchingPatterns(pack, layerScores);
+  const layerPatterns = matchingPatterns(pack, layerScores);
+  const patterns = [...layerPatterns, ...detectContextualPatterns(contextProfile, layerScores, total)];
 
   return {
     interpretationVersion: pack.report?.interpretationVersion ?? INTERPRETATION_VERSION,
@@ -569,6 +600,7 @@ export function buildDiagnosisReport(
     context,
     ontology,
     causalGraph,
+    contextProfile,
     total,
     maturity: { id: maturityId, labelFa: maturityLabel(pack, maturityId) },
     bottleneck: bottleneck

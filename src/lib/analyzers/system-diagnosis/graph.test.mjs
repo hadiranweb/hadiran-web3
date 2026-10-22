@@ -44,3 +44,24 @@ test("گزارش: هستی‌شناسی و گراف علّی پاسخ‌دهند
   assert.equal(kw.canonicalCode, "KW.L1.K1");
   assert.ok((kw.sourceIds?.length ?? 0) > 0, "keyword linked to sources");
 });
+
+test("تعدیل‌گر زمینه: وزن کلیدواژه با اندازهٔ کسب‌وکار عوض می‌شود و در گزارش می‌نشیند", async () => {
+  const { parseBusinessContext, contextKeywordWeight } = await import("./context-modulation.ts");
+  const solo = parseBusinessContext({ "BIZ.2": "service", "BIZ.4": "solo", "BIZ.6": "1-3" });
+  const big = parseBusinessContext({ "BIZ.2": "service", "BIZ.4": "50+", "BIZ.6": "5-10" });
+  assert.notEqual(contextKeywordWeight("L1-K2", solo), contextKeywordWeight("L1-K2", big));
+
+  const { codePacks } = await import("@/lib/analyzers/registry.ts");
+  const { buildDiagnosisReport } = await import("./report.ts");
+  const sd = codePacks().find((p) => p.slug === "system-diagnosis");
+  const rangeIds = sd.sections.flatMap((s) => s.items.filter((i) => i.kind === "range").map((i) => i.id));
+  const base = { "BIZ.1": "نمونه", "BIZ.2": "service", "BIZ.6": "10+" };
+  for (const id of rangeIds) {
+    const item = sd.sections.flatMap((s) => s.items).find((i) => i.id === id);
+    base[id] = item.reverse ? 8 : 2; // عموماً ضعیف
+  }
+  const report = buildDiagnosisReport(sd, { ...base, "BIZ.4": "solo" }, null);
+  assert.ok(report.contextProfile, "context profile in report");
+  const kw = report.layers.flatMap((l) => l.keywords).find((k) => k.id === "L1-K2");
+  assert.ok(typeof kw.contextWeight === "number" && typeof kw.contextWeightedDeficit === "number");
+});
