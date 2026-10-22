@@ -139,7 +139,7 @@ INSERT INTO mcp_resources (server_slug, uri_template, name_fa, description_fa)
 VALUES
   ('ecosystem', 'hadiran://ontology/worlds', 'نقشهٔ اتاق‌های هادیران', 'شش اتاق و مسیرهای واقعی سایت'),
   ('knowledge', 'hadiran://knowledge/{slug}', 'یک نوشتهٔ عمومی', 'متن و لایه‌های ساختاری نوشتهٔ تاییدشده'),
-  ('ecosystem', 'hadiran://topics/{slug}', 'یک موضوع و پیوندهای عمومی آن', 'تعریف موضوع و قانون موتور گفتگو')
+  ('ecosystem', 'hadiran://topics/{slug}', 'یک موضوع و پیوندهای عمومی آن', 'تعریف موضوع و قانون چت خانه')
 ON CONFLICT (server_slug, uri_template) DO NOTHING;
 
 INSERT INTO mcp_prompts (server_slug, name, title_fa, description_fa)

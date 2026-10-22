@@ -2,6 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { paramsFromSchema, schemaFromParams, type ParamRow } from "@/lib/mcp/service-types";
+import type { ReactNode } from "react";
+
+const SERVICE_TABS = [
+  { id: "servers", label: "سرورها" },
+  { id: "tools", label: "ابزارها و پارامترها" },
+  { id: "library", label: "منابع و پرامپت‌ها" },
+  { id: "bindings", label: "بستن‌های مصرف‌کننده" },
+  { id: "watch", label: "امنیت و دیده‌بانی" },
+] as const;
 
 type ServerRec = {
   slug: string;
@@ -76,7 +85,8 @@ function parseJson(text: string): Record<string, unknown> | null {
   }
 }
 
-export function McpServiceDesk() {
+export function McpServiceDesk({ children }: { children?: ReactNode }) {
+  const [tab, setTab] = useState<string>("servers");
   const [servers, setServers] = useState<ServerRec[]>([]);
   const [tools, setTools] = useState<ToolRec[]>([]);
   const [resources, setResources] = useState<ResourceRec[]>([]);
@@ -304,7 +314,38 @@ export function McpServiceDesk() {
       {error && <p className="text-sm text-red-700">{error}</p>}
       {notice && <p className="text-sm text-emerald-700">{notice}</p>}
 
+      {/* ناوبری زبانه‌ای سرویس MCP؛ زبانهٔ آخر مصرف‌کنندهٔ چت خانه است، جدا از سرویس */}
+      <div className="flex flex-wrap items-center gap-2">
+        {SERVICE_TABS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setTab(t.id)}
+            className={
+              tab === t.id
+                ? "rounded-full bg-slate-900 px-4 py-2 text-sm font-bold text-white"
+                : "rounded-full border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+            }
+          >
+            {t.label}
+          </button>
+        ))}
+        <span className="mx-1 hidden h-6 w-px bg-slate-300 sm:block" aria-hidden />
+        <button
+          type="button"
+          onClick={() => setTab("chat")}
+          className={
+            tab === "chat"
+              ? "rounded-full bg-amber-600 px-4 py-2 text-sm font-bold text-white"
+              : "rounded-full border border-amber-400 bg-amber-50 px-4 py-2 text-sm font-bold text-amber-800 hover:bg-amber-100"
+          }
+        >
+          مصرف‌کنندهٔ چت خانه
+        </button>
+      </div>
+
       {/* وضعیت سرویس + صف امنیت */}
+      {tab === "servers" && (
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {[
           { label: "سرورها", value: `${servers.length.toLocaleString("fa-IR")} سرور — ${activeServers.toLocaleString("fa-IR")} فعال` },
@@ -318,13 +359,17 @@ export function McpServiceDesk() {
           </div>
         ))}
       </div>
+      )}
+      {(tab === "servers" || tab === "watch") && (
       <p className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-xs leading-6 text-amber-800">
         قاعدهٔ امنیتی: ابزار فقط وقتی جایی اجرا می‌شود که سرورش «فعال»، خودش «روشن و تأییدشده» و در بستن آن
         مصرف‌کننده نشسته باشد. ابزار کشف‌شده از سرور راه‌دور بازبینی‌نشده می‌ماند تا تو تأییدش کنی.
         نشانه‌های رفتاری (annotations) اعلام خود سرورند و نامطمئن شمرده می‌شوند؛ سطح ریسک نهایی را بازبینی تو تعیین می‌کند.
       </p>
+      )}
 
       {/* سرورها */}
+      {tab === "servers" && (
       <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4">
         <h2 className="font-bold text-slate-900">سرورهای MCP (رجیستری)</h2>
         <ul className="space-y-2">
@@ -404,10 +449,13 @@ export function McpServiceDesk() {
           <button type="button" className={btnCls} disabled={busy || !newServer.slug} onClick={() => void createServer()}>ساخت سرور</button>
         </div>
       </section>
+      )}
 
       {/* ابزارها */}
+      {(tab === "tools" || tab === "library" || tab === "watch") && (
       <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4">
-        <h2 className="font-bold text-slate-900">ابزارها، پارامترها و مقادیر</h2>
+        <h2 className="font-bold text-slate-900">{tab === "tools" ? "ابزارها و پارامترها" : tab === "library" ? "منابع و پرامپت‌ها" : "امنیت و تست ابزار"}</h2>
+        {tab === "tools" && (<>
         {servers.map((server) => (
           <div key={server.slug} className="space-y-2">
             <h3 className="text-sm font-bold text-slate-700">{server.titleFa ?? server.name} <span dir="ltr" className="text-slate-400">({server.slug})</span></h3>
@@ -492,8 +540,10 @@ export function McpServiceDesk() {
             })}
           </div>
         ))}
+        </>)}
 
         {/* منابع و پرامپت‌ها */}
+        {tab === "library" && (
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <h3 className="mb-2 text-sm font-bold text-slate-700">منابع</h3>
@@ -514,8 +564,10 @@ export function McpServiceDesk() {
             ))}
           </div>
         </div>
+        )}
 
         {/* تست ابزار */}
+        {tab === "watch" && (
         <div className="rounded-xl border border-slate-200 p-3">
           <h3 className="mb-2 text-sm font-bold text-slate-700">تست زندهٔ ابزار (ابزار امنیتی/بازبینی)</h3>
           <div className="flex flex-wrap gap-2">
@@ -530,9 +582,12 @@ export function McpServiceDesk() {
           </div>
           {testResult && <pre dir="ltr" className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap rounded-xl bg-slate-50 p-3 text-left text-xs">{testResult}</pre>}
         </div>
+        )}
       </section>
+      )}
 
       {/* بستن‌ها */}
+      {tab === "bindings" && (
       <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4">
         <h2 className="font-bold text-slate-900">بستن‌های مصرف‌کننده (سرور مجازی هر مصرف‌کننده)</h2>
         <div className="flex flex-wrap items-center gap-2">
@@ -595,8 +650,10 @@ export function McpServiceDesk() {
           ابزار فقط وقتی در این بستن است که این‌جا نشسته و روشن باشد؛ بیرونی علاوه بر این، دیده‌شدن «بیرونی» سرور را هم می‌خواهد.
         </p>
       </section>
+      )}
 
       {/* حسابرسی */}
+      {tab === "watch" && (
       <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4">
         <h2 className="font-bold text-slate-900">دیده‌بانی: آخرین فراخوانی‌ها</h2>
         {calls.length === 0 && <p className="text-sm text-slate-500">هنوز فراخوانی ثبت نشده است.</p>}
@@ -609,6 +666,9 @@ export function McpServiceDesk() {
           ))}
         </ul>
       </section>
+      )}
+
+      {tab === "chat" && children}
     </div>
   );
 }

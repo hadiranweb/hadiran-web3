@@ -56,7 +56,7 @@ export const MCP_TOOLS = [
   {
     name: "resolve_topic_graph",
     title: "Resolve topic graph",
-    description: "تشخیص موضوع‌های منطبق با پرسش و قانون اختصاصی موتور گفتگو برای هر موضوع.",
+    description: "تشخیص موضوع‌های منطبق با پرسش و قانون اختصاصی چت خانه برای هر موضوع.",
     inputSchema: {
       type: "object",
       properties: { query: { type: "string" } },

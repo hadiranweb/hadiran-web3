@@ -49,7 +49,7 @@ const ownerModules: ModuleLink[] = [
   { href: "/workspace/analyzers", fa: "آینه‌ها", en: "Mirrors", icon: ScanSearch },
   { href: "/workspace/documents", fa: "سندساز", en: "Documents", icon: BookOpen },
   { href: "/workspace/bots", fa: "ربات‌ها", en: "Bots", icon: Wrench },
-  { href: "/workspace/mcp", fa: "موتور گفتگو (MCP)", en: "Chat MCP", icon: Wrench },
+  { href: "/workspace/mcp", fa: "سرویس MCP", en: "MCP Service", icon: Wrench },
   { href: "/workspace/people", fa: "اعضا", en: "People", icon: Users },
   { href: "/workspace/referrals", fa: "معرف‌ها", en: "Referrals", icon: Users },
   { href: "/workspace/network", fa: "درخت", en: "Referral tree", icon: Hash, exact: true },

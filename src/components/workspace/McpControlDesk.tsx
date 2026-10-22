@@ -242,7 +242,7 @@ export function McpControlDesk() {
     <div className="space-y-6">
       {!config.fromDb && (
         <p className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800">
-          جدول تنظیمات MCP هنوز در دیتابیس ساخته نشده (مایگریشن 0032)؛ مقادیر پیش‌فرضِ ایمن فعال‌اند و ذخیره
+          جدول تنظیمات چت خانه هنوز در دیتابیس ساخته نشده (مایگریشن 0032)؛ مقادیر پیش‌فرضِ ایمن فعال‌اند و ذخیره
           تا اجرای مایگریشن ممکن نیست.
         </p>
       )}
@@ -334,7 +334,7 @@ export function McpControlDesk() {
 
       {/* دادهٔ مخاطب و منابع */}
       <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4">
-        <h2 className="font-bold text-slate-900">دادهٔ مخاطب و منابع MCP</h2>
+        <h2 className="font-bold text-slate-900">دادهٔ مخاطب و منابع چت خانه</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <label className={labelCls}>سطح دادهٔ مخاطب</label>
@@ -358,7 +358,6 @@ export function McpControlDesk() {
               ["enableProjectsTool", "پیشنهاد پروژه‌های کارگاه"],
               ["enableCoursesTool", "پیشنهاد دوره‌ها"],
               ["enableAnalyzersTool", "پیشنهاد آینه‌های باز"],
-              ["enableExternalEndpoint", "اندپوینت بیرونی /api/mcp (نیازمند توکن)"],
             ] as [keyof AdminConfig, string][]
           ).map(([key, label]) => (
             <label key={key} className="flex items-center gap-2">
@@ -372,8 +371,8 @@ export function McpControlDesk() {
           ))}
         </div>
         <p className="text-xs leading-6 text-slate-500">
-          روشن/خاموشی و توکن اندپوینت بیرونی از این‌جا مدیریت نمی‌شود؛ مال «بستن external_api» در رجیستری
-          سرویس MCP بالای همین صفحه است تا انتشار بیرونی زیر حکمرانی سرویس بماند.
+          روشن/خاموشی و توکن اندپوینت بیرونی از این‌جا مدیریت نمی‌شود؛ مال زبانهٔ «بستن‌های مصرف‌کننده»
+          در سرویس MCP همین صفحه است تا انتشار بیرونی زیر حکمرانی سرویس بماند.
         </p>
         <div className="grid grid-cols-5 gap-2">
           {(
