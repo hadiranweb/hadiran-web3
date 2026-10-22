@@ -28,7 +28,7 @@ export const CONSENT_BODY = [
 ];
 
 export const INTRO_SUMMARY =
-  "عارضه‌یابی سازمانی هادیران: ارزیابی الگوی ذهنی، زمینهٔ کسب‌وکار، و بیست سؤال پنج‌لایه روی مقیاس ۰ تا ۱۰. پس از ثبت پاسخ‌ها گزارش شخصی پنج‌لایه ساخته می‌شود.";
+  "عارضه‌یابی سازمانی هادیران: بیست پرسش پنج‌لایه روی مقیاس ۰ تا ۱۰، دوازده گزارهٔ دروازه، و شش پرسش زمینهٔ کسب‌وکار — سی‌وهشت پرسش در نه بخش. پس از ثبت پاسخ‌ها گزارش شخصی پنج‌لایه ساخته می‌شود.";
 
 const gateSections: Section[] = [
   { id: "gate-control", titleFa: "ارزیابی — منبع کنترل", introFa: "۱۲ گزاره؛ عدد نزدیک به تجربهٔ واقعی. درست یا غلط وجود ندارد.", items: [
@@ -370,7 +370,12 @@ const layerSections: Section[] = [
   ]},
 ];
 
-export const sections: Section[] = [...gateSections, businessSection, ...layerSections];
+/** نقش‌ها از ساختار همین فایل می‌آید تا شمارش (۲۰ + ۱۲ + ۶) با متن جلد یکی بماند. */
+export const sections: Section[] = [
+  ...gateSections.map((section) => ({ ...section, role: "gate" as const })),
+  { ...businessSection, role: "context" as const },
+  ...layerSections.map((section) => ({ ...section, role: "core" as const })),
+];
 
 export const allItems = sections.flatMap((s) => s.items);
 

@@ -8,11 +8,15 @@ import {
   BOT_KEY_ACTION_OPTIONS,
   BOT_SERVICE_OPTIONS,
   BOT_TEXT_FIELDS,
+  BOT_BUTTON_STYLE_OPTIONS,
+  BOT_CHROME_FIELDS,
   parseBotScript,
   parseIdleMinutes,
   BOT_IDLE_MINUTES_MAX,
   BOT_IDLE_MINUTES_MIN,
   parseBotService,
+  type BotButtonStyle,
+  type BotChrome,
   type BotFlow,
   type BotKey,
   type BotKeyAction,
@@ -65,6 +69,10 @@ export function BotEditor({
 
   function setFlow(id: keyof BotFlow, value: boolean) {
     setScript((current) => ({ ...current, flow: { ...current.flow, [id]: value } }));
+  }
+
+  function setChrome(id: keyof BotChrome, value: BotButtonStyle) {
+    setScript((current) => ({ ...current, chrome: { ...current.chrome, [id]: value } }));
   }
 
   function setIdleMinutes(value: string) {
@@ -451,6 +459,20 @@ export function BotEditor({
                       />
                       منوی /
                     </label>
+                    <label className="flex items-center gap-2">
+                      <span className="text-xs text-slate-500">رنگ دکمه</span>
+                      <select
+                        className={`${fieldClass} w-auto py-1`}
+                        value={key.style ?? "auto"}
+                        onChange={(event) => patchKey(key.id, { style: event.target.value as BotKey["style"] })}
+                      >
+                        {BOT_BUTTON_STYLE_OPTIONS.map((item) => (
+                          <option key={item.id || "none"} value={item.id}>
+                            {item.labelFa}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
                     <button type="button" className="text-red-700" onClick={() => removeKey(key.id)}>
                       حذف
                     </button>
@@ -466,6 +488,30 @@ export function BotEditor({
             >
               کلید تازه
             </button>
+          </fieldset>
+          <fieldset className="space-y-2">
+            <legend className="text-sm font-medium text-slate-800">ظاهر کلیدهای ثابت</legend>
+            <p className="text-xs leading-6 text-slate-500">
+              تلگرام رنگ سفارشی (hex) ندارد؛ فقط آبی، سبز، قرمز یا بدون رنگ. رنگ هر کلید را می‌توان جدا هم گذاشت.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {BOT_CHROME_FIELDS.filter((field) => !field.services || field.services.includes(service)).map((field) => (
+                <label key={field.id} className="block text-sm">
+                  <span className="mb-1 block text-slate-600">{field.labelFa}</span>
+                  <select
+                    className={fieldClass}
+                    value={script.chrome[field.id]}
+                    onChange={(event) => setChrome(field.id, event.target.value as BotButtonStyle)}
+                  >
+                    {BOT_BUTTON_STYLE_OPTIONS.filter((item) => item.id !== "auto").map((item) => (
+                      <option key={item.id || "none"} value={item.id}>
+                        {item.labelFa}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ))}
+            </div>
           </fieldset>
           <fieldset className="space-y-2">
             <legend className="text-sm font-medium text-slate-800">جریان</legend>

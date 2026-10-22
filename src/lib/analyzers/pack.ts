@@ -23,7 +23,17 @@ export type ChoiceItem = {
 
 export type Item = RangeItem | TextItem | ChoiceItem;
 
-export type Section = { id: string; titleFa: string; introFa?: string; items: Item[] };
+/** نقش بخش در آزمون: پنج‌لایهٔ اصلی، دروازه، یا زمینهٔ کسب‌وکار. */
+export type SectionRole = "core" | "gate" | "context";
+
+export type Section = {
+  id: string;
+  titleFa: string;
+  introFa?: string;
+  /** اگر نباشد، بخش در شمارش کل می‌آید ولی در تفکیک نقش‌ها نمی‌نشیند. */
+  role?: SectionRole;
+  items: Item[];
+};
 
 export type FindingKind = "group" | "dimension" | "layer" | "symptom";
 

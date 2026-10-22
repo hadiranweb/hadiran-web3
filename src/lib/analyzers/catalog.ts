@@ -1,6 +1,6 @@
 import { analyzerPublicPath } from "@/lib/analyzers/paths";
 import { loadPacks } from "@/lib/analyzers/registry";
-import { estimatePack, estimateLabelFa, type PackEstimate } from "@/lib/analyzers/estimate";
+import { estimatePack, estimateLabelFa, roleBreakdownFa, type PackEstimate } from "@/lib/analyzers/estimate";
 import type { AnalyzerPackStatus } from "@/lib/analyzers/pack";
 
 export type AnalyzerStatus = "preparing" | "open" | "archived";
@@ -13,6 +13,7 @@ export type Analyzer = {
   /** از ساختار خودِ pack خوانده می‌شود، نه متن ثابت. */
   estimate: PackEstimate;
   estimateLabelFa: string;
+  roleBreakdownFa: string;
 };
 
 function hubStatus(status: AnalyzerPackStatus): AnalyzerStatus {
@@ -39,6 +40,7 @@ export async function loadAnalyzers(): Promise<Analyzer[]> {
         status: hubStatus(pack.status),
         estimate,
         estimateLabelFa: estimateLabelFa(estimate.minutes),
+        roleBreakdownFa: roleBreakdownFa(estimate.byRole),
       };
     });
 }
