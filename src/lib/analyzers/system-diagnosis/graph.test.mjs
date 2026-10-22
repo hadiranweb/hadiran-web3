@@ -120,3 +120,30 @@ test("سند: قالب مخصوص منظومه با امتیاز کلیدواژ�
   assert.ok(html.includes("موج"), "intervention waves rendered");
   assert.ok(html.includes("هدف ۳۰ روزه") || html.includes("برگهٔ حل مسئله"), "A3 rendered");
 });
+
+test("SSOT: مانیفست کامل است، کاسیو بیرون است و همهٔ منابع ارجاعی در رجیستری وجود دارند", async () => {
+  const { getSsotManifestSummary, getCanonicalPackBySlug, buildAllCanonicalPacks, RESEARCH_SOURCES } =
+    await import("@/lib/analyzers/ssot-registry.ts");
+  const m = getSsotManifestSummary();
+  assert.equal(m.counts.totalCanonicalItems, 107);
+  assert.deepEqual(m.counts.itemsByTier, { BIZ: 6, FL: 20, SCR: 15, DIAG: 54, MND: 12 });
+  assert.equal(m.counts.keywords, 15);
+  assert.equal(m.counts.subKeywords, 75);
+  assert.ok(m.counts.researchSources >= 30, "research sources present");
+  assert.equal(buildAllCanonicalPacks().length, 2);
+  assert.equal(getCanonicalPackBySlug("casio-ss"), null);
+  assert.equal(getCanonicalPackBySlug("system-diagnosis")?.slug, "system-diagnosis");
+  assert.equal(getCanonicalPackBySlug("mindset-gate")?.slug, "mindset-gate");
+
+  // هر منبعی که گزارش به کلیدواژه‌ها چسبانده در رجیستری هست
+  const { codePacks } = await import("@/lib/analyzers/registry.ts");
+  const { buildDiagnosisReport } = await import("./report.ts");
+  const sd = codePacks().find((p) => p.slug === "system-diagnosis");
+  const rangeIds = sd.sections.flatMap((s) => s.items.filter((i) => i.kind === "range").map((i) => i.id));
+  const answers = {};
+  for (const id of rangeIds) answers[id] = 5;
+  const report = buildDiagnosisReport(sd, answers, null);
+  for (const kw of report.layers.flatMap((l) => l.keywords)) {
+    for (const srcId of kw.sourceIds ?? []) assert.ok(RESEARCH_SOURCES[srcId], `missing source ${srcId}`);
+  }
+});
