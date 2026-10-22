@@ -7,6 +7,18 @@
 import { findItem, type AnalyzerPack, type LayerBand } from "@/lib/analyzers/pack";
 import { scorePack, type PackScore } from "@/lib/analyzers/score";
 import {
+  VAULT_CONCEPTS,
+  buildOntologyDiagnosis,
+  getKeywordOntology,
+  type OntologyDiagnosisSummary,
+} from "./ontology-graph";
+import {
+  buildCanonicalKeywordCausalProfiles,
+  buildRespondentCausalAnalysis,
+  toCanonicalCode,
+  type RespondentCausalGraphSummary,
+} from "./coding-causal-graph";
+import {
   INTERPRETATION_VERSION,
   crossPatterns as fallbackPatterns,
   layerBands as fallbackBands,
@@ -19,6 +31,7 @@ export type ReportContextField = { labelFa: string; valueFa: string };
 
 export type ReportLayer = {
   id: string;
+  canonicalCode?: string;
   titleFa: string;
   constructFa: string;
   score: number;
@@ -37,6 +50,8 @@ export type DiagnosisReport = {
   instrumentVersion: string;
   businessName: string | null;
   context: ReportContextField[];
+  ontology?: OntologyDiagnosisSummary;
+  causalGraph?: RespondentCausalGraphSummary;
   total: number;
   maturity: { id: string; labelFa: string };
   bottleneck: { id: string; titleFa: string; score: number };
@@ -44,6 +59,12 @@ export type DiagnosisReport = {
   patterns: ReportPattern[];
   closingFa: string;
 };
+
+const KEYWORD_TITLES_MAP: Record<string, string> = Object.fromEntries(
+  fallbackLayers.flatMap((layer) => layer.keywords.map((kw) => [kw.id, kw.titleFa] as const)),
+);
+
+const BASE_CAUSAL_PROFILES = buildCanonicalKeywordCausalProfiles(KEYWORD_TITLES_MAP);
 
 const CANONICAL_KEYWORDS = new Map<string, LayerKeyword>(
   fallbackLayers.flatMap((layer) => layer.keywords.map((kw) => [kw.id, kw] as const)),
@@ -166,6 +187,7 @@ function computeScoredSubKeywords(
         const subId = `${canonical?.id ?? "KW"}-S${idx + 1}`;
         return {
           id: subId,
+          canonicalCode: toCanonicalCode(subId),
           titleFa,
           score: parentScore,
           bandId,
@@ -186,6 +208,7 @@ function computeScoredSubKeywords(
     const score = totalWeight > 0 ? round1((weightedSum / totalWeight) * 2) : parentScore;
     return {
       id: sub.id,
+      canonicalCode: toCanonicalCode(sub.id),
       titleFa: sub.titleFa,
       score,
       bandId: keywordBandIdOf(score),
@@ -238,8 +261,31 @@ function keywordsForLayer(
       baseChildren,
       score,
     );
+    const onto = getKeywordOntology(keyword.id);
+    const causalProfile = BASE_CAUSAL_PROFILES[keyword.id];
     const baseKw: LayerKeyword = {
       ...(canonical ?? {}),
+      canonicalCode: causalProfile?.canonicalCode ?? toCanonicalCode(keyword.id),
+      rummlerLevel: onto?.rummlerLevel ?? canonical?.rummlerLevel,
+      rummlerNeed: onto?.rummlerNeed ?? canonical?.rummlerNeed,
+      rummlerCellLabelFa: onto?.rummlerCellLabelFa ?? canonical?.rummlerCellLabelFa,
+      nadlerPairFa: onto?.nadlerPairFa ?? canonical?.nadlerPairFa,
+      vaultConceptsFa: onto?.vaultConceptIds.map((id) => VAULT_CONCEPTS[id]?.titleFa ?? id) ?? canonical?.vaultConceptsFa,
+      sourceIds: onto?.sourceIds ?? canonical?.sourceIds,
+      ismLevel: causalProfile?.ismLevel,
+      causalRole: causalProfile?.causalRole,
+      causalRoleLabelFa: causalProfile?.causalRoleLabelFa,
+      micmacQuadrant: causalProfile?.micmacQuadrant,
+      micmacLabelFa: causalProfile?.micmacLabelFa,
+      drivingPower: causalProfile?.drivingPower,
+      dependencePower: causalProfile?.dependencePower,
+      netCauseEffect: causalProfile?.netCauseEffect,
+      influencersFa: causalProfile?.directInfluencers.map(
+        (inf) => `${KEYWORD_TITLES_MAP[inf.keywordId] ?? inf.keywordId} [${inf.canonicalCode}]`,
+      ),
+      influencedFa: causalProfile?.directInfluenced.map(
+        (dep) => `${KEYWORD_TITLES_MAP[dep.keywordId] ?? dep.keywordId} [${dep.canonicalCode}]`,
+      ),
       id: keyword.id,
       titleFa: keyword.labelFa || canonical?.titleFa || keyword.id,
       children,
@@ -462,6 +508,7 @@ export function buildDiagnosisReport(
     const score = layerScores[layer.findingId] ?? 0;
     return {
       id: layer.findingId,
+      canonicalCode: toCanonicalCode(layer.findingId),
       titleFa: layer.titleFa,
       constructFa: layer.constructFa,
       score,
@@ -498,6 +545,21 @@ export function buildDiagnosisReport(
   }
 
   const total = asNumber(scored.scores["diagnosis-total"]);
+  const allKeywords = layers.flatMap((layer) => layer.keywords);
+  const causalGraph = buildRespondentCausalAnalysis(allKeywords);
+  const nodeByKw = new Map(causalGraph.nodes.map((n) => [n.keywordId, n] as const));
+  for (const kw of allKeywords) {
+    const node = nodeByKw.get(kw.id);
+    if (!node) continue;
+    kw.rootCauseLeverageScore = node.rootCauseLeverageScore;
+    if (node.upstreamInfluencers.length > 0) {
+      kw.influencersFa = node.upstreamInfluencers.map((inf) => `${inf.titleFa} [${inf.canonicalCode}]`);
+    }
+    if (node.downstreamInfluenced.length > 0) {
+      kw.influencedFa = node.downstreamInfluenced.map((dep) => `${dep.titleFa} [${dep.canonicalCode}]`);
+    }
+  }
+  const ontology = buildOntologyDiagnosis(allKeywords);
   const patterns = matchingPatterns(pack, layerScores);
 
   return {
@@ -505,6 +567,8 @@ export function buildDiagnosisReport(
     instrumentVersion: scored.version,
     businessName,
     context,
+    ontology,
+    causalGraph,
     total,
     maturity: { id: maturityId, labelFa: maturityLabel(pack, maturityId) },
     bottleneck: bottleneck
