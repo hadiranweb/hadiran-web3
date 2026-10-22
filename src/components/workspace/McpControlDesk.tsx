@@ -371,21 +371,10 @@ export function McpControlDesk() {
             </label>
           ))}
         </div>
-        {config.enableExternalEndpoint && (
-          <div>
-            <label className={labelCls}>
-              توکن Bearer اندپوینت بیرونی {config.externalTokenHint ? `(ذخیره‌شده: ${config.externalTokenHint})` : "(تنظیم نشده — اندپوینت بسته می‌ماند)"}
-            </label>
-            <div className="flex gap-2">
-              <input dir="ltr" type="password" className={inputCls} value={externalToken} placeholder="توکن تازه" onChange={(e) => setExternalToken(e.target.value)} />
-              {config.externalTokenHint && (
-                <button type="button" disabled={busy} onClick={() => void clearKey("external")} className="shrink-0 rounded-xl border border-slate-200 px-3 text-sm">
-                  حذف توکن
-                </button>
-              )}
-            </div>
-          </div>
-        )}
+        <p className="text-xs leading-6 text-slate-500">
+          روشن/خاموشی و توکن اندپوینت بیرونی از این‌جا مدیریت نمی‌شود؛ مال «بستن external_api» در رجیستری
+          سرویس MCP بالای همین صفحه است تا انتشار بیرونی زیر حکمرانی سرویس بماند.
+        </p>
         <div className="grid grid-cols-5 gap-2">
           {(
             [
