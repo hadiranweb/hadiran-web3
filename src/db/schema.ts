@@ -520,6 +520,61 @@ export const knowledgeBookmarks = pgTable(
   (t) => [primaryKey({ columns: [t.accountId, t.knowledgeId] })],
 );
 
+/** تنظیمات سراسری موتور گفتگوی MCP (تک‌ردیفه با id='default'). کلیدها فقط رمزنگاری‌شده‌اند. */
+export const mcpConfigs = pgTable("mcp_configs", {
+  id: varchar("id", { length: 32 }).primaryKey().default("default"),
+  mode: varchar("mode", { length: 16 }).notNull().default("local"),
+  llmProvider: varchar("llm_provider", { length: 32 }).notNull().default("openai_compatible"),
+  llmBaseUrl: text("llm_base_url").notNull().default("https://api.openai.com/v1"),
+  llmModel: varchar("llm_model", { length: 128 }).notNull().default("gpt-4o-mini"),
+  llmApiKeyCipher: text("llm_api_key_cipher"),
+  llmApiKeyHint: varchar("llm_api_key_hint", { length: 8 }),
+  llmTemperature: doublePrecision("llm_temperature").notNull().default(0.3),
+  llmMaxTokens: integer("llm_max_tokens").notNull().default(700),
+  llmTimeoutMs: integer("llm_timeout_ms").notNull().default(8000),
+  audienceContextLevel: varchar("audience_context_level", { length: 24 }).notNull().default("conversation"),
+  maxHistoryTurns: integer("max_history_turns").notNull().default(4),
+  enableKnowledgeTool: boolean("enable_knowledge_tool").notNull().default(true),
+  enableArticleLayers: boolean("enable_article_layers").notNull().default(true),
+  enableProjectsTool: boolean("enable_projects_tool").notNull().default(true),
+  enableCoursesTool: boolean("enable_courses_tool").notNull().default(true),
+  enableAnalyzersTool: boolean("enable_analyzers_tool").notNull().default(true),
+  enableExternalMcpEndpoint: boolean("enable_external_mcp_endpoint").notNull().default(false),
+  externalMcpTokenCipher: text("external_mcp_token_cipher"),
+  externalMcpTokenHint: varchar("external_mcp_token_hint", { length: 8 }),
+  weights: jsonb("weights")
+    .$type<{ title: number; summary: number; body: number; topic: number; hopBonus: number }>()
+    .notNull()
+    .default({ title: 3, summary: 2, body: 1, topic: 4, hopBonus: 8 }),
+  defaultSystemPromptFa: text("default_system_prompt_fa"),
+  defaultLocalTemplateFa: text("default_local_template_fa"),
+  lastLlmStatus: varchar("last_llm_status", { length: 32 }),
+  lastLlmError: text("last_llm_error"),
+  lastLlmAt: timestamp("last_llm_at", { withTimezone: true }),
+  updatedBy: integer("updated_by").references(() => accounts.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** قانون اختصاصی موتور گفتگو برای هر موضوع (topics.slug). */
+export const mcpTopicRules = pgTable("mcp_topic_rules", {
+  id: serial("id").primaryKey(),
+  topicSlug: varchar("topic_slug", { length: 64 })
+    .notNull()
+    .unique()
+    .references(() => topics.slug, { onDelete: "cascade" }),
+  enabled: boolean("enabled").notNull().default(true),
+  modeOverride: varchar("mode_override", { length: 16 }).notNull().default("inherit"),
+  responseStyle: varchar("response_style", { length: 32 }).notNull().default("clarify_first"),
+  customPromptFa: text("custom_prompt_fa"),
+  customLocalLeadFa: text("custom_local_lead_fa"),
+  closingQuestionOverrideFa: text("closing_question_override_fa"),
+  preferredAnalyzerSlug: varchar("preferred_analyzer_slug", { length: 64 }),
+  priorityBoost: integer("priority_boost").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const accountAvatars = pgTable("account_avatars", {
   accountId: integer("account_id")
     .primaryKey()
