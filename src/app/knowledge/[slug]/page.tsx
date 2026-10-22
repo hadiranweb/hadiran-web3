@@ -18,6 +18,9 @@ import { ArrowLeft, Hash, FlaskConical, Pencil } from "lucide-react";
 import type { Metadata } from "next";
 import { KnowledgeArticle } from "@/components/knowledge/KnowledgeArticle";
 import { ReadingTools } from "@/components/knowledge/ReadingTools";
+import { BookmarkButton } from "@/components/knowledge/BookmarkButton";
+import { ArticleNote } from "@/components/knowledge/ArticleNote";
+import { isBookmarked } from "@/lib/knowledge/bookmarks";
 import { getCurrentAccount } from "@/lib/auth/session";
 import { getPublicKnowledgeBySlug } from "@/lib/knowledge/public";
 import { growthLabel, minutesFa, type KnowledgeGrowth } from "@/lib/knowledge/article";
@@ -62,6 +65,7 @@ export default async function KnowledgeItemPage({ params }: Props) {
   }
   const item = article.data;
   const account = await getCurrentAccount();
+  const savedByMe = account ? await isBookmarked(account.id, item.id).catch(() => false) : false;
   let editHref: string | null = null;
   if (account?.role === "owner") {
     if (item.memoryItemId) {
@@ -131,7 +135,10 @@ export default async function KnowledgeItemPage({ params }: Props) {
         ) : null}
       </div>
 
-      <ReadingTools title={item.titleFa} />
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <ReadingTools title={item.titleFa} />
+        <BookmarkButton slug={item.slug} saved={savedByMe} signedIn={Boolean(account)} />
+      </div>
 
       <article className="surface reading-surface p-6 sm:p-10">
         <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-mark">
@@ -173,6 +180,8 @@ export default async function KnowledgeItemPage({ params }: Props) {
             bodyEn: s.bodyEn,
           }))}
         />
+
+        <ArticleNote slug={item.slug} titleFa={item.titleFa} />
 
         <div className="mt-8 flex flex-wrap gap-2">
           {itemTopics.map((topic) => (

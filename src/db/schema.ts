@@ -505,6 +505,21 @@ export const botChatSessions = pgTable(
   (t) => [primaryKey({ columns: [t.botId, t.telegramUserId] })],
 );
 
+/** روبان شخصی: کدام نوشته برای کدام حساب نگه داشته شده. خودِ نوشته دست نمی‌خورد. */
+export const knowledgeBookmarks = pgTable(
+  "knowledge_bookmarks",
+  {
+    accountId: integer("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    knowledgeId: integer("knowledge_id")
+      .notNull()
+      .references(() => knowledge.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.accountId, t.knowledgeId] })],
+);
+
 export const accountAvatars = pgTable("account_avatars", {
   accountId: integer("account_id")
     .primaryKey()

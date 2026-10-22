@@ -122,5 +122,9 @@ export const MIGRATION_FILES: { id: string; sql: string }[] = [
   {
     "id": "0030_content_control.sql",
     "sql": "CREATE TABLE IF NOT EXISTS site_copy (\n  id serial PRIMARY KEY,\n  key varchar(120) NOT NULL,\n  locale varchar(8) NOT NULL DEFAULT 'fa',\n  draft_value text,\n  live_value text,\n  live_revision integer NOT NULL DEFAULT 0,\n  draft_note text,\n  updated_by integer REFERENCES accounts(id) ON DELETE SET NULL,\n  updated_at timestamptz DEFAULT now(),\n  published_by integer REFERENCES accounts(id) ON DELETE SET NULL,\n  published_at timestamptz,\n  CONSTRAINT site_copy_key_locale_uq UNIQUE (key, locale)\n);\n\nCREATE TABLE IF NOT EXISTS content_revision (\n  id serial PRIMARY KEY,\n  entity varchar(32) NOT NULL,\n  entity_key varchar(160) NOT NULL,\n  revision integer NOT NULL,\n  snapshot jsonb NOT NULL,\n  note text,\n  actor_id integer REFERENCES accounts(id) ON DELETE SET NULL,\n  created_at timestamptz DEFAULT now(),\n  CONSTRAINT content_revision_entity_key_rev_uq UNIQUE (entity, entity_key, revision)\n);\n\nCREATE INDEX IF NOT EXISTS content_revision_entity_idx ON content_revision (entity, entity_key, revision DESC);\n"
+  },
+  {
+    "id": "0031_knowledge_bookmarks.sql",
+    "sql": "CREATE TABLE IF NOT EXISTS knowledge_bookmarks (\n  account_id integer NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,\n  knowledge_id integer NOT NULL REFERENCES knowledge(id) ON DELETE CASCADE,\n  created_at timestamptz NOT NULL DEFAULT now(),\n  PRIMARY KEY (account_id, knowledge_id)\n);\n\nCREATE INDEX IF NOT EXISTS knowledge_bookmarks_account_idx ON knowledge_bookmarks (account_id, created_at DESC);\n"
   }
 ];

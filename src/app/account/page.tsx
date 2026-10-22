@@ -14,6 +14,8 @@ import { AccountAvatarPanel } from "@/components/auth/AccountAvatarPanel";
 import { AccountPasswordForm } from "@/components/auth/AccountPasswordForm";
 import { AccountProfileForm } from "@/components/auth/AccountProfileForm";
 import { readAccountAvatar } from "@/lib/account/avatar-store";
+import { listShelf } from "@/lib/knowledge/bookmarks";
+import { ShelfList } from "@/components/knowledge/ShelfList";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +30,8 @@ export default async function AccountPage() {
   const publicCode = await ensureAccountPublicCode(session.id);
   const referredBy = await referredByPublicCode(session.id);
   const { avatar } = await readAccountAvatar(session);
+  // قفسه اگر جدولش تازه باشد و مایگریشن هنوز اجرا نشده باشد، صفحه را نمی‌شکند.
+  const shelf = await listShelf(session.id).catch(() => []);
   const [row] = await db
     .select({
       givenName: accounts.givenName,
@@ -59,6 +63,7 @@ export default async function AccountPage() {
           <dd className="mt-1 text-xs text-muted">موبایل تأییدشده. ایمیل و تلگرام هنوز روشن نیستند.</dd>
         </div>
       </dl>
+      <ShelfList items={shelf} />
       <AccountAvatarPanel
         initial={avatar}
         name={[row?.givenName, row?.familyName].filter(Boolean).join(" ") || session.displayName || "عضو"}
