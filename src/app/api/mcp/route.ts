@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { secretsMatch } from "@/lib/bots/secret";
 import { getMcpConfig, openExternalToken } from "@/lib/mcp/config";
+import { getBinding, openBindingToken } from "@/lib/mcp/registry";
 import { handleMcpRequest } from "@/lib/mcp/server";
 
 export const dynamic = "force-dynamic";

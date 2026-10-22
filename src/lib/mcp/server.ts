@@ -1,28 +1,29 @@
-import { hasDatabaseUrl, db } from "@/db";
-import { topics } from "@/db/schema";
-import { getPublicKnowledgeBySlug } from "@/lib/knowledge/public";
 import { getMcpConfig } from "./config";
-import { searchEcosystem, searchKnowledge, resolveTopicGraph } from "./tools";
+import { BUILTIN_WORLDS, dispatchBuiltinTool, readBuiltinResource } from "./builtin";
 import { DEFAULT_LLM_SYSTEM_PROMPT_FA } from "./llm-runner";
+import {
+  effectiveTools,
+  listPrompts,
+  listResources,
+  listServers,
+  logCall,
+} from "./registry";
+import { remoteCallTool } from "./remote";
+import { applyValuePolicy, publicToolName, type EffectiveTool } from "./service-types";
+import { getAudienceContext } from "./context";
 
 /**
- * بسته‌بندی استاندارد MCP (JSON-RPC 2.0 / Streamable HTTP) روی همان ابزارهای چت.
- * چرخهٔ 2025-11-25 (initialize + tools/resources/prompts) پیاده شده؛ بدون هندشیک هم پذیرفته می‌شود.
- * مخاطب بیرونی همیشه مهمان است: get_audience_context اینجا هرگز دادهٔ شخصی برنمی‌گرداند.
+ * بسته‌بندی استاندارد MCP (JSON-RPC 2.0 / Streamable HTTP) برای اندپوینت بیرونی.
+ * منبع حقیقت نمایش و اجرا «رجیستری سرویس» است: فقط ابزار مؤثرِ بستن external_api
+ * (سرور فعال + دیده‌شدن بیرونی + ابزار فعال و بازبینی‌شده) دیده و اجرا می‌شود.
+ * اگر رجیستری هنوز بذر ندارد، رفتار قبلی (چهار ابزار داخلی) حفظ می‌شود.
+ * مخاطب بیرونی همیشه مهمان است؛ دادهٔ شخصی از این مسیر بیرون نمی‌رود.
  */
 
 export const MCP_PROTOCOL_VERSION = "2025-11-25";
 const SUPPORTED_VERSIONS = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"];
 
-export const MCP_WORLDS = [
-  { key: "house", labelFa: "خانه", path: "/ecosystem" },
-  { key: "knowledge", labelFa: "باغ دانش", path: "/knowledge" },
-  { key: "lab", labelFa: "کارگاه", path: "/lab" },
-  { key: "mirrors", labelFa: "آینه‌ها", path: "/analyzers" },
-  { key: "courses", labelFa: "دوره‌ها", path: "/courses" },
-  { key: "shop", labelFa: "فروشگاه", path: "/shop" },
-  { key: "person", labelFa: "درباره من", path: "/hadiran" },
-];
+export const MCP_WORLDS = BUILTIN_WORLDS;
 
 export const MCP_TOOLS = [
   {
@@ -104,123 +105,97 @@ function rpcError(id: unknown, code: number, message: string): McpHttpResult {
 }
 
 function textContent(value: unknown) {
-  return { content: [{ type: "text", text: JSON.stringify(value, null, 2) }], structuredContent: value };
+  const structured = value && typeof value === "object" ? (value as Record<string, unknown>) : undefined;
+  return {
+    content: [{ type: "text", text: typeof value === "string" ? value : JSON.stringify(value, null, 2) }],
+    ...(structured ? { structuredContent: structured } : {}),
+  };
+}
+
+function toolErrorResult(message: string) {
+  return { content: [{ type: "text", text: message }], isError: true };
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 }
 
-async function callTool(name: string, args: Record<string, unknown>): Promise<McpHttpResult["body"]> {
+interface CatalogEntry {
+  publicName: string;
+  effective: EffectiveTool;
+}
+
+async function buildCatalog(): Promise<{ ready: boolean; entries: CatalogEntry[] }> {
+  const eff = await effectiveTools("external_api");
+  if (!eff.ready) return { ready: false, entries: [] };
+  const counts = new Map<string, number>();
+  for (const item of eff.tools) counts.set(item.tool.name, (counts.get(item.tool.name) ?? 0) + 1);
+  const entries = eff.tools.map((item) => ({
+    publicName: publicToolName(item.server.slug, item.tool.name, counts),
+    effective: item,
+  }));
+  return { ready: true, entries };
+}
+
+async function callLegacyTool(name: string, args: Record<string, unknown>): Promise<unknown> {
   const config = await getMcpConfig();
-  const query = typeof args.query === "string" ? args.query : "";
   switch (name) {
-    case "search_knowledge": {
-      if (!config.enableKnowledgeTool) return { ...textContent({ items: [] }), isError: true };
-      if (!query) throw new Error("query_required");
-      const items = await searchKnowledge(query, {
-        topicSlug: typeof args.topicSlug === "string" ? args.topicSlug : null,
-        limit: typeof args.limit === "number" ? args.limit : 4,
-        weights: config.weights,
-        includeLayers: config.enableArticleLayers,
-      });
-      return textContent({ items });
-    }
-    case "search_ecosystem": {
-      if (!query) throw new Error("query_required");
-      const out = await searchEcosystem(query, {
-        includeProjects: config.enableProjectsTool,
-        includeCourses: config.enableCoursesTool,
-        includeAnalyzers: config.enableAnalyzersTool && args.includeMirrors !== false,
-        weights: config.weights,
-      });
-      return textContent(out);
-    }
-    case "resolve_topic_graph": {
-      if (!query) throw new Error("query_required");
-      const graph = await resolveTopicGraph(query, config.weights);
-      return textContent({ topics: graph.topics });
-    }
     case "get_audience_context": {
-      // بیرونی = مهمان. هیچ دادهٔ شخصی از این مسیر بیرون نمی‌رود.
-      return textContent({
-        level: config.audienceLevel,
+      const audience = await getAudienceContext({ account: null, conversationId: null, config });
+      return {
+        level: audience.level,
         isGuest: true,
         displayName: null,
         history: [],
         mirror: null,
-      });
+      };
+    }
+    case "search_knowledge":
+    case "search_ecosystem":
+    case "resolve_topic_graph": {
+      const serverSlug = name === "search_knowledge" ? "knowledge" : "ecosystem";
+      return dispatchBuiltinTool(serverSlug, name, args, { account: null, config });
     }
     default:
       throw new Error("unknown_tool");
   }
 }
 
-async function listResources() {
-  const resources: { uri: string; name: string; mimeType: string }[] = [
-    { uri: "hadiran://ontology/worlds", name: "نقشهٔ اتاق‌های هادیران", mimeType: "application/json" },
-  ];
-  if (hasDatabaseUrl()) {
-    try {
-      const rows = await db.select({ slug: topics.slug, labelFa: topics.labelFa }).from(topics).limit(50);
-      for (const row of rows) {
-        resources.push({ uri: `hadiran://topics/${row.slug}`, name: row.labelFa, mimeType: "application/json" });
-      }
-    } catch {
-      // بدون جدول موضوع‌ها فقط نقشهٔ جهان‌ها می‌ماند.
-    }
+async function callCatalogTool(entry: CatalogEntry, args: Record<string, unknown>): Promise<unknown> {
+  const { server, tool, paramOverrides } = entry.effective;
+  if (tool.requiresConfirmation) {
+    // انسان باید در حلقه باشد؛ کلاینت بیرونی از این مسیر تأیید نمی‌گیرد.
+    throw new Error("confirmation_required");
   }
-  return { resources };
+  const config = await getMcpConfig();
+  const finalArgs = applyValuePolicy(tool, paramOverrides, args);
+  if (server.kind === "remote") {
+    return remoteCallTool(server, tool.name, finalArgs, tool.timeoutMs);
+  }
+  return dispatchBuiltinTool(server.slug, tool.name, finalArgs, { account: null, config });
 }
 
-async function readResource(uri: string, id: unknown): Promise<McpHttpResult> {
-  if (uri === "hadiran://ontology/worlds") {
-    return result(id, {
-      contents: [{ uri, mimeType: "application/json", text: JSON.stringify({ worlds: MCP_WORLDS }, null, 2) }],
-    });
+async function listResourcesResult() {
+  const servers = await listServers();
+  const externalActive = new Set(
+    servers.filter((s) => s.visibility === "external" && s.status === "active").map((s) => s.slug),
+  );
+  const rows = (await listResources()).filter((r) => r.enabled && externalActive.has(r.serverSlug));
+  if (rows.length === 0) {
+    return {
+      resources: [
+        { uri: "hadiran://ontology/worlds", name: "نقشهٔ اتاق‌های هادیران", mimeType: "application/json" },
+      ],
+    };
   }
-  const knowledgeMatch = /^hadiran:\/\/knowledge\/(.+)$/.exec(uri);
-  if (knowledgeMatch) {
-    try {
-      const item = await getPublicKnowledgeBySlug(decodeURIComponent(knowledgeMatch[1]));
-      if (!item) return rpcError(id, -32002, "Resource not found");
-      return result(id, {
-        contents: [
-          {
-            uri,
-            mimeType: "application/json",
-            text: JSON.stringify(
-              {
-                slug: item.slug,
-                titleFa: item.titleFa,
-                summaryFa: item.summaryFa,
-                lineFa: item.lineFa,
-                questionFa: item.questionFa,
-                rootFa: item.rootFa,
-                firstStepFa: item.firstStepFa,
-                closingQuestionFa: item.closingQuestionFa,
-                closingOptions: item.closingOptions,
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      });
-    } catch {
-      return rpcError(id, -32002, "Resource not found");
-    }
-  }
-  const topicMatch = /^hadiran:\/\/topics\/(.+)$/.exec(uri);
-  if (topicMatch) {
-    const graph = await resolveTopicGraph(decodeURIComponent(topicMatch[1]), (await getMcpConfig()).weights);
-    const topic = graph.topics.find((t) => t.slug === decodeURIComponent(topicMatch[1]));
-    if (!topic) return rpcError(id, -32002, "Resource not found");
-    return result(id, {
-      contents: [{ uri, mimeType: "application/json", text: JSON.stringify({ topic }, null, 2) }],
-    });
-  }
-  return rpcError(id, -32002, "Resource not found");
+  return {
+    resources: rows.map((r) => ({
+      uri: r.uriTemplate,
+      name: r.nameFa ?? r.uriTemplate,
+      ...(r.descriptionFa ? { description: r.descriptionFa } : {}),
+      mimeType: r.mimeType,
+    })),
+  };
 }
 
 export async function handleMcpRequest(raw: unknown): Promise<McpHttpResult> {
@@ -235,7 +210,6 @@ export async function handleMcpRequest(raw: unknown): Promise<McpHttpResult> {
   const id = req.id;
   const params = asRecord(req.params);
 
-  // Notificationها (بدون id) پاسخ ندارند.
   if (id === undefined || id === null) {
     return { status: 202, body: null };
   }
@@ -244,38 +218,128 @@ export async function handleMcpRequest(raw: unknown): Promise<McpHttpResult> {
     case "initialize": {
       const requested = typeof params.protocolVersion === "string" ? params.protocolVersion : MCP_PROTOCOL_VERSION;
       const protocolVersion = SUPPORTED_VERSIONS.includes(requested) ? requested : MCP_PROTOCOL_VERSION;
+      const servers = await listServers();
+      const instructions = servers
+        .filter((s) => s.visibility === "external" && s.status === "active" && s.instructionsFa)
+        .map((s) => s.instructionsFa)
+        .join("\n");
       return result(id, {
         protocolVersion,
         capabilities: { tools: { listChanged: false }, resources: {}, prompts: {} },
         serverInfo: { name: "hadiran-mcp", version: "1.0.0" },
+        ...(instructions ? { instructions } : {}),
       });
     }
     case "ping":
       return result(id, {});
-    case "tools/list":
-      return result(id, { tools: MCP_TOOLS });
+    case "tools/list": {
+      const catalog = await buildCatalog();
+      if (!catalog.ready) return result(id, { tools: MCP_TOOLS });
+      return result(id, {
+        tools: catalog.entries.map(({ publicName, effective }) => ({
+          name: publicName,
+          ...(effective.tool.titleFa ? { title: effective.tool.titleFa } : {}),
+          description: effective.tool.descriptionFa ?? "",
+          inputSchema: effective.tool.inputSchema,
+          ...(effective.tool.outputSchema ? { outputSchema: effective.tool.outputSchema } : {}),
+          ...(Object.keys(effective.tool.annotations).length
+            ? { annotations: effective.tool.annotations }
+            : {}),
+        })),
+      });
+    }
     case "tools/call": {
       const name = typeof params.name === "string" ? params.name : "";
-      if (!MCP_TOOLS.some((t) => t.name === name)) return rpcError(id, -32602, `Unknown tool: ${name}`);
+      const args = asRecord(params.arguments);
+      const catalog = await buildCatalog();
+      const started = Date.now();
+      if (!catalog.ready) {
+        if (!MCP_TOOLS.some((t) => t.name === name)) return rpcError(id, -32602, `Unknown tool: ${name}`);
+        try {
+          const out = await callLegacyTool(name, args);
+          void logCall({ serverSlug: null, toolName: name, consumer: "external_api", ok: true, durationMs: Date.now() - started });
+          return result(id, textContent(out));
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "tool_error";
+          void logCall({ serverSlug: null, toolName: name, consumer: "external_api", ok: false, error: message, durationMs: Date.now() - started });
+          return result(id, toolErrorResult(message));
+        }
+      }
+      const entry = catalog.entries.find((e) => e.publicName === name);
+      if (!entry) return result(id, toolErrorResult("tool_not_available"));
       try {
-        const out = await callTool(name, asRecord(params.arguments));
-        return result(id, out);
+        const out = await callCatalogTool(entry, args);
+        void logCall({
+          serverSlug: entry.effective.server.slug,
+          toolName: entry.effective.tool.name,
+          consumer: "external_api",
+          ok: true,
+          durationMs: Date.now() - started,
+        });
+        // پاسخ سرور راه‌دور خودش CallToolResult است؛ داخلی‌ها را بسته‌بندی می‌کنیم.
+        if (out && typeof out === "object" && "content" in (out as Record<string, unknown>)) {
+          return result(id, out);
+        }
+        return result(id, textContent(out));
       } catch (error) {
-        return rpcError(id, -32602, error instanceof Error ? error.message : "tool_error");
+        const message = error instanceof Error ? error.message : "tool_error";
+        void logCall({
+          serverSlug: entry.effective.server.slug,
+          toolName: entry.effective.tool.name,
+          consumer: "external_api",
+          ok: false,
+          error: message,
+          durationMs: Date.now() - started,
+        });
+        return result(id, toolErrorResult(message));
       }
     }
     case "resources/list":
-      return result(id, await listResources());
+      return result(id, await listResourcesResult());
     case "resources/read": {
       const uri = typeof params.uri === "string" ? params.uri : "";
       if (!uri) return rpcError(id, -32602, "uri_required");
-      return readResource(uri, id);
+      const config = await getMcpConfig();
+      const text = await readBuiltinResource(uri, config);
+      if (text === null) return rpcError(id, -32002, "Resource not found");
+      return result(id, { contents: [{ uri, mimeType: "application/json", text }] });
     }
-    case "prompts/list":
-      return result(id, { prompts: MCP_PROMPTS });
+    case "prompts/list": {
+      const servers = await listServers();
+      const externalActive = new Set(
+        servers.filter((s) => s.visibility === "external" && s.status === "active").map((s) => s.slug),
+      );
+      const rows = (await listPrompts()).filter((p) => p.enabled && externalActive.has(p.serverSlug));
+      if (rows.length === 0) return result(id, { prompts: MCP_PROMPTS });
+      return result(id, {
+        prompts: rows.map((p) => ({
+          name: p.name,
+          ...(p.titleFa ? { title: p.titleFa } : {}),
+          description: p.descriptionFa ?? "",
+          arguments: p.arguments,
+        })),
+      });
+    }
     case "prompts/get": {
       const name = typeof params.name === "string" ? params.name : "";
+      const servers = await listServers();
+      const externalActive = new Set(
+        servers.filter((s) => s.visibility === "external" && s.status === "active").map((s) => s.slug),
+      );
+      const rows = (await listPrompts()).filter((p) => p.enabled && externalActive.has(p.serverSlug));
+      const row = rows.find((p) => p.name === name);
       const config = await getMcpConfig();
+      if (row) {
+        const text =
+          row.templateFa ??
+          (name === "llm_system_prompt"
+            ? (config.defaultSystemPromptFa ?? DEFAULT_LLM_SYSTEM_PROMPT_FA)
+            : "{{topicIntro}} {{knowledgeLine}} {{knowledgeRoot}} {{firstStep}} {{audienceBottleneckHint}} {{closingQuestion}}");
+        return result(id, {
+          description: row.descriptionFa ?? "",
+          messages: [{ role: "user", content: { type: "text", text } }],
+        });
+      }
       if (name === "local_answer_template") {
         return result(id, {
           description: MCP_PROMPTS[0].description,

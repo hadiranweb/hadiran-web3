@@ -6,6 +6,8 @@ import { getMcpConfig, recordLlmStatus } from "./config";
 import { getAudienceContext } from "./context";
 import { buildLlmMessages, runLlmChat } from "./llm-runner";
 import { composeLocalAnswer, GREETING_ANSWER, type LocalComposition } from "./local-composer";
+import { effectiveTools } from "./registry";
+import { applyValuePolicy } from "./service-types";
 import { resolveTopicGraph, searchEcosystem, searchKnowledge } from "./tools";
 import type { AudienceContext, EcosystemHits, KnowledgeHit, McpConfig, McpMode, McpTopicRule, TopicHit } from "./types";
 
@@ -41,7 +43,21 @@ async function gatherTurn(input: {
   const config = await getMcpConfig();
   const databaseReady = hasDatabaseUrl();
 
-  const graph = await resolveTopicGraph(input.message, config.weights);
+  // حکمرانی سرویس MCP: اگر رجیستری بذر دارد، خاموشی سرور/ابزار و سقف مقادیر اینجا واقعاً اعمال می‌شود.
+  // اگر رجیستری هنوز نیست (ready=false) رفتار پیش‌فرض کد حفظ می‌شود تا سایت نشکند.
+  const eff = await effectiveTools("home_chat");
+  const effTool = (slug: string, name: string) =>
+    eff.tools.find((t) => t.server.slug === slug && t.tool.name === name);
+  const gateOn = (slug: string, name: string) => !eff.ready || Boolean(effTool(slug, name));
+  const knowledgeTool = effTool("knowledge", "search_knowledge");
+  const knowledgeArgs = knowledgeTool
+    ? applyValuePolicy(knowledgeTool.tool, knowledgeTool.paramOverrides, { query: input.message })
+    : null;
+  const knowledgeLimit = typeof knowledgeArgs?.limit === "number" ? (knowledgeArgs.limit as number) : undefined;
+
+  const graph = gateOn("ecosystem", "resolve_topic_graph")
+    ? await resolveTopicGraph(input.message, config.weights)
+    : { topics: [] as TopicHit[], topicIds: [] as number[] };
   const topTopic = graph.topics[0] ?? null;
   const rule = topTopic?.rule ?? null;
 
@@ -72,13 +88,15 @@ async function gatherTurn(input: {
     }
   }
 
-  const ecosystem = await searchEcosystem(input.message, {
-    topicIds: graph.topicIds,
-    includeProjects: config.enableProjectsTool,
-    includeCourses: config.enableCoursesTool,
-    includeAnalyzers: config.enableAnalyzersTool,
-    weights: config.weights,
-  });
+  const ecosystem = gateOn("ecosystem", "search_ecosystem")
+    ? await searchEcosystem(input.message, {
+        topicIds: graph.topicIds,
+        includeProjects: config.enableProjectsTool,
+        includeCourses: config.enableCoursesTool,
+        includeAnalyzers: config.enableAnalyzersTool,
+        weights: config.weights,
+      })
+    : { projects: [], courses: [], analyzers: [] };
 
   const local = composeLocalAnswer({
     knowledge,
