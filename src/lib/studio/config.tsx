@@ -4,6 +4,7 @@
  * همین Config هم در ادیتور و هم در رندر عمومی /p/[slug] استفاده می‌شود.
  */
 import type { Config } from "@puckeditor/core";
+import { SignInForm } from "@/components/auth/SignInForm";
 
 type HeroProps = {
   kicker: string;
@@ -21,6 +22,7 @@ type RichTextProps = { body: string };
 type BentoProps = { title: string; columns: "2" | "3"; items: { title: string; body: string }[] };
 type CtaProps = { title: string; lead: string; label: string; href: string };
 type DividerProps = { space: "sm" | "md" | "lg" };
+type SignInPanelProps = { heading: string; lead: string };
 
 export type StudioLiveItem = { title: string; href: string; meta: string };
 export type LiveListProps = {
@@ -100,6 +102,7 @@ export const studioConfig: Config<{
   AnalyzerGrid: LiveListProps;
   TopicHub: LiveListProps;
   ShopGrid: LiveListProps;
+  SignInPanel: SignInPanelProps;
 }> = {
   root: {
     render: ({ children }) => (
@@ -114,6 +117,7 @@ export const studioConfig: Config<{
       title: "دادهٔ زندهٔ هادیران",
       components: ["KnowledgeList", "ProjectPipeline", "CourseGrid", "AnalyzerGrid", "TopicHub", "ShopGrid"],
     },
+    system: { title: "بخش‌های سیستمی", components: ["SignInPanel"] },
   },
   components: {
     PageHero: {
@@ -306,6 +310,21 @@ export const studioConfig: Config<{
       },
       defaultProps: { heading: "فروشگاه", limit: "6", layout: "cards", kind: "", items: [] },
       render: (props) => <LiveList {...props} />,
+    },
+    SignInPanel: {
+      label: "فرم ورود (سیستمی)",
+      fields: {
+        heading: { type: "text", label: "عنوان بالای فرم" },
+        lead: { type: "textarea", label: "توضیح بالای فرم" },
+      },
+      defaultProps: { heading: "ورود با موبایل", lead: "" },
+      render: ({ heading, lead }) => (
+        <section className="mx-auto max-w-md py-10">
+          {heading ? <h1 className="text-3xl font-extrabold leading-snug text-slate-900">{heading}</h1> : null}
+          {lead ? <p className="mb-6 mt-2 text-sm leading-7 text-slate-600">{lead}</p> : null}
+          <SignInForm nextPath="/" />
+        </section>
+      ),
     },
     Divider: {
       label: "فاصله‌گذار",

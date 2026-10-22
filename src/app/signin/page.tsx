@@ -1,3 +1,4 @@
+import { withStudioTakeover } from "@/components/studio/StudioTakeover";
 import type { Metadata } from "next";
 import { SignInForm } from "@/components/auth/SignInForm";
 import { getCurrentAccount } from "@/lib/auth/session";
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function SignInPage({
+async function SignInPage({
   searchParams,
 }: {
   searchParams: Promise<{ next?: string }>;
@@ -36,3 +37,13 @@ export default async function SignInPage({
     </PageShell>
   );
 }
+
+export default withStudioTakeover("signin", SignInPage, {
+  // کاربر واردشده مثل نسخهٔ کدی مستقیم به مقصدش می‌رود؛ takeover فرم را دور نمی‌زند.
+  gate: async (props) => {
+    const account = await getCurrentAccount();
+    if (!account) return;
+    const { next } = await props.searchParams;
+    redirect(next?.startsWith("/") && !next.startsWith("//") ? next : "/");
+  },
+});

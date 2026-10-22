@@ -16,6 +16,7 @@ export const STUDIO_BLOCK_TYPES = [
   "AnalyzerGrid",
   "TopicHub",
   "ShopGrid",
+  "SignInPanel",
 ] as const;
 
 /** بلوک‌های زنده: در Data فقط تنظیمات می‌ماند؛ آیتم‌ها هنگام رندر از دادهٔ واقعی resolve می‌شوند و ذخیره نمی‌شوند. */
@@ -63,6 +64,7 @@ const STRING_PROPS: Record<StudioBlockType, string[]> = {
   AnalyzerGrid: ["heading"],
   TopicHub: ["heading"],
   ShopGrid: ["heading", "kind"],
+  SignInPanel: ["heading", "lead"],
 };
 
 const HREF_PROPS: Record<StudioBlockType, string[]> = {
@@ -78,6 +80,7 @@ const HREF_PROPS: Record<StudioBlockType, string[]> = {
   AnalyzerGrid: [],
   TopicHub: [],
   ShopGrid: [],
+  SignInPanel: [],
 };
 
 const ENUM_PROPS: Record<StudioBlockType, Record<string, string[]>> = {
@@ -93,6 +96,7 @@ const ENUM_PROPS: Record<StudioBlockType, Record<string, string[]>> = {
   AnalyzerGrid: { limit: ["3", "6", "9"], layout: ["cards", "list"] },
   TopicHub: { limit: ["3", "6", "9"], layout: ["cards", "list"] },
   ShopGrid: { limit: ["3", "6", "9"], layout: ["cards", "list"] },
+  SignInPanel: {},
 };
 
 function cleanProps(type: StudioBlockType, raw: Record<string, unknown>): Record<string, unknown> {

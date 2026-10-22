@@ -3,6 +3,7 @@ import { desc, eq } from "drizzle-orm";
 import { db, hasDatabaseUrl } from "@/db";
 import { studioPageVersions, studioPages } from "@/db/schema";
 import { validateStudioData, type StudioData } from "./validate";
+import { siteSlug, siteTarget } from "./site-pages";
 
 export function studioEnabled(): boolean {
   return process.env.HADIRAN_STUDIO_ENABLED === "true";
@@ -38,18 +39,48 @@ export async function createStudioPage(input: {
   slug: string;
   titleFa: string;
   ownerId: number | null;
+  target?: string;
 }): Promise<StudioPageRow | null> {
   if (!ready()) return null;
   const id = crypto.randomUUID();
   try {
     const [row] = await db
       .insert(studioPages)
-      .values({ id, slug: input.slug, titleFa: input.titleFa, ownerId: input.ownerId })
+      .values({ id, slug: input.slug, titleFa: input.titleFa, ownerId: input.ownerId, target: input.target ?? "standalone" })
       .returning();
     return row ?? null;
   } catch {
     return null;
   }
+}
+
+export async function getStudioPageByTarget(target: string): Promise<StudioPageRow | null> {
+  if (!ready()) return null;
+  try {
+    const [row] = await db.select().from(studioPages).where(eq(studioPages.target, target)).limit(1);
+    return row ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * صفحهٔ استودیویی متناظر یک صفحهٔ سایت را برمی‌گرداند و اگر نبود می‌سازد.
+ * اسلاگ داخلی است (`site-<key>`)؛ مسیر عمومی همان مسیر واقعی سایت است.
+ */
+export async function ensureSiteStudioPage(
+  def: { key: string; titleFa: string },
+  ownerId: number | null,
+): Promise<StudioPageRow | null> {
+  if (!ready()) return null;
+  const existing = await getStudioPageByTarget(siteTarget(def.key));
+  if (existing) return existing;
+  return createStudioPage({
+    slug: siteSlug(def.key),
+    titleFa: def.titleFa,
+    ownerId,
+    target: siteTarget(def.key),
+  });
 }
 
 export async function saveStudioDraft(
@@ -145,6 +176,22 @@ export async function duplicateStudioPage(id: string, actorId: number | null): P
       return copy;
     }
   });
+}
+
+/** فقط نسخهٔ منتشرشده برای یک target (مثلاً `site:home`)؛ پیش‌نویس هرگز برنمی‌گردد. */
+export async function getPublishedByTarget(target: string): Promise<StudioPageRow | null> {
+  if (!studioEnabled() || !hasDatabaseUrl()) return null;
+  try {
+    const [row] = await db
+      .select()
+      .from(studioPages)
+      .where(eq(studioPages.target, target))
+      .limit(1);
+    if (!row || row.status !== "published" || !row.publishedData) return null;
+    return row;
+  } catch {
+    return null;
+  }
 }
 
 /** فقط نسخهٔ منتشرشده برای سایت عمومی؛ پیش‌نویس هرگز از این مسیر برنمی‌گردد. */

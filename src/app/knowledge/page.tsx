@@ -1,3 +1,4 @@
+import { withStudioTakeover } from "@/components/studio/StudioTakeover";
 import { db } from "@/db";
 import { knowledgeTopics, topics } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -38,7 +39,7 @@ interface Props {
   searchParams: Promise<{ topic?: string; q?: string; sort?: string; view?: string; short?: string }>;
 }
 
-export default async function KnowledgePage({ searchParams }: Props) {
+async function KnowledgePage({ searchParams }: Props) {
   const copy = await getSiteCopy();
   const { topic, q = "", sort: sortRaw, view: viewRaw, short } = await searchParams;
   const account = await getCurrentAccount();
@@ -189,3 +190,5 @@ export default async function KnowledgePage({ searchParams }: Props) {
     </RoomPage>
   );
 }
+
+export default withStudioTakeover("knowledge", KnowledgePage);

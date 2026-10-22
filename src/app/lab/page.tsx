@@ -1,3 +1,4 @@
+import { withStudioTakeover } from "@/components/studio/StudioTakeover";
 import { db } from "@/db";
 import { projectTopics, topics } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -50,7 +51,7 @@ const statusFilters = [
   { value: "production", label: "تولید" },
 ];
 
-export default async function LabPage({ searchParams }: Props) {
+async function LabPage({ searchParams }: Props) {
   const copy = await getSiteCopy();
   const { q = "", status = "" } = await searchParams;
   const list = await loadPublicProjects();
@@ -150,3 +151,5 @@ export default async function LabPage({ searchParams }: Props) {
     </RoomPage>
   );
 }
+
+export default withStudioTakeover("lab", LabPage);

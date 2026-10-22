@@ -1,3 +1,4 @@
+import { withStudioTakeover } from "@/components/studio/StudioTakeover";
 import { db } from "@/db";
 import { person } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -48,7 +49,7 @@ function ContactEmpty({ text }: { text: string }) {
   );
 }
 
-export default async function ContactPage() {
+async function ContactPage() {
   const copy = await getSiteCopy();
   const profile = await readPublic("public person contact", async () => {
     const [row] = await db.select().from(person).where(eq(person.slug, "hadiran"));
@@ -138,3 +139,5 @@ export default async function ContactPage() {
     </PageShell>
   );
 }
+
+export default withStudioTakeover("contact", ContactPage);

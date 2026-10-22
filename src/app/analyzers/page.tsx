@@ -1,3 +1,4 @@
+import { withStudioTakeover } from "@/components/studio/StudioTakeover";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -37,7 +38,7 @@ interface Props {
   searchParams: Promise<{ q?: string; status?: string }>;
 }
 
-export default async function AnalyzersPage({ searchParams }: Props) {
+async function AnalyzersPage({ searchParams }: Props) {
   const copy = await getSiteCopy();
   const { q = "", status = "" } = await searchParams;
   const analyzers = await loadAnalyzers();
@@ -138,3 +139,5 @@ export default async function AnalyzersPage({ searchParams }: Props) {
     </RoomPage>
   );
 }
+
+export default withStudioTakeover("analyzers", AnalyzersPage);

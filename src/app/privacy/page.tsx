@@ -1,3 +1,4 @@
+import { withStudioTakeover } from "@/components/studio/StudioTakeover";
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/JsonLd";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -18,7 +19,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function PrivacyPage() {
+function PrivacyPage() {
   return (
     <PageShell width="narrow">
       <JsonLd
@@ -59,3 +60,5 @@ export default function PrivacyPage() {
     </PageShell>
   );
 }
+
+export default withStudioTakeover("privacy", PrivacyPage);

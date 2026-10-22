@@ -1,3 +1,4 @@
+import { withStudioTakeover } from "@/components/studio/StudioTakeover";
 import { db } from "@/db";
 import { courseTopics, topics } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -31,7 +32,7 @@ function coursesHref(patch: Record<string, string | undefined>) {
   return query ? `/courses?${query}` : "/courses";
 }
 
-export default async function CoursesPage({ searchParams }: Props) {
+async function CoursesPage({ searchParams }: Props) {
   const { q = "", type = "", topic = "" } = await searchParams;
   const list = await loadPublicCourses();
   const links = await readPublicCollection("public course topics", async () =>
@@ -116,3 +117,5 @@ export default async function CoursesPage({ searchParams }: Props) {
     </RoomPage>
   );
 }
+
+export default withStudioTakeover("courses", CoursesPage);

@@ -20,6 +20,7 @@ export async function GET(_request: Request, { params }: Ctx) {
       slug: page.slug,
       titleFa: page.titleFa,
       status: page.status,
+      target: page.target,
       draftData: page.draftData,
       seo: page.seo,
       publishedAt: page.publishedAt,

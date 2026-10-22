@@ -1,3 +1,4 @@
+import { withStudioTakeover } from "@/components/studio/StudioTakeover";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { HadiranMark } from "@/components/HadiranMark";
@@ -37,7 +38,7 @@ type World = {
   unit: string;
 };
 
-export default async function EcosystemPage() {
+async function EcosystemPage() {
   const [counts, copy] = await Promise.all([loadPublicWorldCounts(), getSiteCopy()]);
   const { rooms, houseCopy } = copy;
 
@@ -125,3 +126,5 @@ export default async function EcosystemPage() {
     </RoomPage>
   );
 }
+
+export default withStudioTakeover("ecosystem", EcosystemPage);

@@ -1,3 +1,4 @@
+import { withStudioTakeover } from "@/components/studio/StudioTakeover";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -44,7 +45,7 @@ function homeJsonLd(nameFa: string, nameEn: string) {
   };
 }
 
-export default async function HomePage() {
+async function HomePage() {
   const copy = await getSiteCopy();
   const { rooms, voice, homeFlow, site } = copy;
   // همان شش مقصد نقشهٔ /ecosystem؛ «خانه» خودِ همین صفحه است و کارت جدا نمی‌گیرد.
@@ -157,3 +158,5 @@ export default async function HomePage() {
     </main>
   );
 }
+
+export default withStudioTakeover("home", HomePage);

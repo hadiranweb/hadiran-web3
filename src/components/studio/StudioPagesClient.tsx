@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { sitePageByTarget } from "@/lib/studio/site-pages";
 
 export type StudioPageListItem = {
   id: string;
   slug: string;
   titleFa: string;
   status: string;
+  target: string;
   updatedAt: string | null;
   publishedAt: string | null;
 };
@@ -79,7 +81,14 @@ export function StudioPagesClient({ initial }: { initial: StudioPageListItem[] }
               <div>
                 <p className="font-bold text-slate-900">{page.titleFa}</p>
                 <p className="mt-1 text-xs text-slate-500">
-                  <span dir="ltr">/p/{page.slug}</span> · {STATUS_FA[page.status] ?? page.status}
+                  {page.target?.startsWith("site:") ? (
+                    <>
+                      صفحهٔ سایت: <span dir="ltr">{sitePageByTarget(page.target)?.path ?? page.target}</span>
+                    </>
+                  ) : (
+                    <span dir="ltr">/p/{page.slug}</span>
+                  )}{" "}
+                  · {STATUS_FA[page.status] ?? page.status}
                   {page.updatedAt ? ` · ویرایش: ${new Date(page.updatedAt).toLocaleString("fa-IR")}` : ""}
                 </p>
               </div>
@@ -97,7 +106,12 @@ export function StudioPagesClient({ initial }: { initial: StudioPageListItem[] }
                   بایگانی
                 </button>
                 {page.status === "published" && (
-                  <a className={ghostCls} href={`/p/${page.slug}`} target="_blank" rel="noreferrer">
+                  <a
+                    className={ghostCls}
+                    href={page.target?.startsWith("site:") ? (sitePageByTarget(page.target)?.path ?? "/") : `/p/${page.slug}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
                     مشاهده
                   </a>
                 )}

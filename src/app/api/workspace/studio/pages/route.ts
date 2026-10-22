@@ -17,6 +17,7 @@ export async function GET() {
       slug: p.slug,
       titleFa: p.titleFa,
       status: p.status,
+      target: p.target,
       updatedAt: p.updatedAt,
       publishedAt: p.publishedAt,
     })),

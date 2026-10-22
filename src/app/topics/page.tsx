@@ -1,3 +1,4 @@
+import { withStudioTakeover } from "@/components/studio/StudioTakeover";
 import { db } from "@/db";
 import { topics, projectTopics, courseTopics, projects, courses } from "@/db/schema";
 import { count, eq } from "drizzle-orm";
@@ -29,7 +30,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function TopicsPage() {
+async function TopicsPage() {
   const topicList = await readPublicCollection("public topics", () => db.select().from(topics));
   const knowledgeCounts = await loadPublicTopicKnowledgeCounts();
   const projectCounts = await readPublicCollection("public topic project counts", async () =>
@@ -116,3 +117,5 @@ export default async function TopicsPage() {
     </RoomPage>
   );
 }
+
+export default withStudioTakeover("topics", TopicsPage);

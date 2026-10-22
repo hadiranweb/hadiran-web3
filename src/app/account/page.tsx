@@ -1,3 +1,4 @@
+import { withStudioTakeover } from "@/components/studio/StudioTakeover";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { eq } from "drizzle-orm";
@@ -25,7 +26,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function AccountPage() {
+async function AccountPage() {
   const session = await requirePageAccount("/account");
   const publicCode = await ensureAccountPublicCode(session.id);
   const referredBy = await referredByPublicCode(session.id);
@@ -79,3 +80,10 @@ export default async function AccountPage() {
     </PageShell>
   );
 }
+
+export default withStudioTakeover("account", AccountPage, {
+  // گیت ورود بیرون از takeover می‌ماند؛ مهمان هیچ‌وقت نسخهٔ استودیویی حساب را هم نمی‌بیند.
+  gate: async () => {
+    await requirePageAccount("/account");
+  },
+});

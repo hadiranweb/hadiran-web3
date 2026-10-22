@@ -8,12 +8,14 @@ import dynamic from "next/dynamic";
 const Puck = dynamic(() => import("@puckeditor/core").then((m) => m.Puck), { ssr: false });
 import { studioConfig } from "@/lib/studio/config";
 import { EMPTY_STUDIO_DATA, type StudioData } from "@/lib/studio/validate";
+import { sitePageByTarget } from "@/lib/studio/site-pages";
 
 type PageState = {
   id: string;
   slug: string;
   titleFa: string;
   status: string;
+  target: string;
   seo: { title?: string; description?: string; index?: boolean };
 };
 
@@ -84,7 +86,12 @@ export function StudioEditor({ id }: { id: string }) {
     if (!res.ok) return setError("انتشار نشد.");
     const json = (await res.json()) as { version?: number };
     setPage((p) => (p ? { ...p, status: "published" } : p));
-    setNotice(`منتشر شد (نسخهٔ ${json.version ?? "؟"}). نشانی عمومی: /p/${page?.slug}`);
+    const siteDef = sitePageByTarget(page?.target);
+    setNotice(
+      siteDef
+        ? `منتشر شد (نسخهٔ ${json.version ?? "؟"}) و روی مسیر واقعی ${siteDef.path} اعمال شد.`
+        : `منتشر شد (نسخهٔ ${json.version ?? "؟"}). نشانی عمومی: /p/${page?.slug}`,
+    );
   }
 
   if (!page) {
@@ -95,14 +102,28 @@ export function StudioEditor({ id }: { id: string }) {
     <div className="space-y-4">
       {error && <p className="text-sm text-red-700">{error}</p>}
       {notice && <p className="text-sm text-emerald-700">{notice}</p>}
+      {sitePageByTarget(page.target) && (
+        <p className="rounded-2xl border border-indigo-200 bg-indigo-50 p-4 text-sm leading-7 text-indigo-900">
+          این صفحه، صفحهٔ واقعی «{sitePageByTarget(page.target)?.titleFa}» در مسیر{" "}
+          <span dir="ltr">{sitePageByTarget(page.target)?.path}</span> است. تا وقتی منتشر نکنی، نسخهٔ فعلی سایت سر
+          جایش می‌ماند؛ انتشار، بدنهٔ همان صفحه را با این بلوک‌ها جایگزین می‌کند و بایگانی/خالی‌کردن، نسخهٔ کدی را
+          برمی‌گرداند. {sitePageByTarget(page.target)?.note}
+        </p>
+      )}
       <div className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:grid-cols-3">
         <label className="block">
           <span className="mb-1 block text-xs text-slate-500">عنوان صفحه</span>
           <input className={inputCls} value={page.titleFa} onChange={(e) => setPage({ ...page, titleFa: e.target.value })} />
         </label>
         <label className="block">
-          <span className="mb-1 block text-xs text-slate-500">اسلاگ (نشانی /p/…)</span>
-          <input dir="ltr" className={inputCls} value={page.slug} onChange={(e) => setPage({ ...page, slug: e.target.value })} />
+          <span className="mb-1 block text-xs text-slate-500">{sitePageByTarget(page.target) ? "مسیر واقعی سایت (خودکار)" : "اسلاگ (نشانی /p/…)"}</span>
+          <input
+            dir="ltr"
+            className={inputCls}
+            disabled={Boolean(sitePageByTarget(page.target))}
+            value={sitePageByTarget(page.target)?.path ?? page.slug}
+            onChange={(e) => setPage({ ...page, slug: e.target.value })}
+          />
         </label>
         <label className="block">
           <span className="mb-1 block text-xs text-slate-500">عنوان SEO</span>
@@ -130,7 +151,12 @@ export function StudioEditor({ id }: { id: string }) {
           <button type="button" className={ghostCls} disabled={busy} onClick={() => void refreshLivePreview()}>
             پیش‌نمایش دادهٔ زنده
           </button>
-          <a className="text-sm font-bold text-indigo-700" href={`/p/${page.slug}`} target="_blank" rel="noreferrer">
+          <a
+            className="text-sm font-bold text-indigo-700"
+            href={sitePageByTarget(page.target)?.path ?? `/p/${page.slug}`}
+            target="_blank"
+            rel="noreferrer"
+          >
             مشاهدهٔ عمومی
           </a>
         </div>

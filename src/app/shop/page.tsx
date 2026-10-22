@@ -1,3 +1,4 @@
+import { withStudioTakeover } from "@/components/studio/StudioTakeover";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { formatMoney } from "@/lib/shop/money";
@@ -30,7 +31,7 @@ function shopHref(patch: Record<string, string | undefined>) {
   return query ? `/shop?${query}` : "/shop";
 }
 
-export default async function ShopPage({ searchParams }: Props) {
+async function ShopPage({ searchParams }: Props) {
   const { kind: kindRaw, q = "", sort: sortRaw } = await searchParams;
   const kindFilter = kindRaw && isShopKind(kindRaw) ? kindRaw : null;
   const { source, items } = await loadPublicShopList(kindFilter);
@@ -142,3 +143,5 @@ export default async function ShopPage({ searchParams }: Props) {
     </RoomPage>
   );
 }
+
+export default withStudioTakeover("shop", ShopPage);

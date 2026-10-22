@@ -1,3 +1,4 @@
+import { withStudioTakeover } from "@/components/studio/StudioTakeover";
 import { db } from "@/db";
 import {
   person,
@@ -32,7 +33,7 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function HadiranPage() {
+async function HadiranPage() {
   const copy = await getSiteCopy();
   const profile = await readPublic("public person profile", async () => {
     const [personRow] = await db.select().from(person).where(eq(person.slug, "hadiran"));
@@ -240,3 +241,5 @@ export default async function HadiranPage() {
     </PageShell>
   );
 }
+
+export default withStudioTakeover("person", HadiranPage);
