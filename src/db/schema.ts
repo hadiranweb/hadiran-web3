@@ -575,6 +575,142 @@ export const mcpTopicRules = pgTable("mcp_topic_rules", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/** رجیستری سرویس MCP: هر سرور رکورد مستقل خودش را دارد (داخلی یا راه‌دور). */
+export const mcpServers = pgTable("mcp_servers", {
+  slug: varchar("slug", { length: 64 }).primaryKey(),
+  name: varchar("name", { length: 128 }).notNull(),
+  titleFa: varchar("title_fa", { length: 256 }),
+  descriptionFa: text("description_fa"),
+  kind: varchar("kind", { length: 16 }).notNull().default("builtin"),
+  transport: varchar("transport", { length: 24 }).notNull().default("inprocess"),
+  baseUrl: text("base_url"),
+  protocolVersion: varchar("protocol_version", { length: 16 }).notNull().default("2025-11-25"),
+  instructionsFa: text("instructions_fa"),
+  visibility: varchar("visibility", { length: 16 }).notNull().default("internal"),
+  status: varchar("status", { length: 16 }).notNull().default("draft"),
+  capabilities: jsonb("capabilities")
+    .$type<{ tools: boolean; resources: boolean; prompts: boolean }>()
+    .notNull()
+    .default({ tools: true, resources: true, prompts: true }),
+  authType: varchar("auth_type", { length: 16 }).notNull().default("none"),
+  authTokenCipher: text("auth_token_cipher"),
+  authTokenHint: varchar("auth_token_hint", { length: 8 }),
+  healthStatus: varchar("health_status", { length: 16 }),
+  healthError: text("health_error"),
+  healthAt: timestamp("health_at", { withTimezone: true }),
+  createdBy: integer("created_by").references(() => accounts.id, { onDelete: "set null" }),
+  updatedBy: integer("updated_by").references(() => accounts.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** ابزار هر سرور MCP: اسکیما، مقادیر پیش‌فرض/سقف، نشانه‌های ریسک و وضعیت بازبینی. */
+export const mcpTools = pgTable(
+  "mcp_tools",
+  {
+    id: serial("id").primaryKey(),
+    serverSlug: varchar("server_slug", { length: 64 })
+      .notNull()
+      .references(() => mcpServers.slug, { onDelete: "cascade" }),
+    name: varchar("name", { length: 128 }).notNull(),
+    titleFa: varchar("title_fa", { length: 256 }),
+    descriptionFa: text("description_fa"),
+    enabled: boolean("enabled").notNull().default(true),
+    origin: varchar("origin", { length: 16 }).notNull().default("code"),
+    inputSchema: jsonb("input_schema").notNull().default({ type: "object", additionalProperties: false }),
+    outputSchema: jsonb("output_schema"),
+    defaults: jsonb("defaults").$type<Record<string, unknown>>().notNull().default({}),
+    caps: jsonb("caps").$type<Record<string, unknown>>().notNull().default({}),
+    annotations: jsonb("annotations").$type<Record<string, unknown>>().notNull().default({}),
+    riskLevel: varchar("risk_level", { length: 16 }).notNull().default("medium"),
+    reviewStatus: varchar("review_status", { length: 16 }).notNull().default("unreviewed"),
+    requiresConfirmation: boolean("requires_confirmation").notNull().default(false),
+    timeoutMs: integer("timeout_ms").notNull().default(8000),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("mcp_tools_server_name_uq").on(t.serverSlug, t.name)],
+);
+
+export const mcpResources = pgTable(
+  "mcp_resources",
+  {
+    id: serial("id").primaryKey(),
+    serverSlug: varchar("server_slug", { length: 64 })
+      .notNull()
+      .references(() => mcpServers.slug, { onDelete: "cascade" }),
+    uriTemplate: varchar("uri_template", { length: 256 }).notNull(),
+    nameFa: varchar("name_fa", { length: 256 }),
+    descriptionFa: text("description_fa"),
+    mimeType: varchar("mime_type", { length: 64 }).notNull().default("application/json"),
+    enabled: boolean("enabled").notNull().default(true),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("mcp_resources_server_uri_uq").on(t.serverSlug, t.uriTemplate)],
+);
+
+export const mcpPrompts = pgTable(
+  "mcp_prompts",
+  {
+    id: serial("id").primaryKey(),
+    serverSlug: varchar("server_slug", { length: 64 })
+      .notNull()
+      .references(() => mcpServers.slug, { onDelete: "cascade" }),
+    name: varchar("name", { length: 128 }).notNull(),
+    titleFa: varchar("title_fa", { length: 256 }),
+    descriptionFa: text("description_fa"),
+    templateFa: text("template_fa"),
+    arguments: jsonb("arguments").$type<unknown[]>().notNull().default([]),
+    enabled: boolean("enabled").notNull().default(true),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("mcp_prompts_server_name_uq").on(t.serverSlug, t.name)],
+);
+
+/** بستن مصرف‌کننده: کدام مصرف‌کننده روشن است و توکن خودش را دارد. */
+export const mcpBindings = pgTable("mcp_bindings", {
+  consumer: varchar("consumer", { length: 64 }).primaryKey(),
+  labelFa: varchar("label_fa", { length: 128 }).notNull(),
+  enabled: boolean("enabled").notNull().default(true),
+  authTokenCipher: text("auth_token_cipher"),
+  authTokenHint: varchar("auth_token_hint", { length: 8 }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const mcpBindingTools = pgTable(
+  "mcp_binding_tools",
+  {
+    consumer: varchar("consumer", { length: 64 })
+      .notNull()
+      .references(() => mcpBindings.consumer, { onDelete: "cascade" }),
+    toolId: integer("tool_id")
+      .notNull()
+      .references(() => mcpTools.id, { onDelete: "cascade" }),
+    enabled: boolean("enabled").notNull().default(true),
+    paramOverrides: jsonb("param_overrides").$type<Record<string, unknown>>().notNull().default({}),
+  },
+  (t) => [primaryKey({ columns: [t.consumer, t.toolId] })],
+);
+
+/** حسابرسی فراخوانی ابزارها (سطح کنترل). */
+export const mcpCallLogs = pgTable("mcp_call_logs", {
+  id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
+  serverSlug: varchar("server_slug", { length: 64 }),
+  toolName: varchar("tool_name", { length: 128 }).notNull(),
+  consumer: varchar("consumer", { length: 64 }).notNull(),
+  accountId: integer("account_id").references(() => accounts.id, { onDelete: "set null" }),
+  ok: boolean("ok").notNull(),
+  error: text("error"),
+  durationMs: integer("duration_ms"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const accountAvatars = pgTable("account_avatars", {
   accountId: integer("account_id")
     .primaryKey()
