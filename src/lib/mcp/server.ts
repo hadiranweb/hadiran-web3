@@ -8,7 +8,7 @@ import {
   listServers,
   logCall,
 } from "./registry";
-import { remoteCallTool } from "./remote";
+import { remoteCallTool, remoteGetPrompt, remoteReadResource } from "./remote";
 import { applyValuePolicy, publicToolName, type EffectiveTool } from "./service-types";
 import { getAudienceContext } from "./context";
 
@@ -300,6 +300,28 @@ export async function handleMcpRequest(raw: unknown): Promise<McpHttpResult> {
       const uri = typeof params.uri === "string" ? params.uri : "";
       if (!uri) return rpcError(id, -32602, "uri_required");
       const config = await getMcpConfig();
+      // اول رجیستری: کدام سرور این منبع را دارد؟ راه‌دور پروکسی می‌شود، داخلی از خوانندهٔ داخلی.
+      const [allServers, allResources] = await Promise.all([listServers(), listResources()]);
+      const serverBySlug = new Map(allServers.map((s) => [s.slug, s]));
+      const match = allResources
+        .filter((r) => r.enabled)
+        .find((r) => {
+          if (r.uriTemplate === uri) return true;
+          if (!r.uriTemplate.includes("{")) return false;
+          const pattern = r.uriTemplate
+            .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+            .replace(/\\\{[^}]+\\\}/g, "[^/]+");
+          return new RegExp(`^${pattern}$`).test(uri);
+        });
+      const owner = match ? serverBySlug.get(match.serverSlug) : undefined;
+      if (owner && owner.kind === "remote" && owner.status === "active" && owner.visibility === "external") {
+        try {
+          const out = await remoteReadResource(owner, uri);
+          return result(id, out);
+        } catch {
+          return rpcError(id, -32002, "Resource not found");
+        }
+      }
       const text = await readBuiltinResource(uri, config);
       if (text === null) return rpcError(id, -32002, "Resource not found");
       return result(id, { contents: [{ uri, mimeType: "application/json", text }] });

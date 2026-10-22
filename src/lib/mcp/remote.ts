@@ -1,4 +1,4 @@
-import { saveTool, updateServerHealth } from "./registry";
+import { savePrompt, saveResource, saveTool, updateServerHealth } from "./registry";
 import { openServerToken } from "./registry";
 import type { McpServerRecord } from "./service-types";
 
@@ -123,6 +123,43 @@ export async function remoteCallTool(
   return rpc(server, "tools/call", { name, arguments: args }, timeoutMs);
 }
 
+export interface RemoteResourceDef {
+  uri: string;
+  name?: string;
+  description?: string;
+  mimeType?: string;
+}
+
+export interface RemotePromptDef {
+  name: string;
+  title?: string;
+  description?: string;
+  arguments?: unknown[];
+}
+
+export async function remoteListResources(server: McpServerRecord, timeoutMs = 10000): Promise<RemoteResourceDef[]> {
+  const result = (await rpc(server, "resources/list", {}, timeoutMs)) as { resources?: RemoteResourceDef[] };
+  return Array.isArray(result?.resources) ? result.resources : [];
+}
+
+export async function remoteListPrompts(server: McpServerRecord, timeoutMs = 10000): Promise<RemotePromptDef[]> {
+  const result = (await rpc(server, "prompts/list", {}, timeoutMs)) as { prompts?: RemotePromptDef[] };
+  return Array.isArray(result?.prompts) ? result.prompts : [];
+}
+
+export async function remoteReadResource(server: McpServerRecord, uri: string, timeoutMs = 10000): Promise<unknown> {
+  return rpc(server, "resources/read", { uri }, timeoutMs);
+}
+
+export async function remoteGetPrompt(
+  server: McpServerRecord,
+  name: string,
+  args: Record<string, unknown>,
+  timeoutMs = 10000,
+): Promise<unknown> {
+  return rpc(server, "prompts/get", { name, arguments: args }, timeoutMs);
+}
+
 /** کشف ابزارهای سرور راه‌دور و همگام‌سازی در رجیستری؛ تازه‌ها بازبینی‌نشده می‌مانند. */
 export async function syncRemoteServer(
   server: McpServerRecord,
@@ -140,6 +177,31 @@ export async function syncRemoteServer(
         outputSchema: tool.outputSchema ?? null,
         annotations: tool.annotations ?? {},
         // reviewStatus و enabled موجود دست نمی‌خورد؛ ردیف تازه پیش‌فرض unreviewed است.
+      });
+    }
+    // منابع و پرامپت‌ها هم کشف می‌شوند؛ تازه‌ها خاموش می‌مانند تا owner روشنشان کند.
+    const [remoteResources, remotePrompts] = await Promise.all([
+      remoteListResources(server).catch(() => []),
+      remoteListPrompts(server).catch(() => []),
+    ]);
+    for (const resource of remoteResources) {
+      await saveResource({
+        serverSlug: server.slug,
+        uriTemplate: resource.uri,
+        nameFa: resource.name ?? null,
+        descriptionFa: resource.description ?? null,
+        mimeType: resource.mimeType ?? "application/json",
+        enabled: false,
+      });
+    }
+    for (const prompt of remotePrompts) {
+      await savePrompt({
+        serverSlug: server.slug,
+        name: prompt.name,
+        titleFa: prompt.title ?? null,
+        descriptionFa: prompt.description ?? null,
+        arguments: prompt.arguments ?? [],
+        enabled: false,
       });
     }
     await updateServerHealth(server.slug, true);

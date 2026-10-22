@@ -339,6 +339,87 @@ export async function listPrompts(serverSlug?: string): Promise<McpPromptRecord[
   }
 }
 
+export async function saveResource(input: {
+  serverSlug?: unknown;
+  uriTemplate?: unknown;
+  nameFa?: unknown;
+  descriptionFa?: unknown;
+  mimeType?: unknown;
+  enabled?: unknown;
+}): Promise<boolean> {
+  if (!hasDatabaseUrl()) return false;
+  const serverSlug = cleanText(input.serverSlug, 64);
+  const uriTemplate = cleanText(input.uriTemplate, 256);
+  if (!serverSlug || !uriTemplate) return false;
+  try {
+    await db
+      .insert(mcpResources)
+      .values({
+        serverSlug,
+        uriTemplate,
+        nameFa: cleanText(input.nameFa, 256),
+        descriptionFa: cleanText(input.descriptionFa, 2000),
+        mimeType: cleanText(input.mimeType, 64) ?? "application/json",
+        enabled: input.enabled === undefined ? true : Boolean(input.enabled),
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: [mcpResources.serverSlug, mcpResources.uriTemplate],
+        set: {
+          nameFa: cleanText(input.nameFa, 256),
+          descriptionFa: cleanText(input.descriptionFa, 2000),
+          mimeType: cleanText(input.mimeType, 64) ?? "application/json",
+          updatedAt: new Date(),
+        },
+      });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function savePrompt(input: {
+  serverSlug?: unknown;
+  name?: unknown;
+  titleFa?: unknown;
+  descriptionFa?: unknown;
+  templateFa?: unknown;
+  arguments?: unknown;
+  enabled?: unknown;
+}): Promise<boolean> {
+  if (!hasDatabaseUrl()) return false;
+  const serverSlug = cleanText(input.serverSlug, 64);
+  const name = cleanText(input.name, 128);
+  if (!serverSlug || !name) return false;
+  try {
+    await db
+      .insert(mcpPrompts)
+      .values({
+        serverSlug,
+        name,
+        titleFa: cleanText(input.titleFa, 256),
+        descriptionFa: cleanText(input.descriptionFa, 2000),
+        templateFa: cleanText(input.templateFa, 20000),
+        arguments: Array.isArray(input.arguments) ? input.arguments : [],
+        enabled: input.enabled === undefined ? true : Boolean(input.enabled),
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: [mcpPrompts.serverSlug, mcpPrompts.name],
+        set: {
+          titleFa: cleanText(input.titleFa, 256),
+          descriptionFa: cleanText(input.descriptionFa, 2000),
+          templateFa: cleanText(input.templateFa, 20000),
+          arguments: Array.isArray(input.arguments) ? input.arguments : [],
+          updatedAt: new Date(),
+        },
+      });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function setResourceEnabled(id: number, enabled: boolean): Promise<boolean> {
   if (!hasDatabaseUrl()) return false;
   try {
