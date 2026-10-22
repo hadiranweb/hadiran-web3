@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { AnalyzerRun } from "@/components/analyzers/AnalyzerRun";
 import { SignInDialog } from "@/components/auth/SignInDialog";
 import type { AnalyzerPack } from "@/lib/analyzers/pack";
+import { estimateLabelFa, estimatePack } from "@/lib/analyzers/estimate";
 import { publishAccount } from "@/lib/ui/draft";
 
 export function AnalyzerPublicScreen({
@@ -40,11 +41,18 @@ export function AnalyzerPublicScreen({
     return <AnalyzerRun pack={pack} />;
   }
 
+  const estimate = estimatePack(pack.sections);
+
   return (
     <>
       <section className="mx-auto flex min-h-[70vh] max-w-xl flex-col justify-center py-8">
         <h1 className="text-3xl font-extrabold leading-[1.35] text-ink">{pack.nameFa}</h1>
         {pack.summaryFa ? <p className="mt-5 text-sm leading-7 text-muted">{pack.summaryFa}</p> : null}
+        <p className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
+          <span title="تخمین از روی تعداد و نوع پرسش‌ها">{estimateLabelFa(estimate.minutes)}</span>
+          <span>{estimate.questionCount.toLocaleString("fa-IR")} پرسش</span>
+          <span>{estimate.sectionCount.toLocaleString("fa-IR")} بخش</span>
+        </p>
         <dl className="mt-6 space-y-3 rounded-[var(--radius-md)] border border-line bg-elev p-4 text-sm leading-7">
           <div>
             <dt className="font-medium text-ink">همین حالا چه می‌گیری؟</dt>

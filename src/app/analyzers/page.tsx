@@ -102,6 +102,11 @@ export default async function AnalyzersPage({ searchParams }: Props) {
                 <p className="chip">{statusFa[item.status]}</p>
                 <h2 className="section-card-title mt-3">{item.nameFa}</h2>
                 <p className="muted mt-2 text-sm leading-7">{item.summaryFa}</p>
+                <p className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
+                  <span title="تخمین از روی تعداد و نوع پرسش‌ها">{item.estimateLabelFa}</span>
+                  <span>{item.estimate.questionCount.toLocaleString("fa-IR")} پرسش</span>
+                  <span>{item.estimate.sectionCount.toLocaleString("fa-IR")} بخش</span>
+                </p>
               </div>
               {href ? (
                 <span className="more">
