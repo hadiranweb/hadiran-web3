@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } fro
 import { usePathname } from "next/navigation";
 import {
   BookOpen,
+  LayoutTemplate,
   Hash,
   Home,
   Layers,
@@ -48,6 +49,7 @@ const ownerModules: ModuleLink[] = [
   { href: "/workspace/actions", fa: "اقدام‌ها", en: "Work queue", icon: PenLine },
   { href: "/workspace/analyzers", fa: "آینه‌ها", en: "Mirrors", icon: ScanSearch },
   { href: "/workspace/documents", fa: "سندساز", en: "Documents", icon: BookOpen },
+  { href: "/workspace/document-templates", fa: "قالب‌ساز", en: "Template builder", icon: LayoutTemplate },
   { href: "/workspace/bots", fa: "ربات‌ها", en: "Bots", icon: Wrench },
   { href: "/workspace/mcp", fa: "سرویس MCP", en: "MCP Service", icon: Wrench },
   { href: "/workspace/people", fa: "اعضا", en: "People", icon: Users },
@@ -63,6 +65,7 @@ const ownerModules: ModuleLink[] = [
 const authorModules: ModuleLink[] = [
   { href: "/workspace/analyzers", fa: "میز آزمون‌ساز", en: "Exam desk", icon: ScanSearch },
   { href: "/workspace/documents", fa: "سندساز", en: "Documents", icon: BookOpen },
+  { href: "/workspace/document-templates", fa: "قالب‌ساز", en: "Template builder", icon: LayoutTemplate },
   { href: "/workspace/referrals", fa: "معرف‌های من", en: "My referrals", icon: Users },
   { href: "/workspace/settings", fa: "تنظیمات", en: "Settings", icon: User },
   { href: "/account", fa: "حساب من", en: "My account", icon: User },
@@ -71,6 +74,7 @@ const authorModules: ModuleLink[] = [
 const grantedModules: ModuleLink[] = [
   { href: "/workspace/analyzers", fa: "میز آزمون", en: "Exam desk", icon: ScanSearch },
   { href: "/workspace/documents", fa: "سندساز", en: "Documents", icon: BookOpen },
+  { href: "/workspace/document-templates", fa: "قالب‌ساز", en: "Template builder", icon: LayoutTemplate },
   { href: "/workspace/settings", fa: "تنظیمات", en: "Settings", icon: User },
   { href: "/account", fa: "حساب من", en: "My account", icon: User },
 ];

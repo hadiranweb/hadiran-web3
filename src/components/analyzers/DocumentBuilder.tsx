@@ -2,8 +2,6 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { DocumentTemplateEditor } from "@/components/analyzers/DocumentTemplateEditor";
-import type { DocumentChrome } from "@/lib/analyzers/document-chrome";
 import type { DocumentListItem } from "@/lib/analyzers/document-templates";
 import type { WorkspaceAttemptRow } from "@/lib/analyzers/workspace-attempt-types";
 
@@ -22,13 +20,9 @@ function whenFa(value: string | null) {
 export function DocumentBuilder({
   packs,
   initialDocuments,
-  templates,
-  canEditBase,
 }: {
   packs: PackOption[];
   initialDocuments: DocumentListItem[];
-  templates: { id: string; titleFa: string; chrome: DocumentChrome }[];
-  canEditBase: boolean;
 }) {
   const [slug, setSlug] = useState(packs[0]?.slug ?? "");
   const pack = useMemo(() => packs.find((row) => row.slug === slug) ?? null, [packs, slug]);
@@ -217,8 +211,6 @@ export function DocumentBuilder({
         ) : null}
         {error ? <p className="text-sm text-red-700">{error}</p> : null}
       </section>
-
-      {templates.length ? <DocumentTemplateEditor initial={templates} canEditBase={canEditBase} /> : null}
 
       <section className="space-y-3">
         <h2 className="text-lg font-bold text-slate-900">سندهای ساخته‌شده</h2>
