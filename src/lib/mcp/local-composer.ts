@@ -96,7 +96,9 @@ export function composeLocalAnswer(input: {
     ? ecosystem.analyzers.find((a) => a.slug === rule.preferredAnalyzerSlug) ?? null
     : null;
   const topAnalyzer = preferred ?? ecosystem.analyzers[0] ?? null;
-  const suggestedAnalyzer = topAnalyzer ? { slug: topAnalyzer.slug, nameFa: topAnalyzer.nameFa } : null;
+  // بدون دیتابیس پاسخ «اتصال برقرار نیست» است؛ پیشنهاد آینه کنار آن ناهماهنگ است.
+  const suggestedAnalyzer =
+    input.databaseReady && topAnalyzer ? { slug: topAnalyzer.slug, nameFa: topAnalyzer.nameFa } : null;
 
   const topTopic = topics[0] ?? null;
   const topKnowledge = knowledge[0] ?? null;
