@@ -3,6 +3,7 @@ import type { AnalyzerPack } from "@/lib/analyzers/pack";
 export const SYSTEM_DOCUMENT_TEMPLATES = [
   { id: "hadiran", titleFa: "هادیران", layoutKey: "hadiran" },
   { id: "casio-ss", titleFa: "کاسیو · پنج‌لایه", layoutKey: "casio-ss" },
+  { id: "system-diagnosis", titleFa: "عارضه‌یابی سیستم کسب‌وکار", layoutKey: "hadiran" },
 ] as const;
 
 export type DocumentTemplateId = (typeof SYSTEM_DOCUMENT_TEMPLATES)[number]["id"];
@@ -33,6 +34,7 @@ export function templatesForPack(pack: AnalyzerPack) {
   return SYSTEM_DOCUMENT_TEMPLATES.filter((template) => {
     if (template.id === "hadiran") return true;
     if (template.id === "casio-ss") return layered;
+    if (template.id === "system-diagnosis") return pack.slug === "system-diagnosis";
     return false;
   });
 }

@@ -89,3 +89,34 @@ test("بانک ۸۹ سؤالی و کاوش عمیق تطبیقی: ماژول‌�
   const modules = selectAdaptiveDeepDiveModules(report.layers.flatMap((l) => l.keywords), answers, 2);
   assert.ok(modules.every((m) => m.items.length > 0), "modules carry items");
 });
+
+test("سند: قالب مخصوص منظومه با امتیاز کلیدواژه، موج مداخله و برگهٔ A3 رندر می‌شود", async () => {
+  const { codePacks } = await import("@/lib/analyzers/registry.ts");
+  const { buildInterpretationDocument } = await import("@/lib/analyzers/document-model.ts");
+  const { renderChromeDocument } = await import("@/lib/analyzers/document-chrome.ts");
+  const { defaultChrome } = await import("@/lib/analyzers/document-templates-store.ts");
+  const { resolveDocumentTemplateId, templatesForPack } = await import("@/lib/analyzers/document-templates.ts");
+
+  const sd = codePacks().find((p) => p.slug === "system-diagnosis");
+  assert.ok(templatesForPack(sd).some((t) => t.id === "system-diagnosis"), "template offered for pack");
+  assert.equal(resolveDocumentTemplateId(sd), "system-diagnosis");
+
+  const rangeIds = sd.sections.flatMap((s) => s.items.filter((i) => i.kind === "range").map((i) => i.id));
+  const rawAnswers = { "BIZ.1": "کسب‌وکار نمونه", "BIZ.2": "service", "BIZ.4": "6-20", "BIZ.6": "3-5" };
+  for (const id of rangeIds) {
+    const item = sd.sections.flatMap((s) => s.items).find((i) => i.id === id);
+    rawAnswers[id] = item.reverse ? 8 : 2;
+  }
+  const row = {
+    attemptId: 1, publicCode: "T-1", nameFa: "آزمون", phone: "", status: "submitted",
+    instrumentVersion: sd.version, submittedAt: new Date().toISOString(), updatedAt: null,
+    businessName: "کسب‌وکار نمونه", referrerPublicCode: null, discountCode: null,
+    documentId: null, gate: null, scores: [], answers: [], rawAnswers, rawResults: null,
+  };
+  const doc = buildInterpretationDocument(sd, row);
+  assert.equal(doc.templateId, "system-diagnosis");
+  const { html } = renderChromeDocument(defaultChrome("system-diagnosis"), doc);
+  assert.ok(html.includes("از ۲۰"), "keyword/layer scores rendered");
+  assert.ok(html.includes("موج"), "intervention waves rendered");
+  assert.ok(html.includes("هدف ۳۰ روزه") || html.includes("برگهٔ حل مسئله"), "A3 rendered");
+});

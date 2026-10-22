@@ -8,6 +8,8 @@ import {
   CASIO_TEMPLATE_HTML,
   HADIRAN_TEMPLATE_CSS,
   HADIRAN_TEMPLATE_HTML,
+  SYSTEM_DIAGNOSIS_TEMPLATE_CSS,
+  SYSTEM_DIAGNOSIS_TEMPLATE_HTML,
 } from "@/lib/analyzers/document-defaults";
 import {
   parseChrome,
@@ -34,6 +36,19 @@ export function defaultChrome(templateId: string): DocumentChrome {
         light: readPublicSvg("casio-ss/logos/casio_logo_light.svg"),
         dark: readPublicSvg("casio-ss/logos/casio_logo_dark.svg"),
         seal: readPublicSvg("casio-ss/logos/casio_seal_red.svg"),
+      },
+      pageSize: "A4",
+      pageMargin: "0",
+    };
+  }
+  if (id === "system-diagnosis") {
+    return {
+      html: SYSTEM_DIAGNOSIS_TEMPLATE_HTML,
+      css: HADIRAN_TEMPLATE_CSS + SYSTEM_DIAGNOSIS_TEMPLATE_CSS,
+      logos: {
+        light: readPublicSvg("brand/hadiran-mark.svg"),
+        dark: readPublicSvg("brand/hadiran-mark.svg"),
+        seal: readPublicSvg("brand/hadiran-mark.svg"),
       },
       pageSize: "A4",
       pageMargin: "0",
@@ -107,7 +122,7 @@ export type StoredDocumentTemplate = {
   chrome: DocumentChrome;
 };
 
-const ALLOWED_TEMPLATE_IDS = new Set(["hadiran", "casio-ss"]);
+const ALLOWED_TEMPLATE_IDS = new Set(["hadiran", "casio-ss", "system-diagnosis"]);
 
 function toStored(
   row: typeof analyzerDocumentTemplates.$inferSelect,

@@ -121,3 +121,98 @@ export const HADIRAN_TEMPLATE_CSS = `/* جای لوگو */
 
 export { CASIO_TEMPLATE_HTML } from "@/lib/analyzers/casio-ss/template-html";
 export { CASIO_TEMPLATE_CSS } from "@/lib/analyzers/casio-ss/template-css";
+
+/** قالب پایهٔ «عارضه‌یابی سیستم کسب‌وکار»: جدول امتیاز کلیدواژه‌ها، موج‌های مداخلهٔ علّی و برگهٔ A3. */
+export const SYSTEM_DIAGNOSIS_TEMPLATE_HTML = `<section class="doc-page hadiran-cover">
+  <div class="hadiran-brand">
+    <div class="hadiran-logo">{{{logos.light}}}</div>
+    <p>هادیران · عارضه‌یابی سیستم کسب‌وکار</p>
+  </div>
+  <h1>{{packNameFa}}</h1>
+  <p class="hadiran-lead">گزارش عارضه‌یابی بر اساس امتیاز واقعی هر لایه و هر کلیدواژه، همراه با تحلیل علّی مؤثرها و متأثرها.</p>
+  <dl class="hadiran-meta">
+    <div><dt>نام</dt><dd>{{personNameFa}}</dd></div>
+    {{#hasBusiness}}<div><dt>کسب‌وکار</dt><dd>{{businessNameFa}}</dd></div>{{/hasBusiness}}
+    <div><dt>تاریخ ثبت</dt><dd>{{submittedFa}}</dd></div>
+    {{#hasPublicCode}}<div><dt>شناسه</dt><dd dir="ltr">{{publicCode}}</dd></div>{{/hasPublicCode}}
+  </dl>
+  <div class="hadiran-cards">
+    {{#hasBottleneck}}
+    <div class="hadiran-card">
+      <p class="hadiran-k">گلوگاه</p>
+      <p class="hadiran-v">{{bottleneckFa}}</p>
+      {{#bottleneckScoreFa}}<p class="hadiran-s">{{bottleneckScoreFa}} از ۲۰</p>{{/bottleneckScoreFa}}
+    </div>
+    {{/hasBottleneck}}
+    {{#hasTotal}}
+    <div class="hadiran-card">
+      <p class="hadiran-k">نمرهٔ کل</p>
+      <p class="hadiran-v">{{totalFa}} از {{totalMaxFa}}</p>
+      {{#maturityFa}}<p class="hadiran-s">بلوغ: {{maturityFa}}</p>{{/maturityFa}}
+    </div>
+    {{/hasTotal}}
+  </div>
+</section>
+
+{{#layers}}
+<section class="doc-page hadiran-sheet">
+  <p class="hadiran-kicker">لایه</p>
+  <h2>{{titleFa}} — {{scoreFa}} از ۲۰ ({{statusFa}})</h2>
+  <p>{{asIsFa}}</p>
+  <p><b>وضعیت مطلوب:</b> {{toBeFa}}</p>
+  <p><b>اقدام‌ها:</b> {{actionsFa}}</p>
+  <table class="hadiran-table">
+    <thead><tr><th>کلیدواژه</th><th>نمره</th><th>وضعیت</th><th>افق / مسئول</th></tr></thead>
+    <tbody>
+      {{#keywords}}
+      <tr>
+        <td>{{titleFa}}{{#micmacLabelFa}}<br><small>{{micmacLabelFa}}</small>{{/micmacLabelFa}}</td>
+        <td>{{scoreFa}}/۲۰</td>
+        <td>{{bandLabelFa}}</td>
+        <td>{{horizonFa}}{{#ownerRoleFa}} · {{ownerRoleFa}}{{/ownerRoleFa}}</td>
+      </tr>
+      {{/keywords}}
+    </tbody>
+  </table>
+</section>
+{{/layers}}
+
+{{#hasInterventionWaves}}
+<section class="doc-page hadiran-sheet">
+  <p class="hadiran-kicker">نقشهٔ راه علّی</p>
+  <h2>موج‌های مداخله: از مؤثر ریشه‌ای تا متأثر نهایی</h2>
+  {{#hasSymptomTrap}}<p class="sd-trap">{{symptomTrapWarningFa}}</p>{{/hasSymptomTrap}}
+  {{#interventionWaves}}
+  <h3>{{titleFa}}</h3>
+  <p>{{rationaleFa}}</p>
+  <ul>{{#keywords}}<li>{{titleFa}} <span dir="ltr">({{canonicalCode}})</span></li>{{/keywords}}</ul>
+  {{/interventionWaves}}
+</section>
+{{/hasInterventionWaves}}
+
+{{#hasA3}}
+<section class="doc-page hadiran-sheet">
+  <p class="hadiran-kicker">برگهٔ حل مسئله</p>
+  <h2>{{a3.titleFa}}</h2>
+  <p><b>پیشینه:</b> {{a3.backgroundFa}}</p>
+  <p><b>وضعیت فعلی:</b> {{a3.currentConditionFa}}</p>
+  <p><b>ریشهٔ سازمانی:</b> {{a3.organizationRootFa}}</p>
+  <p><b>ریشهٔ فرایندی:</b> {{a3.processRootFa}}</p>
+  <p><b>ریشهٔ مجری:</b> {{a3.performerRootFa}}</p>
+  <p><b>هدف ۳۰ روزه:</b> {{a3.targetCondition30DayFa}}</p>
+  <p><b>برنامه (Plan):</b> {{a3.pdsaPlanFa}}</p>
+  <p><b>اجرا (Do):</b> {{a3.pdsaDoFa}}</p>
+  <p><b>بررسی (Study):</b> {{a3.pdsaStudyFa}}</p>
+  <p><b>تصمیم (Act):</b> {{a3.pdsaActFa}}</p>
+</section>
+{{/hasA3}}
+
+<section class="doc-page hadiran-sheet">
+  <h2>یادداشت پایانی</h2>
+  <p>{{closingFa}}</p>
+</section>
+`;
+
+export const SYSTEM_DIAGNOSIS_TEMPLATE_CSS = `
+.sd-trap { border: 1px solid #b91c1c; color: #7f1d1d; border-radius: 12px; padding: 10px 14px; }
+`;

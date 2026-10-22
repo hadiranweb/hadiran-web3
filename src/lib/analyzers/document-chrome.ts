@@ -104,6 +104,16 @@ export function documentTemplateContext(doc: InterpretationDocument, chrome: Doc
       keywords: layer.keywords.map((keyword) => ({
         id: keyword.id,
         titleFa: keyword.titleFa,
+        score: keyword.score,
+        scoreFa: keyword.scoreFa,
+        bandId: keyword.bandId,
+        bandLabelFa: keyword.bandLabelFa,
+        whyFa: keyword.whyFa,
+        horizonFa: keyword.horizonFa,
+        ownerRoleFa: keyword.ownerRoleFa,
+        micmacLabelFa: keyword.micmacLabelFa,
+        influencersFa: (keyword.influencersFa ?? []).map((titleFa) => ({ titleFa })),
+        influencedFa: (keyword.influencedFa ?? []).map((titleFa) => ({ titleFa })),
         children: keyword.children.map((child) => ({ titleFa: child })),
       })),
     };
@@ -122,7 +132,9 @@ export function documentTemplateContext(doc: InterpretationDocument, chrome: Doc
   const bottleneckLayer = layers.find((layer) => layer.isBottleneck) ?? layers[0] ?? null;
   const keywordGraphGroups = (bottleneckLayer?.keywords ?? []).slice(0, 3).map((keyword, index) => ({
     id: keyword.id,
-    titleFa: keyword.titleFa,
+    titleFa: keyword.scoreFa ? `${keyword.titleFa} (${keyword.scoreFa}/۲۰)` : keyword.titleFa,
+    scoreFa: keyword.scoreFa ?? "",
+    bandLabelFa: keyword.bandLabelFa ?? "",
     childrenFa: keyword.children.map((child) => child.titleFa),
     accentColor: KEYWORD_ACCENT_COLORS[index % KEYWORD_ACCENT_COLORS.length],
   }));
@@ -135,6 +147,32 @@ export function documentTemplateContext(doc: InterpretationDocument, chrome: Doc
     bottleneckFa: doc.bottleneckFa ?? bottleneckLayer?.titleFa ?? "",
     bottleneckAsIsFa,
   });
+
+  const a3sheet = doc.deepDive?.a3Sheet;
+  const a3 = a3sheet
+    ? {
+        titleFa: a3sheet.titleFa,
+        primaryKeywordTitleFa: a3sheet.primaryKeywordTitleFa,
+        ownerRoleFa: a3sheet.ownerRoleFa,
+        horizonFa: a3sheet.horizonFa,
+        backgroundFa: a3sheet.backgroundFa,
+        currentConditionFa: a3sheet.currentConditionFa,
+        organizationRootFa: a3sheet.multiLevelRootCause.organizationRootFa,
+        processRootFa: a3sheet.multiLevelRootCause.processRootFa,
+        performerRootFa: a3sheet.multiLevelRootCause.performerRootFa,
+        targetCondition30DayFa: a3sheet.targetCondition30DayFa,
+        pdsaPlanFa: a3sheet.pdsaCard.planHypothesisFa,
+        pdsaDoFa: a3sheet.pdsaCard.doSmallScaleFa,
+        pdsaStudyFa: a3sheet.pdsaCard.studyMetricFa,
+        pdsaActFa: a3sheet.pdsaCard.actDecisionRuleFa,
+      }
+    : null;
+  const interventionWaves = (doc.causalGraph?.interventionWaves ?? []).map((wave) => ({
+    waveNumber: wave.waveNumber,
+    titleFa: wave.titleFa,
+    rationaleFa: wave.rationaleFa,
+    keywords: wave.keywords.map((kw) => ({ titleFa: kw.titleFa, canonicalCode: kw.canonicalCode })),
+  }));
 
   return {
     packNameFa: doc.packNameFa,
@@ -169,6 +207,12 @@ export function documentTemplateContext(doc: InterpretationDocument, chrome: Doc
     summaryTitleFa: summary.summaryTitleFa,
     summaryParagraphsFa: summary.summaryParagraphsFa,
     keywordGraphGroups,
+    a3,
+    hasA3: Boolean(a3),
+    interventionWaves,
+    hasInterventionWaves: interventionWaves.length > 0,
+    symptomTrapWarningFa: doc.causalGraph?.symptomTrapWarningFa ?? "",
+    hasSymptomTrap: Boolean(doc.causalGraph?.symptomTrapWarningFa),
     bottleneckAsIsLabelFa: BOTTLENECK_AS_IS_LABEL_FA,
     bottleneckAsIsFa,
     keywordGraphNoteFa: KEYWORD_GRAPH_NOTE_FA,
@@ -249,6 +293,17 @@ export function documentVariableCatalog(): TemplateVariable[] {
     { groupFa: "خلاصه", token: "{{summaryTitleFa}}", hintFa: "عنوان خلاصه بر اساس گلوگاه" },
     { groupFa: "خلاصه", token: "{{#summaryParagraphsFa}} … {{/summaryParagraphsFa}}", hintFa: "پاراگراف‌های بازهٔ نمره" },
     { groupFa: "کلیدواژه", token: "{{#keywordGraphGroups}} … {{/keywordGraphGroups}}", hintFa: "شبکهٔ کلیدواژهٔ گلوگاه" },
+    { groupFa: "کلیدواژه", token: "{{#keywords}} … {{/keywords}}", hintFa: "حلقهٔ کلیدواژه‌های هر لایه (داخل حلقهٔ لایه‌ها)" },
+    { groupFa: "کلیدواژه", token: "{{scoreFa}} / {{bandLabelFa}}", hintFa: "نمره و باند کلیدواژه (داخل حلقهٔ کلیدواژه‌ها)" },
+    { groupFa: "کلیدواژه", token: "{{whyFa}} / {{horizonFa}} / {{ownerRoleFa}}", hintFa: "چرایی، افق و مسئول اقدام کلیدواژه" },
+    { groupFa: "کلیدواژه", token: "{{micmacLabelFa}}", hintFa: "ربع علّی MICMAC کلیدواژه" },
+    { groupFa: "کلیدواژه", token: "{{#influencersFa}} / {{#influencedFa}}", hintFa: "مؤثرها و متأثرهای کلیدواژه (داخل حلقه)" },
+    { groupFa: "گراف علّی", token: "{{#interventionWaves}} … {{/interventionWaves}}", hintFa: "موج‌های مداخلهٔ ریشه‌ای (با {{titleFa}} و {{#keywords}})" },
+    { groupFa: "گراف علّی", token: "{{symptomTrapWarningFa}}", hintFa: "هشدار تلهٔ معلول‌درمانی" },
+    { groupFa: "برگهٔ A3", token: "{{a3.backgroundFa}} / {{a3.currentConditionFa}}", hintFa: "برگهٔ حل مسئلهٔ A3: پیشینه و وضعیت فعلی" },
+    { groupFa: "برگهٔ A3", token: "{{a3.organizationRootFa}} / {{a3.processRootFa}} / {{a3.performerRootFa}}", hintFa: "ریشهٔ سه‌سطحی A3" },
+    { groupFa: "برگهٔ A3", token: "{{a3.targetCondition30DayFa}}", hintFa: "هدف ۳۰روزهٔ A3" },
+    { groupFa: "برگهٔ A3", token: "{{a3.pdsaPlanFa}} / {{a3.pdsaDoFa}} / {{a3.pdsaStudyFa}} / {{a3.pdsaActFa}}", hintFa: "کارت آزمون PDSA" },
     { groupFa: "کلیدواژه", token: "{{bottleneckAsIsFa}}", hintFa: "وضعیت موجودِ مرجع گلوگاه" },
     { groupFa: "صفحه", token: '<section class="doc-page">', hintFa: "شروع یک برگ A4" },
     { groupFa: "صفحه", token: "</section>", hintFa: "پایان برگ" },

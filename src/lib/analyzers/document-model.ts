@@ -2,6 +2,8 @@
 
 import { buildCasioReport, layerBandFor } from "@/lib/analyzers/casio-ss/report";
 import { buildDiagnosisReport } from "@/lib/analyzers/system-diagnosis/report";
+import type { RespondentCausalGraphSummary } from "@/lib/analyzers/system-diagnosis/coding-causal-graph";
+import type { AdaptiveDeepDiveSummary } from "@/lib/analyzers/system-diagnosis/deep-dive-a3";
 import { buildGenericReport } from "@/lib/analyzers/generic-report";
 import { resolveDocumentTemplateId } from "@/lib/analyzers/document-templates";
 import type { AnalyzerPack } from "@/lib/analyzers/pack";
@@ -10,7 +12,21 @@ import type { WorkspaceAttemptRow } from "@/lib/analyzers/workspace-attempt-type
 
 const FA = "۰۱۲۳۴۵۶۷۸۹";
 
-export type DocumentKeyword = { id: string; titleFa: string; children: string[] };
+export type DocumentKeyword = {
+  id: string;
+  titleFa: string;
+  children: string[];
+  score?: number;
+  scoreFa?: string;
+  bandId?: "weak" | "growing" | "strong";
+  bandLabelFa?: string;
+  whyFa?: string;
+  horizonFa?: string;
+  ownerRoleFa?: string;
+  micmacLabelFa?: string;
+  influencersFa?: string[];
+  influencedFa?: string[];
+};
 
 export type DocumentLayer = {
   id: string;
@@ -49,6 +65,8 @@ export type InterpretationDocument = {
   layers: DocumentLayer[];
   scores: { titleFa: string; valueFa: string }[];
   patterns: { meaningFa: string; actionFa: string }[];
+  causalGraph?: RespondentCausalGraphSummary;
+  deepDive?: AdaptiveDeepDiveSummary;
   closingFa: string;
   /** Frozen chrome from convert time. Missing on documents converted before snapshots. */
   chromeSnapshot?: Record<string, unknown> | null;
@@ -210,10 +228,22 @@ export function buildInterpretationDocument(
           id: keyword.id,
           titleFa: keyword.titleFa,
           children: keyword.children,
+          score: keyword.score,
+          scoreFa: keyword.score != null ? faScore(keyword.score) : undefined,
+          bandId: keyword.bandId,
+          bandLabelFa: keyword.bandLabelFa,
+          whyFa: keyword.whyFa,
+          horizonFa: keyword.horizonFa,
+          ownerRoleFa: keyword.ownerRoleFa,
+          micmacLabelFa: keyword.micmacLabelFa,
+          influencersFa: keyword.influencersFa,
+          influencedFa: keyword.influencedFa,
         })),
       })),
       scores: [],
       patterns: report.patterns.map((pattern) => ({ meaningFa: pattern.meaningFa, actionFa: pattern.actionFa })),
+      causalGraph: report.causalGraph,
+      deepDive: report.deepDive,
       closingFa: report.closingFa || closing,
     };
   }

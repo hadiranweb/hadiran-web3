@@ -416,6 +416,7 @@ export const systemDiagnosisPack: AnalyzerPack = {
   report: {
     hideGateScores: true,
     interpretationVersion: "five-layer-interpretation-2.0.0",
+    documentTemplateId: "system-diagnosis",
     closingFa: "نتیجهٔ این ارزیابی یک راهنمای ساختاری و تشخیصی است، نه حکم قطعی دربارهٔ شما یا کسب‌وکارتان.",
     businessNameItemId: "BIZ.1",
     contextFields: [
