@@ -67,7 +67,10 @@ export async function getMcpConfig(): Promise<McpConfig> {
   if (!hasDatabaseUrl()) return { ...DEFAULT_MCP_CONFIG, weights: { ...DEFAULT_MCP_CONFIG.weights } };
   try {
     const [row] = await db.select().from(mcpConfigs).where(eq(mcpConfigs.id, "default")).limit(1);
-    if (!row) return { ...DEFAULT_MCP_CONFIG, weights: { ...DEFAULT_MCP_CONFIG.weights } };
+    // جدول هست ولی هنوز ردیفی ذخیره نشده (مایگریشن فقط جدول می‌سازد):
+    // پیش‌فرض ایمن برمی‌گردد اما fromDb درست است تا میز هشدار «جدول ساخته نشده» ندهد
+    // و ذخیرهٔ اول همان ردیف را بسازد.
+    if (!row) return { ...DEFAULT_MCP_CONFIG, weights: { ...DEFAULT_MCP_CONFIG.weights }, fromDb: true };
     return rowToConfig(row);
   } catch {
     return { ...DEFAULT_MCP_CONFIG, weights: { ...DEFAULT_MCP_CONFIG.weights } };

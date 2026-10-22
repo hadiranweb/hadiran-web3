@@ -43,7 +43,7 @@ export interface McpConfig {
   lastLlmStatus: string | null;
   lastLlmError: string | null;
   lastLlmAt: string | null;
-  /** آیا ردیف واقعی از DB خوانده شد یا پیش‌فرض ایمن برگشته است. */
+  /** آیا جدول تنظیمات در DB خوانا بود؟ (ردیف ممکن است هنوز ذخیره نشده باشد و پیش‌فرض برگردد.) */
   fromDb: boolean;
 }
 
