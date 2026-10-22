@@ -5,7 +5,7 @@ import { JsonLd } from "@/components/JsonLd";
 import { PageShell } from "@/components/ui/PageShell";
 import { analyzerPublicPath } from "@/lib/analyzers/paths";
 import { readAttempt } from "@/lib/analyzers/attempts";
-import { getCodePack, loadPack } from "@/lib/analyzers/registry";
+import { loadPack } from "@/lib/analyzers/registry";
 import { getCurrentAccount } from "@/lib/auth/session";
 import { absoluteUrl } from "@/lib/site";
 
@@ -14,7 +14,6 @@ export const dynamic = "force-dynamic";
 type Props = { params: Promise<{ slug: string }> };
 
 async function visiblePack(slug: string, role?: string) {
-  if (getCodePack(slug)) return null;
   const pack = await loadPack(slug);
   if (!pack || pack.status === "archived") return null;
   if (pack.status !== "open" && role !== "owner") return null;
@@ -24,7 +23,7 @@ async function visiblePack(slug: string, role?: string) {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const pack = await loadPack(slug);
-  if (!pack || getCodePack(slug) || pack.status !== "open") {
+  if (!pack || pack.status !== "open") {
     return { title: "آینه", robots: { index: false, follow: false } };
   }
   return {

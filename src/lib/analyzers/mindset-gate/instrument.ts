@@ -166,7 +166,7 @@ const formulas: AnalyzerPack["formulas"] = [
 export const mindsetGatePack: AnalyzerPack = {
   slug: "mindset-gate",
   version: MINDSET_INSTRUMENT_VERSION,
-  status: "draft",
+  status: "open",
   nameFa: "ارزیابی الگوی ذهنی",
   summaryFa: MINDSET_INTRO_SUMMARY,
   scale: { kind: "range-0-10", min: 0, max: 10 },

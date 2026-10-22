@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
 import { requireAccount } from "@/lib/auth/guard";
 import { consentAttempt, readAttempt, retakeAttempt, saveAnswer, submitAttempt } from "@/lib/analyzers/attempts";
-import { getCodePack, loadPack } from "@/lib/analyzers/registry";
+import { loadPack } from "@/lib/analyzers/registry";
 
 export const dynamic = "force-dynamic";
 
 type Ctx = { params: Promise<{ slug: string }> };
 
 async function resolveRunnablePack(slug: string, account: { id: number; role: string }) {
-  if (getCodePack(slug)) return null;
   const pack = await loadPack(slug);
   if (!pack) return null;
   if (pack.status === "archived") return null;

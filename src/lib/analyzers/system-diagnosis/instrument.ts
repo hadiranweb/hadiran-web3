@@ -399,7 +399,7 @@ const formulas: AnalyzerPack["formulas"] = [
 export const systemDiagnosisPack: AnalyzerPack = {
   slug: "system-diagnosis",
   version: INSTRUMENT_VERSION,
-  status: "draft",
+  status: "open",
   nameFa: "عارضه‌یابی سیستم کسب‌وکار",
   summaryFa: INTRO_SUMMARY,
   scale: { kind: "range-0-10", min: 0, max: 10 },
