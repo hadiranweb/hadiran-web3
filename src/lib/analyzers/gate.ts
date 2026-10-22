@@ -18,6 +18,12 @@ const LABELS: Record<GateBandId, string> = {
   red: "قرمز",
 };
 
+const DIMENSION_LABELS_FA: Record<string, string> = {
+  "gate-control": "منبع کنترل",
+  "gate-agency": "فاعلیت و خودتنظیمی",
+  "gate-problem": "تفکر مسئله‌محور",
+};
+
 function asNumber(value: number | string | undefined): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
@@ -42,7 +48,7 @@ export function gateOf(
     const score = asNumber(scores[id]);
     if (score == null) continue;
     const finding = pack.findings.find((row) => row.id === id);
-    dimensions.push({ id, titleFa: finding?.titleFa ?? id, score });
+    dimensions.push({ id, titleFa: finding?.titleFa ?? DIMENSION_LABELS_FA[id] ?? id, score });
   }
   return {
     bandId,
