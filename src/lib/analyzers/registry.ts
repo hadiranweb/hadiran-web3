@@ -1,9 +1,10 @@
 import { casioSsPack } from "@/lib/analyzers/casio-ss/pack";
+import { mindsetGatePack } from "@/lib/analyzers/mindset-gate/pack";
 import { listAuthoredPacks, resolveLivePack } from "@/lib/analyzers/authored";
 import { assertPack, type AnalyzerPack } from "@/lib/analyzers/pack";
 import { sanitizePack } from "@/lib/analyzers/sanitize";
 
-const codePacksList: AnalyzerPack[] = [casioSsPack];
+const codePacksList: AnalyzerPack[] = [casioSsPack, mindsetGatePack];
 
 for (const pack of codePacksList) assertPack(pack);
 

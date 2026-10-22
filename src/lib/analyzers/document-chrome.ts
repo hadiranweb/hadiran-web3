@@ -104,6 +104,13 @@ export function documentTemplateContext(doc: InterpretationDocument, chrome: Doc
       keywords: layer.keywords.map((keyword) => ({
         id: keyword.id,
         titleFa: keyword.titleFa,
+        score: keyword.score,
+        scoreFa: keyword.scoreFa,
+        bandId: keyword.bandId,
+        bandLabelFa: keyword.bandLabelFa,
+        whyFa: keyword.whyFa,
+        horizonFa: keyword.horizonFa,
+        ownerRoleFa: keyword.ownerRoleFa,
         children: keyword.children.map((child) => ({ titleFa: child })),
       })),
     };
@@ -122,7 +129,9 @@ export function documentTemplateContext(doc: InterpretationDocument, chrome: Doc
   const bottleneckLayer = layers.find((layer) => layer.isBottleneck) ?? layers[0] ?? null;
   const keywordGraphGroups = (bottleneckLayer?.keywords ?? []).slice(0, 3).map((keyword, index) => ({
     id: keyword.id,
-    titleFa: keyword.titleFa,
+    titleFa: keyword.scoreFa ? `${keyword.titleFa} (${keyword.scoreFa}/۲۰)` : keyword.titleFa,
+    scoreFa: keyword.scoreFa ?? "",
+    bandLabelFa: keyword.bandLabelFa ?? "",
     childrenFa: keyword.children.map((child) => child.titleFa),
     accentColor: KEYWORD_ACCENT_COLORS[index % KEYWORD_ACCENT_COLORS.length],
   }));

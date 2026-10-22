@@ -1,5 +1,7 @@
 /** قرارداد نازک سند تفسیر. رندر چاپ از همین می‌خواند؛ نمرهٔ تازه نمی‌سازد. */
 
+import type { RespondentCausalGraphSummary } from "@/lib/analyzers/casio-ss/coding-causal-graph";
+import type { AdaptiveDeepDiveSummary } from "@/lib/analyzers/casio-ss/deep-dive-a3";
 import { buildCasioReport, layerBandFor } from "@/lib/analyzers/casio-ss/report";
 import { buildGenericReport } from "@/lib/analyzers/generic-report";
 import { resolveDocumentTemplateId } from "@/lib/analyzers/document-templates";
@@ -9,10 +11,26 @@ import type { WorkspaceAttemptRow } from "@/lib/analyzers/workspace-attempt-type
 
 const FA = "۰۱۲۳۴۵۶۷۸۹";
 
-export type DocumentKeyword = { id: string; titleFa: string; children: string[] };
+export type DocumentKeyword = {
+  id: string;
+  canonicalCode?: string;
+  titleFa: string;
+  children: string[];
+  score?: number;
+  scoreFa?: string;
+  bandId?: "weak" | "growing" | "strong";
+  bandLabelFa?: string;
+  whyFa?: string;
+  horizonFa?: string;
+  ownerRoleFa?: string;
+  micmacLabelFa?: string;
+  influencersFa?: string[];
+  influencedFa?: string[];
+};
 
 export type DocumentLayer = {
   id: string;
+  canonicalCode?: string;
   titleFa: string;
   constructFa: string;
   score: number | null;
@@ -48,6 +66,8 @@ export type InterpretationDocument = {
   layers: DocumentLayer[];
   scores: { titleFa: string; valueFa: string }[];
   patterns: { meaningFa: string; actionFa: string }[];
+  causalGraph?: RespondentCausalGraphSummary;
+  deepDive?: AdaptiveDeepDiveSummary;
   closingFa: string;
   /** Frozen chrome from convert time. Missing on documents converted before snapshots. */
   chromeSnapshot?: Record<string, unknown> | null;
@@ -149,6 +169,7 @@ export function buildInterpretationDocument(
       bottleneckScoreFa: faScore(report.bottleneck.score),
       layers: report.layers.map((layer) => ({
         id: layer.id,
+        canonicalCode: layer.canonicalCode,
         titleFa: layer.titleFa,
         constructFa: layer.constructFa,
         score: layer.score,
@@ -162,12 +183,25 @@ export function buildInterpretationDocument(
         isBottleneck: layer.isBottleneck,
         keywords: layer.keywords.map((keyword) => ({
           id: keyword.id,
+          canonicalCode: keyword.canonicalCode,
           titleFa: keyword.titleFa,
           children: keyword.children,
+          score: keyword.score,
+          scoreFa: keyword.score != null ? faScore(keyword.score) : undefined,
+          bandId: keyword.bandId,
+          bandLabelFa: keyword.bandLabelFa,
+          whyFa: keyword.whyFa,
+          horizonFa: keyword.horizonFa,
+          ownerRoleFa: keyword.ownerRoleFa,
+          micmacLabelFa: keyword.micmacLabelFa,
+          influencersFa: keyword.influencersFa,
+          influencedFa: keyword.influencedFa,
         })),
       })),
       scores: [],
       patterns: report.patterns.map((pattern) => ({ meaningFa: pattern.meaningFa, actionFa: pattern.actionFa })),
+      causalGraph: report.causalGraph,
+      deepDive: report.deepDive,
       closingFa: report.closingFa || closing,
     };
   }

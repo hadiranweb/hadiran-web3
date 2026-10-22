@@ -8,7 +8,7 @@ function whenFa(value: string | null) {
 
 function actionLines(text: string) {
   return text
-    .split(/\n+/)
+    .split(/\n+|؛/)
     .map((line) => line.trim())
     .filter(Boolean);
 }
@@ -301,8 +301,50 @@ export function CasioResearchDocument({ doc }: { doc: InterpretationDocument }) 
       })}
 
       <section className="doc-page casio-page">
-        <CasioPageHead kicker="پایان گزارش" title="یادداشت" subtitle={doc.packNameFa} />
+        <CasioPageHead
+          kicker="شبکهٔ علّی مؤثرها و متأثرها · برنامهٔ ۳۰ روزهٔ A3/PDSA"
+          title="نقشهٔ راه علّی و یادداشت پایانی"
+          subtitle={doc.packNameFa}
+        />
         <div className="casio-pagehead-rule" />
+        {doc.causalGraph ? (
+          <div className="casio-asistobe" style={{ marginBottom: "10pt" }}>
+            <div className="casio-asistobe-box">
+              <div className="casio-asistobe-label">
+                اصلی‌ترین مؤثر ریشه‌ای (DEMATEL · کدینگ {doc.causalGraph.codingVersion})
+              </div>
+              <div className="casio-asistobe-text">
+                {doc.causalGraph.primaryRootCauseDriver.titleFa} [
+                {doc.causalGraph.primaryRootCauseDriver.canonicalCode}] ·{" "}
+                {doc.causalGraph.primaryRootCauseDriver.micmacLabelFa} · توان اثرگذاری (D):{" "}
+                {faNum(doc.causalGraph.primaryRootCauseDriver.drivingPower)} · اثرپذیری (R):{" "}
+                {faNum(doc.causalGraph.primaryRootCauseDriver.dependencePower)}
+              </div>
+            </div>
+            {doc.causalGraph.symptomTrapWarningFa ? (
+              <div className="casio-asistobe-box">
+                <div className="casio-asistobe-label">هشدار تلهٔ معلول‌درمانی</div>
+                <div className="casio-asistobe-text">{doc.causalGraph.symptomTrapWarningFa}</div>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+        {doc.deepDive ? (
+          <div className="casio-asistobe" style={{ marginBottom: "10pt" }}>
+            <div className="casio-asistobe-box">
+              <div className="casio-asistobe-label">برگهٔ حل مسئلهٔ A3 (هدف ۳۰ روزه)</div>
+              <div className="casio-asistobe-text">
+                {doc.deepDive.a3Sheet.titleFa} — {doc.deepDive.a3Sheet.targetCondition30DayFa}
+              </div>
+            </div>
+            <div className="casio-asistobe-box">
+              <div className="casio-asistobe-label">آزمون ۱۴ روزهٔ PDSA</div>
+              <div className="casio-asistobe-text">
+                {doc.deepDive.a3Sheet.pdsaCard.doSmallScaleFa} ({doc.deepDive.a3Sheet.pdsaCard.studyMetricFa})
+              </div>
+            </div>
+          </div>
+        ) : null}
         <p className="casio-closing">{doc.closingFa}</p>
         {doc.publicCode ? (
           <p className="casio-muted" dir="ltr">

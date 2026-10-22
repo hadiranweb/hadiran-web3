@@ -28,7 +28,18 @@ import type { WorkspaceAttemptRow } from "@/lib/analyzers/workspace-attempt-type
 import { clipDocumentChrome, readDocumentChrome } from "@/lib/analyzers/document-templates-store";
 import { ensureInterpretationDocumentsSchema } from "@/lib/auth/schema-guard";
 
-type StoredKeyword = { id: string; titleFa: string; children: { id: string; titleFa: string }[] };
+type StoredKeyword = {
+  id: string;
+  titleFa: string;
+  score?: number;
+  scoreFa?: string;
+  bandId?: "weak" | "growing" | "strong";
+  bandLabelFa?: string;
+  whyFa?: string;
+  horizonFa?: string;
+  ownerRoleFa?: string;
+  children: { id: string; titleFa: string }[];
+};
 
 export type ConvertedDocumentRef = {
   id: number;
@@ -48,6 +59,13 @@ function keywordPayload(keywords: DocumentKeyword[]): StoredKeyword[] {
   return keywords.map((keyword) => ({
     id: keyword.id,
     titleFa: keyword.titleFa,
+    score: keyword.score,
+    scoreFa: keyword.scoreFa,
+    bandId: keyword.bandId,
+    bandLabelFa: keyword.bandLabelFa,
+    whyFa: keyword.whyFa,
+    horizonFa: keyword.horizonFa,
+    ownerRoleFa: keyword.ownerRoleFa,
     children: keyword.children.map((child, index) => ({
       id: `${keyword.id}-c${index}`,
       titleFa: child,
@@ -74,7 +92,15 @@ function keywordsFromStored(value: unknown): DocumentKeyword[] {
         }
       }
     }
-    list.push({ id, titleFa, children });
+    const score = typeof row.score === "number" && Number.isFinite(row.score) ? row.score : undefined;
+    const scoreFa = typeof row.scoreFa === "string" ? row.scoreFa : score != null ? faScore(score) : undefined;
+    const bandId =
+      row.bandId === "weak" || row.bandId === "growing" || row.bandId === "strong" ? row.bandId : undefined;
+    const bandLabelFa = typeof row.bandLabelFa === "string" ? row.bandLabelFa : undefined;
+    const whyFa = typeof row.whyFa === "string" ? row.whyFa : undefined;
+    const horizonFa = typeof row.horizonFa === "string" ? row.horizonFa : undefined;
+    const ownerRoleFa = typeof row.ownerRoleFa === "string" ? row.ownerRoleFa : undefined;
+    list.push({ id, titleFa, children, score, scoreFa, bandId, bandLabelFa, whyFa, horizonFa, ownerRoleFa });
   }
   return list;
 }

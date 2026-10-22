@@ -459,7 +459,7 @@ export function sanitizePack(raw: unknown, slug: string): SanitizeResult {
   const usedFindings = new Set<string>();
   const findings: Finding[] = [];
   const findingsRaw = Array.isArray(row.findings) ? row.findings : [];
-  for (const entry of findingsRaw.slice(0, 40)) {
+  for (const entry of findingsRaw.slice(0, 120)) {
     const finding = sanitizeFinding(entry, usedFindings);
     if (finding) findings.push(finding);
   }
@@ -467,7 +467,7 @@ export function sanitizePack(raw: unknown, slug: string): SanitizeResult {
   const usedKeywords = new Set<string>();
   const keywords: Keyword[] = [];
   const keywordsRaw = Array.isArray(row.keywords) ? row.keywords : [];
-  for (const entry of keywordsRaw.slice(0, 40)) {
+  for (const entry of keywordsRaw.slice(0, 120)) {
     const keyword = sanitizeKeyword(entry, usedKeywords);
     if (keyword) keywords.push(keyword);
   }
@@ -475,7 +475,7 @@ export function sanitizePack(raw: unknown, slug: string): SanitizeResult {
   const usedFormulas = new Set<string>();
   const formulas: Formula[] = [];
   const formulasRaw = Array.isArray(row.formulas) ? row.formulas : [];
-  for (const entry of formulasRaw.slice(0, 40)) {
+  for (const entry of formulasRaw.slice(0, 120)) {
     const formula = sanitizeFormula(entry, usedFormulas);
     if (formula) formulas.push(formula);
   }
@@ -489,7 +489,7 @@ export function sanitizePack(raw: unknown, slug: string): SanitizeResult {
   ]);
   const extraEdges: Edge[] = [];
   const edgesRaw = Array.isArray(row.edges) ? row.edges : [];
-  for (const entry of edgesRaw.slice(0, 200)) {
+  for (const entry of edgesRaw.slice(0, 600)) {
     const edge = sanitizeEdge(entry);
     if (!edge) continue;
     if (!known.has(edge.from) || !known.has(edge.to)) continue;

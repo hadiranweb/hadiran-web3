@@ -65,7 +65,7 @@ export function CasioSsReport({
 
       {report.patterns.length ? (
         <section className="surface p-6 sm:p-8">
-          <h2 className="text-lg font-bold leading-[1.7] text-ink">خوانش بین‌لایه</h2>
+          <h2 className="text-lg font-bold leading-[1.7] text-ink">خوانش بین‌لایه و الگوهای زمینه‌ای</h2>
           <ul className="mt-4 space-y-5">
             {report.patterns.map((pattern) => (
               <li key={pattern.id}>
@@ -74,6 +74,51 @@ export function CasioSsReport({
               </li>
             ))}
           </ul>
+        </section>
+      ) : null}
+
+      {report.ontology ? (
+        <section className="surface p-6 sm:p-8">
+          <p className="text-sm font-medium text-mark">گراف دانشی Research Vaults (S001–S055)</p>
+          <h2 className="mt-2 text-lg font-bold leading-[1.7] text-ink">
+            معماری سه سطح عملکرد (Rummler-Brache) و هم‌خوانی سازمانی (Nadler-Tushman)
+          </h2>
+          {report.contextProfile ? (
+            <p className="mt-3 text-sm leading-7 text-ink">
+              <strong>جایگاه مرحلهٔ رشد: </strong>
+              {report.contextProfile.growthStageTitleFa}
+              {" — "}
+              <span className="text-muted">{report.contextProfile.growthStageCrisisFa}</span>
+            </p>
+          ) : null}
+          <div className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
+            {report.ontology.rummlerBreakdown.map((lvl) => (
+              <div key={lvl.level} className="rounded-lg border border-line p-3">
+                <p className="font-medium text-ink">{lvl.labelFa}</p>
+                <p className="mt-1 text-xs text-muted">
+                  میانگین: {faScore(lvl.avgScore)} از {faNum(20)} · گلوگاه: {lvl.weakestKeywordTitleFa}
+                </p>
+              </div>
+            ))}
+          </div>
+          <p className="mt-4 text-sm leading-7 text-ink">
+            <strong>کانون عدم هم‌خوانی (Nadler &amp; Tushman — S055): </strong>
+            <span className="text-muted">{report.ontology.primaryNadlerDisconnectFa}</span>
+          </p>
+          {report.ontology.activatedSources.length > 0 ? (
+            <div className="mt-4">
+              <p className="text-xs font-medium text-ink">منابع علمی فعال‌شده برای گلوگاه‌های شما:</p>
+              <ul className="mt-2 space-y-1 text-xs leading-6 text-muted">
+                {report.ontology.activatedSources.slice(0, 6).map((src) => (
+                  <li key={src.id}>
+                    <span className="font-medium text-ink">[{src.id}] {src.titleFa}</span>
+                    {" — "}
+                    {src.coreTakeawayFa}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </section>
       ) : null}
 
@@ -103,11 +148,48 @@ export function CasioSsReport({
             </p>
           </div>
 
-          <h3 className="mt-6 text-base font-bold text-ink">درخت کلیدواژه</h3>
+          <h3 className="mt-6 text-base font-bold text-ink">درخت کلیدواژه (به ترتیب اولویت گلوگاه)</h3>
           <ul className="mt-3 space-y-4">
             {layer.keywords.map((keyword) => (
               <li key={keyword.id}>
-                <p className="text-sm font-medium leading-7 text-ink">{keyword.titleFa}</p>
+                <p className="text-sm font-medium leading-7 text-ink">
+                  {keyword.titleFa}
+                  {keyword.score != null ? (
+                    <span className="mr-2 text-xs font-normal text-muted">
+                      ({faScore(keyword.score)} از {faNum(20)}
+                      {keyword.bandLabelFa ? ` · ${keyword.bandLabelFa}` : ""})
+                    </span>
+                  ) : null}
+                  {keyword.canonicalCode ? (
+                    <span className="mr-2 font-mono text-xs text-muted">
+                      [{keyword.canonicalCode}]
+                    </span>
+                  ) : null}
+                  {keyword.micmacLabelFa ? (
+                    <span className="mr-2 rounded border border-line px-1.5 py-0.5 text-[11px] text-muted">
+                      {keyword.micmacLabelFa}
+                    </span>
+                  ) : null}
+                </p>
+                {keyword.whyFa ? (
+                  <p className="mt-1 text-xs leading-6 text-muted">{keyword.whyFa}</p>
+                ) : null}
+                {(keyword.influencersFa?.length || keyword.influencedFa?.length) ? (
+                  <div className="mt-1.5 space-y-0.5 text-xs leading-6 text-muted">
+                    {keyword.influencersFa?.length ? (
+                      <p>
+                        <span className="font-medium text-ink">مؤثرهای بالادستی (علل): </span>
+                        {keyword.influencersFa.slice(0, 3).join(" · ")}
+                      </p>
+                    ) : null}
+                    {keyword.influencedFa?.length ? (
+                      <p>
+                        <span className="font-medium text-ink">متأثرهای پایین‌دستی (پیامدها): </span>
+                        {keyword.influencedFa.slice(0, 3).join(" · ")}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
                 {keyword.children.length ? (
                   <ul className="mt-1 list-disc space-y-1 pr-5 text-sm leading-7 text-muted">
                     {keyword.children.map((child) => (
@@ -120,6 +202,131 @@ export function CasioSsReport({
           </ul>
         </section>
       ))}
+
+      {report.causalGraph ? (
+        <section className="surface p-6 sm:p-8">
+          <p className="text-sm font-medium text-mark">
+            تحلیل شبکهٔ علّی مؤثرها و متأثرها (DEMATEL · ISM · MICMAC · کدینگ {report.causalGraph.codingVersion})
+          </p>
+          <h2 className="mt-2 text-lg font-bold leading-[1.7] text-ink">
+            اصلی‌ترین مؤثر ریشه‌ای (اهرم تغییر شماره ۱): {report.causalGraph.primaryRootCauseDriver.titleFa}{" "}
+            <span className="font-mono text-xs text-muted">
+              [{report.causalGraph.primaryRootCauseDriver.canonicalCode}]
+            </span>
+          </h2>
+          <p className="mt-2 text-sm leading-7 text-muted">
+            نقش در شبکهٔ علّی: {report.causalGraph.primaryRootCauseDriver.causalRoleLabelFa} ·{" "}
+            {report.causalGraph.primaryRootCauseDriver.micmacLabelFa} · توان اثرگذاری کل (D):{" "}
+            {faNum(report.causalGraph.primaryRootCauseDriver.drivingPower)} · توان اثرپذیری کل (R):{" "}
+            {faNum(report.causalGraph.primaryRootCauseDriver.dependencePower)} · خالص علّی (D-R):{" "}
+            {faNum(report.causalGraph.primaryRootCauseDriver.netCauseEffect)}
+          </p>
+
+          {report.causalGraph.symptomTrapWarningFa ? (
+            <div className="mt-4 rounded-lg border border-mark/40 bg-mark/5 p-4 text-sm leading-7 text-ink">
+              {report.causalGraph.symptomTrapWarningFa}
+            </div>
+          ) : null}
+
+          <div className="mt-5 grid gap-4 sm:grid-cols-3">
+            {report.causalGraph.interventionWaves.map((wave) => (
+              <div key={wave.waveNumber} className="rounded-lg border border-line p-4">
+                <p className="text-sm font-bold text-ink">{wave.titleFa}</p>
+                <p className="mt-1 text-xs leading-6 text-muted">{wave.rationaleFa}</p>
+                <ul className="mt-2 list-disc space-y-1.5 pr-4 text-xs leading-6 text-muted">
+                  {wave.keywords.map((item) => (
+                    <li key={item.keywordId}>
+                      <span className="font-medium text-ink">{item.titleFa}</span>{" "}
+                      <span className="font-mono">[{item.canonicalCode}]</span> (امتیاز:{" "}
+                      {faNum(Math.round(item.score))} از ۲۰)
+                      {item.unlockedDownstreamTitlesFa.length ? (
+                        <span className="block text-[11px] text-muted">
+                          بازگشایی متأثرها: {item.unlockedDownstreamTitlesFa.join(" · ")}
+                        </span>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {report.deepDive ? (
+        <section className="surface p-6 sm:p-8">
+          <p className="text-sm font-medium text-mark">
+            برنامهٔ اقدام علمی ۳۰ روزه (S051 Shook A3 · S022 Taylor PDSA)
+          </p>
+          <h2 className="mt-2 text-lg font-bold leading-[1.7] text-ink">
+            {report.deepDive.a3Sheet.titleFa}
+          </h2>
+          <p className="mt-2 text-xs text-muted">
+            مسئول اجرا: {report.deepDive.a3Sheet.ownerRoleFa} · افق زمانی: {report.deepDive.a3Sheet.horizonFa}
+          </p>
+
+          <div className="mt-4 space-y-3 text-sm leading-7">
+            <p>
+              <span className="font-medium text-ink">۱. پیش‌زمینه و ضرورت مسأله: </span>
+              <span className="text-muted">{report.deepDive.a3Sheet.backgroundFa}</span>
+            </p>
+            <p>
+              <span className="font-medium text-ink">۲. وضعیت موجود کمی‌شده (AS-IS): </span>
+              <span className="text-muted">{report.deepDive.a3Sheet.currentConditionFa}</span>
+            </p>
+            <div>
+              <p className="font-medium text-ink">
+                ۳. تحلیل علت ریشه‌ای در ۳ سطح (بدون مقصرانگاری فردی — S052, S054):
+              </p>
+              <ul className="mt-1 list-disc space-y-1 pr-5 text-xs leading-6 text-muted">
+                <li>{report.deepDive.a3Sheet.multiLevelRootCause.organizationRootFa}</li>
+                <li>{report.deepDive.a3Sheet.multiLevelRootCause.processRootFa}</li>
+                <li>{report.deepDive.a3Sheet.multiLevelRootCause.performerRootFa}</li>
+              </ul>
+            </div>
+            <p>
+              <span className="font-medium text-ink">۴. وضعیت هدف ۳۰ روزه (TO-BE): </span>
+              <span className="text-muted">{report.deepDive.a3Sheet.targetCondition30DayFa}</span>
+            </p>
+          </div>
+
+          <div className="mt-5 rounded-lg border border-line p-4 text-sm leading-7">
+            <p className="font-bold text-ink">
+              کارت آزمون کوچک ۱۴ روزهٔ PDSA (Plan–Do–Study–Act)
+            </p>
+            <ul className="mt-2 space-y-2 text-xs leading-6 text-muted">
+              <li>{report.deepDive.a3Sheet.pdsaCard.planHypothesisFa}</li>
+              <li>{report.deepDive.a3Sheet.pdsaCard.doSmallScaleFa}</li>
+              <li>{report.deepDive.a3Sheet.pdsaCard.studyMetricFa}</li>
+              <li>{report.deepDive.a3Sheet.pdsaCard.actDecisionRuleFa}</li>
+            </ul>
+          </div>
+
+          {report.deepDive.recommendedModules.length > 0 ? (
+            <div className="mt-6">
+              <h3 className="text-base font-bold text-ink">
+                کاوش عمیق تطبیقی مرحلهٔ ۲ (انتخاب‌شده از بانک ۸۹ گویه بر اساس گلوگاه شما)
+              </h3>
+              <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                {report.deepDive.recommendedModules.map((mod) => (
+                  <div key={mod.dimensionId} className="rounded-lg border border-line p-4">
+                    <p className="text-sm font-medium text-ink">{mod.titleFa}</p>
+                    <p className="mt-1 text-xs leading-6 text-muted">{mod.summaryFa}</p>
+                    <ul className="mt-2 list-disc space-y-1 pr-4 text-xs leading-6 text-muted">
+                      {mod.items.map((it) => (
+                        <li key={it.id}>
+                          [{it.id}] {it.text}
+                          {it.critical ? " (گویهٔ حیاتی)" : ""}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
 
       <p className="text-sm leading-7 text-muted">{report.closingFa}</p>
 
