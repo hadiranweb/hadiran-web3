@@ -34,6 +34,7 @@ type ModuleLink = {
   en: string;
   icon: typeof Layers;
   exact?: boolean;
+  studioOnly?: boolean;
 };
 
 const LOCALE_COOKIE = "hadiran-workspace-locale";
@@ -50,6 +51,7 @@ const ownerModules: ModuleLink[] = [
   { href: "/workspace/analyzers", fa: "آینه‌ها", en: "Mirrors", icon: ScanSearch },
   { href: "/workspace/documents", fa: "سندساز", en: "Documents", icon: BookOpen },
   { href: "/workspace/document-templates", fa: "قالب‌ساز", en: "Template builder", icon: LayoutTemplate },
+  { href: "/workspace/studio", fa: "استودیو", en: "Studio", icon: LayoutTemplate, studioOnly: true },
   { href: "/workspace/bots", fa: "ربات‌ها", en: "Bots", icon: Wrench },
   { href: "/workspace/mcp", fa: "سرویس MCP", en: "MCP Service", icon: Wrench },
   { href: "/workspace/people", fa: "اعضا", en: "People", icon: Users },
@@ -222,7 +224,7 @@ function NavList({
   );
 }
 
-export function WorkspaceChrome({ children }: { children?: ReactNode }) {
+export function WorkspaceChrome({ children, studioEnabled = false }: { children?: ReactNode; studioEnabled?: boolean }) {
   const pathname = usePathname();
   const [account, setAccount] = useState<{ role?: string; analyzerDesk?: boolean } | null>(null);
   const locale = useSyncExternalStore(subscribeLocale, getLocaleSnapshot, getLocaleServerSnapshot);
@@ -264,7 +266,9 @@ export function WorkspaceChrome({ children }: { children?: ReactNode }) {
   }, [drawer]);
 
   const role = account?.role ?? null;
-  const modules = role === "author" ? authorModules : role === "member" ? grantedModules : ownerModules;
+  const modules = (role === "author" ? authorModules : role === "member" ? grantedModules : ownerModules).filter(
+    (link) => !link.studioOnly || studioEnabled,
+  );
   const home = role === "owner" || role == null ? "/workspace" : "/workspace/analyzers";
   const showCreate = role === "author" || role === "owner" || role == null;
   const t = (fa: string, en: string) => (locale === "en" ? en : fa);

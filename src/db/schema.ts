@@ -1,4 +1,5 @@
 import {
+  index,
   pgTable,
   serial,
   integer,
@@ -1521,4 +1522,36 @@ export const contentRevision = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   },
   (t) => [unique("content_revision_entity_key_rev_uq").on(t.entity, t.entityKey, t.revision)],
+);
+
+/** صفحه‌های استودیو (صفحه‌ساز بلوکی). draft هرگز عمومی نمی‌شود؛ فقط publishedData رندر می‌شود. */
+export const studioPages = pgTable("studio_pages", {
+  id: text("id").primaryKey(),
+  slug: varchar("slug", { length: 128 }).notNull().unique(),
+  titleFa: varchar("title_fa", { length: 256 }).notNull(),
+  status: varchar("status", { length: 16 }).notNull().default("draft"),
+  target: varchar("target", { length: 64 }).notNull().default("standalone"),
+  draftData: jsonb("draft_data").$type<Record<string, unknown>>().notNull().default({ content: [], root: {} }),
+  publishedData: jsonb("published_data").$type<Record<string, unknown>>(),
+  seo: jsonb("seo").$type<Record<string, unknown>>().notNull().default({}),
+  ownerId: integer("owner_id").references(() => accounts.id, { onDelete: "set null" }),
+  publishedAt: timestamp("published_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+export const studioPageVersions = pgTable(
+  "studio_page_versions",
+  {
+    id: text("id").primaryKey(),
+    pageId: text("page_id")
+      .notNull()
+      .references(() => studioPages.id, { onDelete: "cascade" }),
+    version: integer("version").notNull(),
+    data: jsonb("data").$type<Record<string, unknown>>().notNull(),
+    note: text("note"),
+    createdBy: integer("created_by").references(() => accounts.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  },
+  (t) => [index("studio_page_versions_page_idx").on(t.pageId, t.version)],
 );
