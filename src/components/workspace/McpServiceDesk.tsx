@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { paramsFromSchema, schemaFromParams, type ParamRow } from "@/lib/mcp/service-types";
 
 type ServerRec = {
   slug: string;
@@ -96,6 +97,8 @@ export function McpServiceDesk() {
   const [toolJson, setToolJson] = useState({ inputSchema: "", outputSchema: "", defaults: "", caps: "", annotations: "" });
   const [bindingConsumer, setBindingConsumer] = useState("home_chat");
   const [bindingToken, setBindingToken] = useState("");
+  const [paramRows, setParamRows] = useState<ParamRow[]>([]);
+  const [overrideText, setOverrideText] = useState<Record<number, string>>({});
   const [testArgs, setTestArgs] = useState("{}");
   const [testResult, setTestResult] = useState<string | null>(null);
   const [testToolKey, setTestToolKey] = useState("");
@@ -184,6 +187,7 @@ export function McpServiceDesk() {
   function editTool(tool: ToolRec) {
     setOpenTool(tool.id);
     setToolDraft({ ...tool });
+    setParamRows(paramsFromSchema(tool.inputSchema, tool.defaults, tool.caps));
     setToolJson({
       inputSchema: jsonText(tool.inputSchema),
       outputSchema: jsonText(tool.outputSchema ?? {}),
@@ -438,7 +442,36 @@ export function McpServiceDesk() {
                           <option value="low">کم</option><option value="medium">متوسط</option><option value="high">بالا</option>
                         </select></div>
                       <div className="sm:col-span-2"><label className={labelCls}>توضیح (همان که مدل می‌خواند)</label><textarea rows={2} className={inputCls} value={toolDraft.descriptionFa ?? ""} onChange={(e) => setToolDraft({ ...toolDraft, descriptionFa: e.target.value || null })} /></div>
-                      <div><label className={labelCls}>اسکیمای ورودی (JSON Schema)</label><textarea dir="ltr" rows={7} className={inputCls} value={toolJson.inputSchema} onChange={(e) => setToolJson({ ...toolJson, inputSchema: e.target.value })} /></div>
+                      <div className="sm:col-span-2 space-y-2">
+                        <label className={labelCls}>پارامترها (ساختاری — بدون JSON): نام، نوع، اجباری، پیش‌فرض، سقف/تحمیل، مقادیر مجاز</label>
+                        {paramRows.map((row, idx) => (
+                          <div key={idx} className="grid grid-cols-2 gap-2 rounded-xl border border-slate-100 bg-slate-50 p-2 sm:grid-cols-8">
+                            <input dir="ltr" className={inputCls} placeholder="name" value={row.name} onChange={(e) => setParamRows(paramRows.map((r, i) => (i === idx ? { ...r, name: e.target.value } : r)))} />
+                            <select className={inputCls} value={row.type} onChange={(e) => setParamRows(paramRows.map((r, i) => (i === idx ? { ...r, type: e.target.value } : r)))}>
+                              <option value="string">string</option><option value="number">number</option><option value="integer">integer</option><option value="boolean">boolean</option><option value="object">object</option><option value="array">array</option>
+                            </select>
+                            <input className={inputCls + " sm:col-span-2"} placeholder="توضیح برای مدل" value={row.description} onChange={(e) => setParamRows(paramRows.map((r, i) => (i === idx ? { ...r, description: e.target.value } : r)))} />
+                            <input dir="ltr" className={inputCls} placeholder="پیش‌فرض" value={row.defaultText} onChange={(e) => setParamRows(paramRows.map((r, i) => (i === idx ? { ...r, defaultText: e.target.value } : r)))} />
+                            <input dir="ltr" className={inputCls} placeholder="سقف/تحمیل" value={row.capText} onChange={(e) => setParamRows(paramRows.map((r, i) => (i === idx ? { ...r, capText: e.target.value } : r)))} />
+                            <input dir="ltr" className={inputCls} placeholder="enum: a, b" value={row.enumText} onChange={(e) => setParamRows(paramRows.map((r, i) => (i === idx ? { ...r, enumText: e.target.value } : r)))} />
+                            <span className="flex items-center gap-2">
+                              <label className="flex items-center gap-1 text-xs">
+                                <input type="checkbox" checked={row.required} onChange={(e) => setParamRows(paramRows.map((r, i) => (i === idx ? { ...r, required: e.target.checked } : r)))} />
+                                اجباری
+                              </label>
+                              <button type="button" className="text-xs text-red-700" onClick={() => setParamRows(paramRows.filter((_, i) => i !== idx))}>حذف</button>
+                            </span>
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          className={ghostCls}
+                          onClick={() => setParamRows([...paramRows, { name: "", type: "string", description: "", required: false, defaultText: "", capText: "", enumText: "" }])}
+                        >
+                          + پارامتر تازه
+                        </button>
+                      </div>
+                      <div><label className={labelCls}>اسکیمای ورودی (JSON پیشرفته — با پارامترهای بالا بازسازی می‌شود)</label><textarea dir="ltr" rows={7} className={inputCls} value={toolJson.inputSchema} onChange={(e) => setToolJson({ ...toolJson, inputSchema: e.target.value })} /></div>
                       <div><label className={labelCls}>اسکیمای خروجی</label><textarea dir="ltr" rows={7} className={inputCls} value={toolJson.outputSchema} onChange={(e) => setToolJson({ ...toolJson, outputSchema: e.target.value })} /></div>
                       <div><label className={labelCls}>مقادیر پیش‌فرض (defaults)</label><textarea dir="ltr" rows={4} className={inputCls} value={toolJson.defaults} onChange={(e) => setToolJson({ ...toolJson, defaults: e.target.value })} /></div>
                       <div><label className={labelCls}>سقف و تحمیل (caps) — عدد یعنی حد بالا، غیرعدد یعنی تحمیلی</label><textarea dir="ltr" rows={4} className={inputCls} value={toolJson.caps} onChange={(e) => setToolJson({ ...toolJson, caps: e.target.value })} /></div>
@@ -523,14 +556,38 @@ export function McpServiceDesk() {
           {tools.map((tool) => {
             const bound = boundIds.get(tool.id);
             return (
-              <label key={tool.id} className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2 text-sm">
-                <span dir="ltr">{tool.serverSlug}/{tool.name}</span>
-                <input
-                  type="checkbox"
-                  checked={Boolean(bound?.enabled)}
-                  onChange={(e) => void setBindingTool(tool.id, e.target.checked, bound?.paramOverrides ?? {})}
-                />
-              </label>
+              <div key={tool.id} className="rounded-xl border border-slate-200 px-3 py-2 text-sm">
+                <div className="flex items-center justify-between gap-2">
+                  <span dir="ltr">{tool.serverSlug}/{tool.name}</span>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(bound?.enabled)}
+                    onChange={(e) => void setBindingTool(tool.id, e.target.checked, bound?.paramOverrides ?? {})}
+                  />
+                </div>
+                {bound?.enabled && (
+                  <div className="mt-2 flex gap-2">
+                    <input
+                      dir="ltr"
+                      className={inputCls}
+                      placeholder='تحمیل مقادیر این بستن (JSON) — مثال: {"limit":2}'
+                      value={overrideText[tool.id] ?? jsonText(bound.paramOverrides)}
+                      onChange={(e) => setOverrideText({ ...overrideText, [tool.id]: e.target.value })}
+                    />
+                    <button
+                      type="button"
+                      className={ghostCls + " shrink-0"}
+                      onClick={() => {
+                        const parsed = parseJson(overrideText[tool.id] ?? "{}");
+                        if (!parsed) return setError("JSON تحمیل مقادیر نامعتبر است.");
+                        void setBindingTool(tool.id, true, parsed);
+                      }}
+                    >
+                      ثبت تحمیل
+                    </button>
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>

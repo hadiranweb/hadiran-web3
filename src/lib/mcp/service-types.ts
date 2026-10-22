@@ -182,3 +182,97 @@ export function isToolEffective(input: {
 export function publicToolName(serverSlug: string, toolName: string, allNames: Map<string, number>): string {
   return (allNames.get(toolName) ?? 0) > 1 ? `${serverSlug}__${toolName}` : toolName;
 }
+
+// ---------- ویرایشگر ساختاری پارامترها (بدون JSON خام) ----------
+
+export interface ParamRow {
+  name: string;
+  type: string;
+  description: string;
+  required: boolean;
+  defaultText: string;
+  capText: string;
+  enumText: string;
+}
+
+function scalarToText(value: unknown): string {
+  if (value === undefined || value === null) return "";
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+}
+
+function textToScalar(text: string, type: string): unknown {
+  const trimmed = text.trim();
+  if (type === "number" || type === "integer") {
+    const n = Number(trimmed);
+    return Number.isFinite(n) ? n : trimmed;
+  }
+  if (type === "boolean") return trimmed === "true";
+  if (type === "object" || type === "array") {
+    try {
+      return JSON.parse(trimmed) as unknown;
+    } catch {
+      return trimmed;
+    }
+  }
+  return trimmed;
+}
+
+export function paramsFromSchema(
+  schema: Record<string, unknown>,
+  defaults: Record<string, unknown>,
+  caps: Record<string, unknown>,
+): ParamRow[] {
+  const properties = asRecord(schema.properties);
+  const required = Array.isArray(schema.required) ? (schema.required as string[]) : [];
+  return Object.entries(properties).map(([name, raw]) => {
+    const prop = asRecord(raw);
+    const enumValues = Array.isArray(prop.enum) ? (prop.enum as unknown[]) : [];
+    return {
+      name,
+      type: typeof prop.type === "string" ? prop.type : "string",
+      description: typeof prop.description === "string" ? prop.description : "",
+      required: required.includes(name),
+      defaultText: scalarToText(defaults[name]),
+      capText: scalarToText(caps[name]),
+      enumText: enumValues.map((v) => scalarToText(v)).join(", "),
+    };
+  });
+}
+
+export function schemaFromParams(
+  rows: ParamRow[],
+  baseSchema: Record<string, unknown>,
+  baseDefaults: Record<string, unknown>,
+  baseCaps: Record<string, unknown>,
+): { inputSchema: Record<string, unknown>; defaults: Record<string, unknown>; caps: Record<string, unknown> } {
+  const properties: Record<string, unknown> = {};
+  const required: string[] = [];
+  const defaults: Record<string, unknown> = { ...baseDefaults };
+  const caps: Record<string, unknown> = { ...baseCaps };
+
+  for (const row of rows) {
+    const name = row.name.trim();
+    if (!name) continue;
+    const prop: Record<string, unknown> = { type: row.type };
+    if (row.description.trim()) prop.description = row.description.trim();
+    if (row.enumText.trim()) {
+      prop.enum = row.enumText
+        .split(",")
+        .map((v) => textToScalar(v.trim(), row.type))
+        .filter((v) => v !== "");
+    }
+    properties[name] = prop;
+    if (row.required) required.push(name);
+    if (row.defaultText.trim()) defaults[name] = textToScalar(row.defaultText, row.type);
+    else delete defaults[name];
+    if (row.capText.trim()) caps[name] = textToScalar(row.capText, row.type);
+    else delete caps[name];
+  }
+
+  return {
+    inputSchema: { ...baseSchema, type: "object", properties, required },
+    defaults,
+    caps,
+  };
+}

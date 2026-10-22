@@ -57,3 +57,32 @@ test("نام ابزار و نام عمومیِ بدون برخورد درست س
   assert.equal(publicToolName("knowledge", "search", counts), "knowledge__search");
   assert.equal(publicToolName("knowledge", "list", counts), "list");
 });
+
+test("ویرایشگر ساختاری پارامتر: رفت‌وبرگشت اسکیما/پیش‌فرض/سقف سالم است", async () => {
+  const { paramsFromSchema, schemaFromParams } = await import("./service-types.ts");
+  const rows = paramsFromSchema(
+    {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "پرسش" },
+        limit: { type: "number" },
+        mode: { type: "string", enum: ["a", "b"] },
+      },
+      required: ["query"],
+    },
+    { limit: 4 },
+    { limit: 8 },
+  );
+  assert.equal(rows.length, 3);
+  assert.equal(rows[0].required, true);
+  assert.equal(rows[1].defaultText, "4");
+  assert.equal(rows[1].capText, "8");
+  assert.equal(rows[2].enumText, "a, b");
+
+  const edited = rows.map((r) => (r.name === "limit" ? { ...r, defaultText: "6", capText: "10" } : r));
+  const built = schemaFromParams(edited, { type: "object" }, {}, {});
+  assert.equal(built.defaults.limit, 6);
+  assert.equal(built.caps.limit, 10);
+  assert.deepEqual(built.inputSchema.required, ["query"]);
+  assert.deepEqual(built.inputSchema.properties.mode.enum, ["a", "b"]);
+});
