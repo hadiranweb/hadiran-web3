@@ -732,7 +732,26 @@ const RUMMLER_DIAGNOSIS_FA: Record<RummlerLevel, string> = {
 /**
  * تحلیل هستی‌شناختی زیرگراف فعال‌شدهٔ کاربر بر اساس امتیاز واقعی ۱۵ کلیدواژه.
  */
-export function buildOntologyDiagnosis(keywords: LayerKeyword[]): OntologyDiagnosis {
+/**
+ * Where the ontology nodes live. Defaults to the shipped maps; a published database revision
+ * supplies its own, so retagging a keyword is not a code change.
+ */
+export type OntologyGraphResolvers = {
+  ontology(keywordId: string): KeywordOntologyEntry | undefined;
+  conceptFor(label: string): VaultConceptNode | undefined;
+  sourceFor(id: string): ResearchSourceNode | undefined;
+};
+
+export const CODE_ONTOLOGY_RESOLVERS: OntologyGraphResolvers = {
+  ontology: (keywordId) => KEYWORD_ONTOLOGY_MAP.get(keywordId),
+  conceptFor: (label) => VAULT_CONCEPTS[label],
+  sourceFor: (id) => RESEARCH_SOURCES[id],
+};
+
+export function buildOntologyDiagnosis(
+  keywords: LayerKeyword[],
+  resolvers: OntologyGraphResolvers = CODE_ONTOLOGY_RESOLVERS,
+): OntologyDiagnosis {
   const byLevel = new Map<RummlerLevel, LayerKeyword[]>();
   for (const level of ["organization", "process_whitespace", "job_performer"] as RummlerLevel[]) {
     byLevel.set(level, []);
@@ -773,20 +792,20 @@ export function buildOntologyDiagnosis(keywords: LayerKeyword[]): OntologyDiagno
   const conceptNames = new Set<string>();
   const sourceIds = new Set<string>();
   for (const kw of weakestKeywords) {
-    const onto = KEYWORD_ONTOLOGY_MAP.get(kw.id);
+    const onto = resolvers.ontology(kw.id);
     for (const c of kw.vaultConceptsFa ?? onto?.vaultConceptIds ?? []) conceptNames.add(c);
     for (const s of kw.sourceIds ?? onto?.sourceIds ?? []) sourceIds.add(s);
   }
 
   const activatedConcepts: VaultConceptNode[] = [];
   for (const name of conceptNames) {
-    const node = VAULT_CONCEPTS[name];
+    const node = resolvers.conceptFor(name);
     if (node) activatedConcepts.push(node);
   }
 
   const activatedSources: ResearchSourceNode[] = [];
   for (const id of sourceIds) {
-    const src = RESEARCH_SOURCES[id];
+    const src = resolvers.sourceFor(id);
     if (src) activatedSources.push(src);
   }
 

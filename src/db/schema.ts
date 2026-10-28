@@ -990,6 +990,8 @@ export const ssotSource = pgTable("ssot_source", {
 /** Ontology concepts lifted from the research vaults. */
 export const ssotConcept = pgTable("ssot_concept", {
   canonicalCode: varchar("canonical_code", { length: 40 }).primaryKey(),
+  /** The label the graph authors against — the key `conceptFor` resolves. */
+  legacyId: text("legacy_id").notNull().unique(),
   labelFa: text("label_fa").notNull(),
   summaryFa: text("summary_fa"),
   model: varchar("model", { length: 40 }),
@@ -1048,7 +1050,8 @@ export const ssotKeyword = pgTable("ssot_keyword", {
   rummlerNeed: varchar("rummler_need", { length: 16 }),
   rummlerCellLabelFa: text("rummler_cell_label_fa"),
   nadlerPairFa: text("nadler_pair_fa"),
-  vaultCodes: jsonb("vault_codes").$type<string[]>().notNull().default([]),
+  /** Concept references verbatim, exactly as the layer authored them. */
+  vaultRefs: jsonb("vault_refs").$type<string[]>().notNull().default([]),
   sourceCodes: jsonb("source_codes").$type<string[]>().notNull().default([]),
   ismLevel: integer("ism_level"),
   micmacQuadrant: varchar("micmac_quadrant", { length: 32 }),
@@ -1056,6 +1059,22 @@ export const ssotKeyword = pgTable("ssot_keyword", {
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Ontology assertions per keyword: kept separate from the layer's display copy. */
+export const ssotKeywordOntology = pgTable("ssot_keyword_ontology", {
+  keywordCode: varchar("keyword_code", { length: 24 })
+    .primaryKey()
+    .references(() => ssotKeyword.canonicalCode, { onDelete: "cascade" }),
+  rummlerLevel: varchar("rummler_level", { length: 32 }),
+  rummlerNeed: varchar("rummler_need", { length: 16 }),
+  rummlerCellLabelFa: text("rummler_cell_label_fa"),
+  nadlerPairFa: text("nadler_pair_fa"),
+  /** Research-Vault concept labels, exactly as the ontology authored them — the join key. */
+  vaultRefs: jsonb("vault_refs").$type<string[]>().notNull().default([]),
+  sourceCodes: jsonb("source_codes").$type<string[]>().notNull().default([]),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 /** The 75 weighted sub-keywords. */

@@ -326,19 +326,37 @@ function subKeywordRows(): { rows: SubKeywordRow[]; edges: GraphEdgeRow[] } {
   return { rows, edges };
 }
 
+/**
+ * The ontology half of a keyword. `layerCopy` carries what the report prints; this carries how
+ * the keyword is classified (Rummler cell, Nadler pair) and which sources back that claim.
+ * The engine consults this first, so it is stored as its own rows rather than folded into the
+ * keyword copy — whichever was written last would otherwise decide what wins.
+ */
+function keywordOntologyRows(): GraphManifest["keywordOntology"] {
+  const keywordCodes = new Map(
+    layerCopy.flatMap((layer) => layer.keywords.map((kw) => [kw.id, toCanonicalCode(kw.id)] as const)),
+  );
+  return KEYWORD_ONTOLOGY.filter((entry) => keywordCodes.has(entry.keywordId)).map((entry) => ({
+    keywordCode: keywordCodes.get(entry.keywordId)!,
+    rummlerLevel: entry.rummlerLevel,
+    rummlerNeed: entry.rummlerNeed,
+    rummlerCellLabelFa: entry.rummlerCellLabelFa,
+    nadlerPairFa: entry.nadlerPairFa,
+    vaultRefs: [...entry.vaultConceptIds],
+    sourceCodes: entry.sourceIds.map(sourceToCode),
+  }));
+}
+
 function layerNoOfKeyword(keyword: LayerKeyword): number {
   const match = keyword.id.match(/^L(\d)-K\d+$/);
   return match ? Number(match[1]) : 1;
 }
 
 function keywordRows(): KeywordRow[] {
-  const ontologyByKeyword = new Map(KEYWORD_ONTOLOGY.map((entry) => [entry.keywordId, entry]));
   const rows: KeywordRow[] = [];
   let order = 0;
   for (const layer of layerCopy) {
     for (const keyword of layer.keywords) {
-      const ontology = ontologyByKeyword.get(keyword.id);
-      const vaultCodes = (keyword.vaultConceptsFa ?? []).map((label) => VAULT_CONCEPTS[label]?.id ?? label);
       rows.push({
         canonicalCode: toCanonicalCode(keyword.id),
         legacyId: keyword.id,
@@ -356,11 +374,11 @@ function keywordRows(): KeywordRow[] {
         asIsStrongFa: keyword.asIsStrongFa ?? null,
         toBeFa: keyword.toBeFa ?? null,
         actionStepFa: keyword.actionStepFa ?? null,
-        rummlerLevel: keyword.rummlerLevel ?? ontology?.rummlerLevel ?? null,
-        rummlerNeed: ontology?.rummlerNeed ?? null,
-        rummlerCellLabelFa: ontology?.rummlerCellLabelFa ?? null,
-        nadlerPairFa: keyword.nadlerPairFa ?? ontology?.nadlerPairFa ?? null,
-        vaultCodes,
+        rummlerLevel: keyword.rummlerLevel ?? null,
+        rummlerNeed: keyword.rummlerNeed ?? null,
+        rummlerCellLabelFa: keyword.rummlerCellLabelFa ?? null,
+        nadlerPairFa: keyword.nadlerPairFa ?? null,
+        vaultRefs: [...(keyword.vaultConceptsFa ?? [])],
         sourceCodes: (keyword.sourceIds ?? []).map(sourceToCode),
         ismLevel: KEYWORD_ISM_LEVELS[keyword.id] ?? null,
         micmacQuadrant: null,
@@ -440,8 +458,9 @@ export function buildGraphManifest(): GraphManifest {
     claimFa: source.coreTakeawayFa,
   }));
 
-  const concepts: ConceptRow[] = Object.values(VAULT_CONCEPTS).map((concept) => ({
+  const concepts: ConceptRow[] = Object.entries(VAULT_CONCEPTS).map(([authoredLabel, concept]) => ({
     canonicalCode: concept.id,
+    legacyId: authoredLabel,
     labelFa: concept.titleFa,
     summaryFa: concept.summaryFa,
     model: concept.layerFamily,
@@ -477,6 +496,7 @@ export function buildGraphManifest(): GraphManifest {
     processes,
     layers: layerRows(),
     keywords: keywordRows(),
+    keywordOntology: keywordOntologyRows(),
     subKeywords: sub.rows,
     items: [...itemRowsFromPack(casio), ...itemRowsFromPack(mindset), ...deep.items],
     edges: [...measurementEdgeRows(), ...sub.edges, ...deep.edges],
@@ -494,6 +514,12 @@ export function sliceManifestByDomain(manifest: GraphManifest, domainCode: SsotD
     ...manifest,
     layers: manifest.layers.filter((row) => row.domainCode === domainCode),
     keywords: manifest.keywords.filter((row) => row.domainCode === domainCode),
+    keywordOntology: (() => {
+      const codes = new Set(
+        manifest.keywords.filter((row) => row.domainCode === domainCode).map((row) => row.canonicalCode),
+      );
+      return manifest.keywordOntology.filter((row) => codes.has(row.keywordCode));
+    })(),
     subKeywords: manifest.subKeywords.filter((row) => keywordCodes.has(row.keywordCode)),
     items: manifest.items.filter((row) => row.domainCode === domainCode),
     edges: manifest.edges.filter((row) => row.domainCode === domainCode),

@@ -22,6 +22,7 @@ import {
   hasPublishedRevision,
   publishGraphDraft,
 } from "@/lib/analyzers/graph/repository";
+import { warmGraphContext } from "@/lib/analyzers/graph/runtime";
 import type { SsotDomainCode } from "@/lib/analyzers/graph/types";
 
 export function domainCodeForSlug(slug: string): SsotDomainCode | null {
@@ -55,6 +56,9 @@ export async function bootstrapCanonicalGraph(): Promise<{ seeded: boolean; publ
       });
       if (published.ok) result.published.push(`${pack.slug}#${published.revision}`);
     }
+    // Warm the synchronous read the report engine uses, so the first respondent after a
+    // boot does not pay for (or silently skip) the database read.
+    await warmGraphContext();
   } catch {
     // fall through to the code packs
   }

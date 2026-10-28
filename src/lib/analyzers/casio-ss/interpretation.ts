@@ -373,7 +373,7 @@ export const layerCopy: LayerCopy[] = [
           { id: "L3-K1-S4", titleFa: "مالکیت نتیجه (Outcome Ownership)", weights: [{ item: "FL.L3.Q1", weight: 0.55 }, { item: "FL.L3.Q3", weight: 0.45 }] },
           { id: "L3-K1-S5", titleFa: "قواعد ارجاع و مدیریت استثنا", weights: [{ item: "FL.L3.Q2", weight: 0.6 }, { item: "FL.L3.Q4", weight: 0.4 }] },
         ],
-        questionIds: ["FL.L3.Q1", "FL.L3.Q2", "FL.L3.Q3", "FL.L3.Q4", "FL.L1.Q2", "FL.L2.Q4"],
+        questionIds: ["FL.L3.Q1", "FL.L3.Q2", "FL.L3.Q3", "FL.L3.Q4", "FL.L1.Q2", "FL.L2.Q4", "FL.L4.Q2"],
       },
       {
         id: "L3-K2",
@@ -404,7 +404,7 @@ export const layerCopy: LayerCopy[] = [
           { id: "L3-K2-S4", titleFa: "آموزش نقش‌محور و ورود کارکنان", weights: [{ item: "FL.L3.Q4", weight: 0.6 }, { item: "FL.L2.Q3", weight: 0.4 }] },
           { id: "L3-K2-S5", titleFa: "سنجش شایستگی و بازخورد", weights: [{ item: "FL.L3.Q3", weight: 0.7 }, { item: "FL.L4.Q3", weight: 0.3 }] },
         ],
-        questionIds: ["FL.L3.Q2", "FL.L3.Q3", "FL.L3.Q4", "FL.L2.Q2", "FL.L2.Q3"],
+        questionIds: ["FL.L3.Q2", "FL.L3.Q3", "FL.L3.Q4", "FL.L2.Q2", "FL.L2.Q3", "FL.L4.Q3"],
       },
       {
         id: "L3-K3",
@@ -477,7 +477,7 @@ export const layerCopy: LayerCopy[] = [
           { id: "L4-K1-S4", titleFa: "روند، مقایسه و انحراف", weights: [{ item: "FL.L4.Q1", weight: 0.55 }, { item: "FL.L4.Q4", weight: 0.45 }] },
           { id: "L4-K1-S5", titleFa: "تناوب گزارش و مالک شاخص", weights: [{ item: "FL.L4.Q1", weight: 0.6 }, { item: "FL.L4.Q2", weight: 0.4 }] },
         ],
-        questionIds: ["FL.L4.Q1", "FL.L4.Q4", "FL.L1.Q3", "FL.L1.Q4", "FL.L5.Q4"],
+        questionIds: ["FL.L4.Q1", "FL.L4.Q4", "FL.L1.Q3", "FL.L1.Q4", "FL.L5.Q4", "FL.L4.Q2"],
       },
       {
         id: "L4-K2",
@@ -539,7 +539,7 @@ export const layerCopy: LayerCopy[] = [
           { id: "L4-K3-S4", titleFa: "به‌روزرسانی مستندات و SOP", weights: [{ item: "FL.L4.Q3", weight: 0.55 }, { item: "FL.L2.Q2", weight: 0.45 }] },
           { id: "L4-K3-S5", titleFa: "تأیید اثربخشی و پایش تکرار", weights: [{ item: "FL.L4.Q4", weight: 0.65 }, { item: "FL.L4.Q1", weight: 0.35 }] },
         ],
-        questionIds: ["FL.L4.Q3", "FL.L4.Q4", "FL.L2.Q4", "FL.L3.Q3"],
+        questionIds: ["FL.L4.Q3", "FL.L4.Q4", "FL.L2.Q4", "FL.L3.Q3", "FL.L4.Q2"],
       },
     ],
   },

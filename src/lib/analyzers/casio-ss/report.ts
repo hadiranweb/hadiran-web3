@@ -7,15 +7,12 @@ import { findItem, type AnalyzerPack, type LayerBand } from "@/lib/analyzers/pac
 import { scorePack, type PackScore } from "@/lib/analyzers/score";
 import {
   INTERPRETATION_VERSION,
-  crossPatterns as fallbackPatterns,
-  layerBands as fallbackBands,
-  layerCopy as fallbackLayers,
   type LayerKeyword,
   type ScoredSubKeyword,
 } from "./interpretation";
 import {
   buildOntologyDiagnosis,
-  getKeywordOntology,
+  CODE_ONTOLOGY_RESOLVERS,
   type OntologyDiagnosisSummary,
 } from "./ontology-graph";
 import {
@@ -31,11 +28,11 @@ import {
   type AdaptiveDeepDiveSummary,
 } from "./deep-dive-a3";
 import {
-  buildCanonicalKeywordCausalProfiles,
   buildRespondentCausalAnalysis,
   toCanonicalCode,
   type RespondentCausalGraphSummary,
 } from "./coding-causal-graph";
+import { CODE_GRAPH_CONTEXT, currentGraphContext, type CasioGraphContext } from "./graph-context";
 
 export type ReportContextField = { labelFa: string; valueFa: string };
 
@@ -72,19 +69,19 @@ export type CasioReport = {
   closingFa: string;
 };
 
-const CANONICAL_KEYWORDS = new Map<string, LayerKeyword>(
-  fallbackLayers.flatMap((layer) => layer.keywords.map((kw) => [kw.id, kw] as const)),
-);
-
-const KEYWORD_TITLES_MAP: Record<string, string> = Object.fromEntries(
-  fallbackLayers.flatMap((layer) => layer.keywords.map((kw) => [kw.id, kw.titleFa] as const)),
-);
-
-const BASE_CAUSAL_PROFILES = buildCanonicalKeywordCausalProfiles(KEYWORD_TITLES_MAP);
-
-const STATIC_DEFAULT_AS_IS = new Set(fallbackLayers.map((l) => l.asIsFa));
-const STATIC_DEFAULT_TO_BE = new Set(fallbackLayers.map((l) => l.toBeFa));
-const STATIC_DEFAULT_ACTIONS = new Set(fallbackLayers.map((l) => l.actionsFa));
+/**
+ * Prose a layer carries only because the shipped instrument carries it. When the published
+ * revision says the same thing, the manager did not customise it and the keyword-level
+ * synthesis below should win — that judgement has to be made against the active graph, not
+ * against a constant frozen at import time.
+ */
+function staticLayerDefaults(graph: CasioGraphContext) {
+  return {
+    asIs: new Set(graph.layers.map((layer) => layer.asIsFa)),
+    toBe: new Set(graph.layers.map((layer) => layer.toBeFa)),
+    actions: new Set(graph.layers.map((layer) => layer.actionsFa)),
+  };
+}
 
 function asNumber(value: number | string | undefined): number {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
@@ -114,7 +111,8 @@ function keywordBandLabelFaOf(bandId: "weak" | "growing" | "strong"): string {
   return "نقطهٔ قوت";
 }
 
-export function layerBandFor(score: number, bands: LayerBand[]): LayerBand {
+export function layerBandFor(score: number, bands: LayerBand[], graph?: CasioGraphContext): LayerBand {
+  const fallbackBands = graph?.bands ?? CODE_GRAPH_CONTEXT.bands;
   const list = bands.length ? bands : fallbackBands;
   for (const band of list) {
     const underMax = band.maxInclusive ? score <= band.max : score < band.max;
@@ -244,11 +242,12 @@ function enrichKeywordWithOntologyAndContext(
   kw: LayerKeyword,
   score: number,
   ctx: BusinessContextProfile,
+  graph: CasioGraphContext,
 ): LayerKeyword {
-  const onto = getKeywordOntology(kw.id);
-  const cWeight = contextKeywordWeight(kw.id, ctx);
-  const cDeficit = contextWeightedDeficit(score, kw.id, ctx);
-  const causalProfile = BASE_CAUSAL_PROFILES[kw.id];
+  const onto = graph.ontology(kw.id);
+  const cWeight = contextKeywordWeight(kw.id, ctx, graph.tensors);
+  const cDeficit = contextWeightedDeficit(score, kw.id, ctx, graph.tensors);
+  const causalProfile = graph.causalProfiles[kw.id];
   const enriched: LayerKeyword = {
     ...kw,
     canonicalCode: causalProfile?.canonicalCode ?? toCanonicalCode(kw.id),
@@ -268,10 +267,10 @@ function enrichKeywordWithOntologyAndContext(
     dependencePower: causalProfile?.dependencePower,
     netCauseEffect: causalProfile?.netCauseEffect,
     influencersFa: causalProfile?.directInfluencers.map(
-      (inf) => `${KEYWORD_TITLES_MAP[inf.keywordId] ?? inf.keywordId} [${inf.canonicalCode}]`,
+      (inf) => `${graph.titles[inf.keywordId] ?? inf.keywordId} [${inf.canonicalCode}]`,
     ),
     influencedFa: causalProfile?.directInfluenced.map(
-      (dep) => `${KEYWORD_TITLES_MAP[dep.keywordId] ?? dep.keywordId} [${dep.canonicalCode}]`,
+      (dep) => `${graph.titles[dep.keywordId] ?? dep.keywordId} [${dep.canonicalCode}]`,
     ),
   };
   return contextualizeKeyword(enriched, ctx);
@@ -295,6 +294,7 @@ function keywordsForLayer(
   answers: Record<string, number | string>,
   scored: PackScore,
   ctx: BusinessContextProfile,
+  graph: CasioGraphContext,
 ): LayerKeyword[] {
   const toLayer = new Set(
     pack.edges.filter((edge) => edge.to === findingId).map((edge) => edge.from),
@@ -302,7 +302,7 @@ function keywordsForLayer(
   const rawKeywords: LayerKeyword[] = [];
   for (const keyword of pack.keywords) {
     if (!toLayer.has(keyword.id)) continue;
-    const canonical = CANONICAL_KEYWORDS.get(keyword.id);
+    const canonical = graph.keywords.get(keyword.id);
     const score = computeKeywordScore(pack, answers, scored, keyword.id);
     const bandId = keywordBandIdOf(score);
     const bandLabelFa = keywordBandLabelFaOf(bandId);
@@ -328,11 +328,11 @@ function keywordsForLayer(
       bandId,
       bandLabelFa,
     };
-    rawKeywords.push(enrichKeywordWithOntologyAndContext(baseKw, score, ctx));
+    rawKeywords.push(enrichKeywordWithOntologyAndContext(baseKw, score, ctx, graph));
   }
 
   if (!rawKeywords.length) {
-    const fallback = fallbackLayers.find((layer) => layer.findingId === findingId);
+    const fallback = graph.layers.find((layer) => layer.findingId === findingId);
     if (!fallback) return [];
     const fallbackList = fallback.keywords.map((kw) => {
       const score = computeKeywordScore(pack, answers, scored, kw.id);
@@ -356,6 +356,7 @@ function keywordsForLayer(
         },
         score,
         ctx,
+        graph,
       );
     });
     return sortKeywordsByPriority(fallbackList);
@@ -435,12 +436,16 @@ function layersOf(
   answers: Record<string, number | string>,
   scored: PackScore,
   ctx: BusinessContextProfile,
+  graph: CasioGraphContext,
 ) {
+  const STATIC_DEFAULT_AS_IS = staticLayerDefaults(graph).asIs;
+  const STATIC_DEFAULT_TO_BE = staticLayerDefaults(graph).toBe;
+  const STATIC_DEFAULT_ACTIONS = staticLayerDefaults(graph).actions;
   const fromFindings = pack.findings.filter((finding) => finding.kind === "layer");
   if (fromFindings.length) {
     return fromFindings.map((finding) => {
-      const fallback = fallbackLayers.find((layer) => layer.findingId === finding.id);
-      const keywords = keywordsForLayer(pack, finding.id, answers, scored, ctx);
+      const fallback = graph.layers.find((layer) => layer.findingId === finding.id);
+      const keywords = keywordsForLayer(pack, finding.id, answers, scored, ctx, graph);
       const customAsIs =
         finding.asIsFa && !STATIC_DEFAULT_AS_IS.has(finding.asIsFa) ? finding.asIsFa : null;
       const customToBe =
@@ -468,8 +473,8 @@ function layersOf(
       };
     });
   }
-  return fallbackLayers.map((layer) => {
-    const keywords = keywordsForLayer(pack, layer.findingId, answers, scored, ctx);
+  return graph.layers.map((layer) => {
+    const keywords = keywordsForLayer(pack, layer.findingId, answers, scored, ctx, graph);
     const dynamic = synthesizeLayerCopyFromKeywords(
       keywords,
       layer.asIsFa,
@@ -506,8 +511,9 @@ function bottleneckIdOf(
 function matchingPatterns(
   pack: AnalyzerPack,
   layerScores: Record<string, number>,
+  graph: CasioGraphContext,
 ): ReportPattern[] {
-  const patterns = pack.report?.crossPatterns?.length ? pack.report.crossPatterns : fallbackPatterns;
+  const patterns = pack.report?.crossPatterns?.length ? pack.report.crossPatterns : graph.patterns;
   const hits: ReportPattern[] = [];
   for (const pattern of patterns) {
     const { when } = pattern;
@@ -526,10 +532,11 @@ export function buildCasioReport(
   pack: AnalyzerPack,
   answers: Record<string, number | string>,
   snapshot: PackScore | null,
+  graph: CasioGraphContext = currentGraphContext(),
 ): CasioReport {
   const scored = snapshot ?? scorePack(pack, answers);
   const contextProfile = parseBusinessContext(answers);
-  const layerDefs = layersOf(pack, answers, scored, contextProfile);
+  const layerDefs = layersOf(pack, answers, scored, contextProfile, graph);
   const layerScores: Record<string, number> = {};
   for (const layer of layerDefs) {
     layerScores[layer.findingId] = asNumber(scored.scores[layer.findingId]);
@@ -540,7 +547,7 @@ export function buildCasioReport(
     layerScores,
     layerDefs.map((layer) => layer.findingId),
   );
-  const bands = pack.report?.layerBands ?? fallbackBands;
+  const bands = pack.report?.layerBands ?? graph.bands;
   const layers: ReportLayer[] = layerDefs.map((layer) => {
     const score = layerScores[layer.findingId] ?? 0;
     return {
@@ -583,7 +590,7 @@ export function buildCasioReport(
 
   const total = asNumber(scored.scores["diagnosis-total"]);
   const allKeywords = layers.flatMap((layer) => layer.keywords);
-  const causalGraph = buildRespondentCausalAnalysis(allKeywords, contextProfile);
+  const causalGraph = buildRespondentCausalAnalysis(allKeywords, contextProfile, graph.causalEdges);
   const nodeByKw = new Map(
     causalGraph.nodes.map((n) => [n.keywordId, n] as const),
   );
@@ -602,8 +609,8 @@ export function buildCasioReport(
       );
     }
   }
-  const ontology = buildOntologyDiagnosis(allKeywords);
-  const layerPatterns = matchingPatterns(pack, layerScores);
+  const ontology = buildOntologyDiagnosis(allKeywords, graph.resolvers ?? CODE_ONTOLOGY_RESOLVERS);
+  const layerPatterns = matchingPatterns(pack, layerScores, graph);
   const contextPatterns = detectContextualPatterns(contextProfile, layerScores, total);
   const deepDive = buildAdaptiveDeepDiveSummary({
     bottleneckLayerId: bottleneck?.id ?? "",

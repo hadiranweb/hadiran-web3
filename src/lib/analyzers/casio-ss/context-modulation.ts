@@ -243,9 +243,21 @@ export function parseBusinessContext(
 /**
  * محاسبهٔ ضریب اهمیت زمینه‌ای هر کلیدواژه بر اساس اندازهٔ تیم و نوع کسب‌وکار.
  */
-export function contextKeywordWeight(keywordId: string, ctx: BusinessContextProfile): number {
-  const sizeW = SIZE_WEIGHT_MATRIX[ctx.teamSize]?.[keywordId] ?? 1.0;
-  const typeW = TYPE_WEIGHT_MATRIX[ctx.businessType]?.[keywordId] ?? 1.0;
+/** The two modulation matrices. Defaults to the shipped ones; a published revision may override them. */
+export type ContextTensors = {
+  size: Record<TeamSizeCode, Record<string, number>>;
+  type: Record<BusinessTypeCode, Record<string, number>>;
+};
+
+export const CODE_CONTEXT_TENSORS: ContextTensors = { size: SIZE_WEIGHT_MATRIX, type: TYPE_WEIGHT_MATRIX };
+
+export function contextKeywordWeight(
+  keywordId: string,
+  ctx: BusinessContextProfile,
+  tensors: ContextTensors = CODE_CONTEXT_TENSORS,
+): number {
+  const sizeW = tensors.size[ctx.teamSize]?.[keywordId] ?? 1.0;
+  const typeW = tensors.type[ctx.businessType]?.[keywordId] ?? 1.0;
   return Math.round(sizeW * typeW * 1000) / 1000;
 }
 
@@ -254,9 +266,14 @@ export function contextKeywordWeight(keywordId: string, ctx: BusinessContextProf
  * هرچه امتیاز کلیدواژه پایین‌تر و ضریب اهمیت زمینه‌ای آن در مرحلهٔ رشد فعلی بالاتر باشد،
  * اولویت مداخلهٔ آن در گزارش بالاتر قرار می‌گیرد.
  */
-export function contextWeightedDeficit(score: number, keywordId: string, ctx: BusinessContextProfile): number {
+export function contextWeightedDeficit(
+  score: number,
+  keywordId: string,
+  ctx: BusinessContextProfile,
+  tensors: ContextTensors = CODE_CONTEXT_TENSORS,
+): number {
   const gap = Math.max(0, 20 - score);
-  return Math.round(gap * contextKeywordWeight(keywordId, ctx) * 100) / 100;
+  return Math.round(gap * contextKeywordWeight(keywordId, ctx, tensors) * 100) / 100;
 }
 
 /**

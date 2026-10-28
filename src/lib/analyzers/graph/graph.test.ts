@@ -21,6 +21,12 @@ import { canPublish, errorsOnly, validateGraphManifest } from "./integrity";
 import { canonicalJson, hashManifest, manifestDigest } from "./hash";
 import { countManifest } from "./types";
 import type { GraphManifest } from "./types";
+import { buildGraphContext, overlayCausalEdges, overlayLayers, overlayTensors } from "./overlay";
+import { CODE_GRAPH_CONTEXT } from "@/lib/analyzers/casio-ss/graph-context";
+import { buildCasioReport } from "@/lib/analyzers/casio-ss/report";
+import { scorePack } from "@/lib/analyzers/score";
+import { layerCopy } from "@/lib/analyzers/casio-ss/interpretation";
+import { KEYWORD_ONTOLOGY } from "@/lib/analyzers/casio-ss/ontology-graph";
 
 const seed = buildGraphManifest();
 
@@ -203,6 +209,172 @@ test("digest binds counts to the hash so a tampered snapshot cannot pass as inta
   assert.notEqual(withCounts.hash, editedDigest.hash);
   assert.equal(withCounts.counts.items, seed.items.length);
   assert.equal(editedDigest.counts.items, seed.items.length - 1);
+});
+
+function baseAnswers(value = 5): Record<string, number | string> {
+  const answers: Record<string, number | string> = {
+    "BIZ.1": "شرکت نمونه",
+    "BIZ.2": "service",
+    "BIZ.3": "نرم‌افزار",
+    "BIZ.4": "6-20",
+    "BIZ.5": "3-5",
+    "BIZ.6": "3-5",
+  };
+  for (let l = 1; l <= 5; l += 1) {
+    for (let q = 1; q <= 4; q += 1) answers[`FL.L${l}.Q${q}`] = value;
+  }
+  return answers;
+}
+
+/**
+ * A database row cannot hold `undefined`, so a key the code omits and a key the overlay sets to
+ * `undefined` are the same fact. Comparing through JSON is the only way to ask "same content?"
+ * without `deepStrictEqual` calling every absent key a drift.
+ */
+function jsonOf(value: unknown): unknown {
+  return JSON.parse(JSON.stringify(value === undefined ? null : value));
+}
+
+/**
+ * Compare only the fields the code actually authored, so overlay-only extras stay legal.
+ * `questionIds` is excluded: the graph owns which items load a keyword, and the order of the
+ * authored list carries no meaning, so it is asserted as a set above instead.
+ */
+function comparable(rebuilt: Record<string, unknown>, authored: object): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const key of Object.keys(authored)) {
+    if (key === "questionIds") continue;
+    const value = jsonOf((rebuilt as Record<string, unknown>)[key]);
+    if (value !== null) out[key] = value;
+  }
+  return out;
+}
+
+test("the overlay rebuilds every layer, keyword and sub-keyword the engine reads", () => {
+  const context = buildGraphContext(seed);
+  assert.equal(context.layers.length, 5);
+  assert.deepEqual(
+    context.layers.map((layer) => layer.findingId),
+    layerCopy.map((layer) => layer.findingId),
+  );
+  assert.equal(context.keywords.size, 15);
+  for (const layer of layerCopy) {
+    const rebuiltLayer = context.layers.find((candidate) => candidate.findingId === layer.findingId);
+    assert.ok(rebuiltLayer, `${layer.findingId} missing from the overlay`);
+    assert.deepEqual(
+      comparable(rebuiltLayer as unknown as Record<string, unknown>, {
+        yamlKey: layer.yamlKey,
+        findingId: layer.findingId,
+        titleFa: layer.titleFa,
+        constructFa: layer.constructFa,
+        asIsFa: layer.asIsFa,
+        toBeFa: layer.toBeFa,
+        actionsFa: layer.actionsFa,
+      }),
+      jsonOf({
+        yamlKey: layer.yamlKey,
+        findingId: layer.findingId,
+        titleFa: layer.titleFa,
+        constructFa: layer.constructFa,
+        asIsFa: layer.asIsFa,
+        toBeFa: layer.toBeFa,
+        actionsFa: layer.actionsFa,
+      }),
+      `${layer.findingId} layer copy drifted`,
+    );
+    for (const keyword of layer.keywords) {
+      const rebuilt = context.keywords.get(keyword.id);
+      assert.ok(rebuilt, `${keyword.id} missing from the overlay`);
+      assert.deepEqual(rebuilt.children, keyword.children, `${keyword.id} children drifted`);
+      // Membership is what the graph owns; the authored list carries no meaningful order, and the
+      // engine recomputes questionIds from the measurement edges anyway.
+      assert.deepEqual(
+        rebuilt.questionIds.slice().sort(),
+        keyword.questionIds.slice().sort(),
+        `${keyword.id} question set drifted`,
+      );
+      assert.deepEqual(
+        comparable(rebuilt as unknown as Record<string, unknown>, keyword),
+        comparable(keyword as unknown as Record<string, unknown>, keyword),
+        `${keyword.id} keyword copy drifted`,
+      );
+      assert.deepEqual(
+        (rebuilt.subKeywords ?? []).map((sub) => [sub.id, sub.titleFa, sub.weights]),
+        (keyword.subKeywords ?? []).map((sub) => [sub.id, sub.titleFa, sub.weights]),
+        `${keyword.id} sub-keyword weights drifted`,
+      );
+      // The ontology is read ahead of the copy, so it must round-trip as its own rows.
+      assert.deepEqual(
+        jsonOf(context.ontology(keyword.id)),
+        jsonOf(KEYWORD_ONTOLOGY.find((entry) => entry.keywordId === keyword.id)),
+        `${keyword.id} ontology drifted`,
+      );
+    }
+  }
+});
+
+test("feeding the report engine the published graph changes nothing until an edit is made", () => {
+  const pack = buildCasioAuthoredPack();
+  const answers = baseAnswers(6);
+  const scored = scorePack(pack, answers);
+  const fromCode = buildCasioReport(pack, answers, scored, CODE_GRAPH_CONTEXT);
+  const fromGraph = buildCasioReport(pack, answers, scored, buildGraphContext(seed));
+  assert.deepEqual(fromGraph, fromCode, "the seed graph must reproduce the shipped report exactly");
+  assert.equal(fromGraph.layers.length, 5);
+});
+
+test("a published causal edit changes who is the driver and who is the symptom", () => {
+  const context = buildGraphContext(seed);
+  const baseline = context.causalProfiles["L4-K3"];
+  assert.ok(baseline);
+
+  // Flatten the corrective loop into L2-K2 and watch the DEMATEL totals move.
+  const edited: GraphManifest = {
+    ...seed,
+    causalEdges: seed.causalEdges.map((edge) =>
+      edge.fromCode === "KW.L4.K3" && edge.toCode === "KW.L2.K2" ? { ...edge, weight: 1 } : edge,
+    ),
+  };
+  const editedContext = buildGraphContext(edited);
+  assert.notDeepEqual(
+    editedContext.causalProfiles["L4-K3"],
+    baseline,
+    "strengthening a causal edge must change that keyword's driving power",
+  );
+  assert.notEqual(
+    JSON.stringify(buildCasioReport(buildCasioAuthoredPack(), baseAnswers(6), null, editedContext)),
+    JSON.stringify(buildCasioReport(buildCasioAuthoredPack(), baseAnswers(6), null, context)),
+    "the report narrative must follow the published graph",
+  );
+});
+
+test("a published context-tensor edit retunes intervention priority", () => {
+  const tensors = overlayTensors(seed);
+  assert.ok(Object.keys(tensors.size).length > 0, "size tensor must be rebuilt from rows");
+  const before = tensors.size["6-20"]?.["L1-K2"] ?? 1;
+  const edited: GraphManifest = {
+    ...seed,
+    contextRules: seed.contextRules.map((rule) =>
+      rule.ruleKind === "size" && rule.contextCode === "6-20" && rule.targetCode === "KW.L1.K2"
+        ? { ...rule, factor: before + 1.5 }
+        : rule,
+    ),
+  };
+  const after = overlayTensors(edited).size["6-20"]?.["L1-K2"] ?? 1;
+  assert.equal(after, before + 1.5);
+});
+
+test("causal edges and their ISM levels come from rows, not from frozen constants", () => {
+  const edges = overlayCausalEdges(seed);
+  assert.equal(edges.length, seed.causalEdges.length);
+  assert.ok(edges.every((edge) => edge.fromCanonicalCode.startsWith("KW.L")));
+  assert.ok(edges.every((edge) => edge.mechanismFa.length > 0));
+  const context = buildGraphContext(seed);
+  for (const keyword of seed.keywords) {
+    const profile = context.causalProfiles[keyword.legacyId];
+    if (!profile || !keyword.ismLevel) continue;
+    assert.equal(profile.ismLevel, keyword.ismLevel, `${keyword.legacyId} ISM level must come from the row`);
+  }
 });
 
 // ── database-bound checks: skipped unless a live Postgres is configured ─────────

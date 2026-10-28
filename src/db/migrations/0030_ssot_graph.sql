@@ -64,6 +64,10 @@ CREATE TABLE IF NOT EXISTS ssot_source (
 -- ── ontology concepts lifted from the research vaults ──────────────────────────
 CREATE TABLE IF NOT EXISTS ssot_concept (
   canonical_code VARCHAR(40) PRIMARY KEY,
+  -- The label the graph authors against. It is not always the display title
+  -- ("مدیریت فضای خالی" is titled "مدیریت فضای خالی نمودار سازمانی"), and the ontology resolves
+  -- concepts by this key, so storing only label_fa would silently drop those edges on reload.
+  legacy_id TEXT NOT NULL UNIQUE,
   label_fa TEXT NOT NULL,
   summary_fa TEXT,
   model VARCHAR(40),
@@ -122,7 +126,9 @@ CREATE TABLE IF NOT EXISTS ssot_keyword (
   rummler_need VARCHAR(16),
   rummler_cell_label_fa TEXT,
   nadler_pair_fa TEXT,
-  vault_codes JSONB NOT NULL DEFAULT '[]'::jsonb,
+  -- Concept references as the layer authored them, kept verbatim. A copy field must survive a
+  -- round trip character for character; resolving it to an id and back is what changed the text.
+  vault_refs JSONB NOT NULL DEFAULT '[]'::jsonb,
   source_codes JSONB NOT NULL DEFAULT '[]'::jsonb,
   ism_level INTEGER,
   micmac_quadrant VARCHAR(32),
@@ -145,6 +151,27 @@ CREATE TABLE IF NOT EXISTS ssot_keyword (
 
 CREATE UNIQUE INDEX IF NOT EXISTS ssot_keyword_legacy_unique ON ssot_keyword (legacy_id);
 CREATE INDEX IF NOT EXISTS ssot_keyword_layer_idx ON ssot_keyword (domain_code, layer_no, sort_order);
+
+-- ── ontology facts per keyword ─────────────────────────────────────────────────
+-- Kept apart from `ssot_keyword` on purpose. The engine prefers an ontology assertion over
+-- the layer's display copy (a keyword is classified by its Rummler cell and Nadler pair, and
+-- those citations are what the source registry is for), so the two must be stored — and
+-- edited — as different things rather than merged into whichever was written last.
+CREATE TABLE IF NOT EXISTS ssot_keyword_ontology (
+  keyword_code VARCHAR(24) PRIMARY KEY REFERENCES ssot_keyword(canonical_code) ON DELETE CASCADE,
+  rummler_level VARCHAR(32),
+  rummler_need VARCHAR(16),
+  rummler_cell_label_fa TEXT,
+  nadler_pair_fa TEXT,
+  vault_refs JSONB NOT NULL DEFAULT '[]'::jsonb,
+  source_codes JSONB NOT NULL DEFAULT '[]'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT ssot_keyword_ontology_rummler_level_check
+    CHECK (rummler_level IS NULL OR rummler_level IN ('organization', 'process_whitespace', 'job_performer')),
+  CONSTRAINT ssot_keyword_ontology_rummler_need_check
+    CHECK (rummler_need IS NULL OR rummler_need IN ('goals', 'design', 'management'))
+);
 
 -- ── weighted sub-keywords (75) ─────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS ssot_sub_keyword (

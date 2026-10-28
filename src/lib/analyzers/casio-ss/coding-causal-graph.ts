@@ -707,17 +707,20 @@ function round2(value: number): number {
  * T = X * (I - X)^(-1) = X + X^2 + X^3 + ... + X^k
  * از آنجا که شعاع طیفی ماتریس نرمال‌شده X اکیداً کمتر از ۱ است، سری توانی تا توان ۲۰ با دقت < 1e-12 همگراست.
  */
-export function computeDematelTotalMatrix(): {
+export function computeDematelTotalMatrix(
+  edges: readonly CausalKeywordEdge[] = CAUSAL_KEYWORD_EDGES,
+  keywordIds: readonly string[] = ORDERED_KEYWORD_IDS,
+): {
   keywordIds: readonly string[];
   directMatrix: number[][];
   normalizedMatrix: number[][];
   totalMatrix: number[][];
 } {
-  const n = ORDERED_KEYWORD_IDS.length;
-  const idxMap = new Map<string, number>(ORDERED_KEYWORD_IDS.map((id, i) => [id, i] as const));
+  const n = keywordIds.length;
+  const idxMap = new Map<string, number>(keywordIds.map((id, i) => [id, i] as const));
 
   const A: number[][] = Array.from({ length: n }, () => Array(n).fill(0));
-  for (const edge of CAUSAL_KEYWORD_EDGES) {
+  for (const edge of edges) {
     const i = idxMap.get(edge.fromKeywordId);
     const j = idxMap.get(edge.toKeywordId);
     if (i != null && j != null) {
@@ -769,7 +772,7 @@ export function computeDematelTotalMatrix(): {
   }
 
   return {
-    keywordIds: ORDERED_KEYWORD_IDS,
+    keywordIds,
     directMatrix: A,
     normalizedMatrix: X,
     totalMatrix: T,
@@ -794,8 +797,10 @@ function micmacLabelFaOf(quadrant: MicmacQuadrant): string {
  */
 export function buildCanonicalKeywordCausalProfiles(
   keywordTitles?: Record<string, string>,
+  edges: readonly CausalKeywordEdge[] = CAUSAL_KEYWORD_EDGES,
+  ismLevels: Record<string, 1 | 2 | 3 | 4 | 5> = KEYWORD_ISM_LEVELS,
 ): Record<string, KeywordCausalProfile> {
-  const { keywordIds, totalMatrix } = computeDematelTotalMatrix();
+  const { keywordIds, totalMatrix } = computeDematelTotalMatrix(edges);
   const n = keywordIds.length;
 
   const D: number[] = Array(n).fill(0);
@@ -833,7 +838,7 @@ export function buildCanonicalKeywordCausalProfiles(
       micmacQuadrant = net >= 0 ? "independent_driver" : "dependent_outcome";
     }
 
-    const directInfluencers = CAUSAL_KEYWORD_EDGES.filter((e) => e.toKeywordId === id).map(
+    const directInfluencers = edges.filter((e) => e.toKeywordId === id).map(
       (e) => ({
         keywordId: e.fromKeywordId,
         canonicalCode: e.fromCanonicalCode,
@@ -843,7 +848,7 @@ export function buildCanonicalKeywordCausalProfiles(
       }),
     );
 
-    const directInfluenced = CAUSAL_KEYWORD_EDGES.filter((e) => e.fromKeywordId === id).map(
+    const directInfluenced = edges.filter((e) => e.fromKeywordId === id).map(
       (e) => ({
         keywordId: e.toKeywordId,
         canonicalCode: e.toCanonicalCode,
@@ -870,7 +875,7 @@ export function buildCanonicalKeywordCausalProfiles(
           : "متأثر خالص / معلول و نشانه (Net Influenced)",
       micmacQuadrant,
       micmacLabelFa: micmacLabelFaOf(micmacQuadrant),
-      ismLevel: KEYWORD_ISM_LEVELS[id] ?? 3,
+      ismLevel: ismLevels[id] ?? 3,
       directInfluencers,
       directInfluenced,
     };
@@ -890,14 +895,15 @@ export function buildCanonicalKeywordCausalProfiles(
 export function buildRespondentCausalAnalysis(
   keywords: LayerKeyword[],
   _ctx?: BusinessContextProfile,
+  edges: readonly CausalKeywordEdge[] = CAUSAL_KEYWORD_EDGES,
 ): RespondentCausalGraphSummary {
-  const { keywordIds, directMatrix, totalMatrix } = computeDematelTotalMatrix();
+  const { keywordIds, directMatrix, totalMatrix } = computeDematelTotalMatrix(edges);
   const idxMap = new Map<string, number>(keywordIds.map((id, i) => [id, i] as const));
   const kwMap = new Map<string, LayerKeyword>(keywords.map((kw) => [kw.id, kw] as const));
 
   const titleMap: Record<string, string> = {};
   for (const kw of keywords) titleMap[kw.id] = kw.titleFa;
-  const baseProfiles = buildCanonicalKeywordCausalProfiles(titleMap);
+  const baseProfiles = buildCanonicalKeywordCausalProfiles(titleMap, edges);
 
   const edgeLookup = new Map<string, CausalKeywordEdge>();
   for (const edge of CAUSAL_KEYWORD_EDGES) {

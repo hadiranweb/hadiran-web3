@@ -110,6 +110,47 @@ export function validateGraphManifest(manifest: GraphManifest): IntegrityIssue[]
     }
   }
 
+  const sourceCodes = new Set(manifest.sources.map((source) => source.canonicalCode));
+  const conceptKeys = new Set(manifest.concepts.map((concept) => concept.legacyId));
+
+  // Ontology assertions reference the same code space; a dangling one silently drops the cell.
+  const ontologySeen = new Set<string>();
+  for (const entry of manifest.keywordOntology) {
+    if (ontologySeen.has(entry.keywordCode)) {
+      push(issues, "error", "duplicate_ontology", entry.keywordCode, "برای این کلیدواژه دو رکورد هستی‌شناسی وجود دارد.");
+    }
+    ontologySeen.add(entry.keywordCode);
+    if (!keywordCodes.has(entry.keywordCode)) {
+      push(issues, "error", "orphan_ontology", entry.keywordCode, "رکورد هستی‌شناسی به کلیدواژه‌ای متصل نیست که در گراف هست.");
+    }
+    for (const code of entry.sourceCodes) {
+      if (!sourceCodes.has(code)) {
+        push(issues, "error", "undeclared_source", `${entry.keywordCode} → ${code}`, "منبع ارجاع‌داده‌شده در رجیستری منابع تعریف نشده است.");
+      }
+    }
+  }
+  // Concept refs are authored as labels; one that matches no concept silently loses its cell.
+  for (const keyword of manifest.keywords) {
+    for (const ref of keyword.vaultRefs) {
+      if (!conceptKeys.has(ref)) {
+        push(issues, "warning", "unresolved_concept", `${keyword.canonicalCode} → ${ref}`, "این ارجاع مفهومی به گرهٔ شناخته‌شده‌ای در گراف پژوهش نمی‌رسد.");
+      }
+    }
+  }
+  for (const entry of manifest.keywordOntology) {
+    for (const ref of entry.vaultRefs) {
+      if (!conceptKeys.has(ref)) {
+        push(issues, "warning", "unresolved_concept", `${entry.keywordCode} → ${ref}`, "این ارجاع مفهومیِ هستی‌شناسی به گرهٔ شناخته‌شده‌ای نمی‌رسد.");
+      }
+    }
+  }
+
+  for (const keyword of manifest.keywords) {
+    if (keyword.domainCode === "DOM.CASIO_SS" && !ontologySeen.has(keyword.canonicalCode)) {
+      push(issues, "warning", "missing_ontology", keyword.canonicalCode, "این کلیدواژه رکورد هستی‌شناسی ندارد؛ خانهٔ Rummler آن در تشخیص خالی می‌ماند.");
+    }
+  }
+
   // Each keyword must sit under exactly one layer, and each layer must be reachable.
   const layersWithKeywords = new Set(manifest.keywords.map((keyword) => keyword.layerCode));
   for (const layer of manifest.layers) {
@@ -123,7 +164,6 @@ export function validateGraphManifest(manifest: GraphManifest): IntegrityIssue[]
   }
 
   // Declared research sources: the whole point of the SSOT is that nothing cites a ghost.
-  const sourceCodes = new Set(manifest.sources.map((source) => source.canonicalCode));
   for (const keyword of manifest.keywords) {
     for (const code of keyword.sourceCodes) {
       if (!sourceCodes.has(code)) {

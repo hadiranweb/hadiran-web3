@@ -21,6 +21,8 @@ export type SourceRow = {
 
 export type ConceptRow = {
   canonicalCode: string;
+  /** The authored label the ontology resolves; differs from `labelFa` for some concepts. */
+  legacyId: string;
   labelFa: string;
   summaryFa: string | null;
   model: string | null;
@@ -71,12 +73,29 @@ export type KeywordRow = {
   rummlerNeed: "goals" | "design" | "management" | null;
   rummlerCellLabelFa: string | null;
   nadlerPairFa: string | null;
-  vaultCodes: string[];
+  /** Concept refs as the layer authored them, kept verbatim. */
+  vaultRefs: string[];
   sourceCodes: string[];
   ismLevel: number | null;
   micmacQuadrant: string | null;
   active: boolean;
   sortOrder: number;
+};
+
+/**
+ * Ontology assertions about a keyword. Deliberately separate from `KeywordRow`: the engine
+ * prefers these over the layer's display copy, so merging them would silently change which
+ * citation wins.
+ */
+export type KeywordOntologyRow = {
+  keywordCode: string;
+  rummlerLevel: "organization" | "process_whitespace" | "job_performer" | null;
+  rummlerNeed: "goals" | "design" | "management" | null;
+  rummlerCellLabelFa: string | null;
+  nadlerPairFa: string | null;
+  /** Concept labels as the ontology authors them; resolved against `ssot_concept` for display. */
+  vaultRefs: string[];
+  sourceCodes: string[];
 };
 
 export type SubKeywordRow = {
@@ -168,6 +187,7 @@ export type GraphManifest = {
   processes: ProcessRow[];
   layers: LayerRow[];
   keywords: KeywordRow[];
+  keywordOntology: KeywordOntologyRow[];
   subKeywords: SubKeywordRow[];
   items: ItemRow[];
   edges: GraphEdgeRow[];
@@ -181,6 +201,7 @@ export type ManifestCounts = {
   processes: number;
   layers: number;
   keywords: number;
+  keywordOntology: number;
   subKeywords: number;
   items: number;
   edges: number;
@@ -202,6 +223,7 @@ export function countManifest(manifest: GraphManifest): ManifestCounts {
     processes: manifest.processes.length,
     layers: manifest.layers.length,
     keywords: manifest.keywords.length,
+    keywordOntology: manifest.keywordOntology.length,
     subKeywords: manifest.subKeywords.length,
     items: manifest.items.length,
     edges: manifest.edges.length,

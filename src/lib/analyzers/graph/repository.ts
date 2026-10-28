@@ -22,6 +22,7 @@ import {
   ssotGraphRevision,
   ssotItem,
   ssotKeyword,
+  ssotKeywordOntology,
   ssotLayer,
   ssotProcess,
   ssotSource,
@@ -94,6 +95,9 @@ async function insertRows(executor: GraphExecutor, manifest: GraphManifest): Pro
   for (const part of chunk(manifest.keywords, 50)) {
     await executor.insert(ssotKeyword).values(part).onConflictDoNothing();
   }
+  for (const part of chunk(manifest.keywordOntology, 50)) {
+    await executor.insert(ssotKeywordOntology).values(part).onConflictDoNothing();
+  }
   for (const part of chunk(manifest.subKeywords, 50)) {
     await executor.insert(ssotSubKeyword).values(part).onConflictDoNothing();
   }
@@ -111,6 +115,11 @@ async function insertRows(executor: GraphExecutor, manifest: GraphManifest): Pro
   }
 }
 
+/** Only the casio graph is what the scoring engine reads today. */
+function domainCodeIsCasio(domainCode: SsotDomainCode): boolean {
+  return domainCode === "DOM.CASIO_SS";
+}
+
 async function clearDraft(executor: GraphExecutor): Promise<void> {
   // Children first: keyword -> sub-keyword and item -> link are FK cascades, but the
   // explicit order keeps this statement usable on a partially built database.
@@ -119,6 +128,7 @@ async function clearDraft(executor: GraphExecutor): Promise<void> {
   await executor.delete(ssotGraphEdge);
   await executor.delete(ssotItem);
   await executor.delete(ssotSubKeyword);
+  await executor.delete(ssotKeywordOntology);
   await executor.delete(ssotKeyword);
   await executor.delete(ssotLayer);
   await executor.delete(ssotProcess);
@@ -128,13 +138,25 @@ async function clearDraft(executor: GraphExecutor): Promise<void> {
 
 export async function loadDraftGraph(): Promise<GraphManifest> {
   await ensureSsotGraphSchema();
-  const [sources, concepts, processes, layers, keywords, subKeywords, items, edges, causalEdges, contextRules] =
-    await Promise.all([
+  const [
+    sources,
+    concepts,
+    processes,
+    layers,
+    keywords,
+    keywordOntology,
+    subKeywords,
+    items,
+    edges,
+    causalEdges,
+    contextRules,
+  ] = await Promise.all([
       db.select().from(ssotSource),
       db.select().from(ssotConcept),
       db.select().from(ssotProcess),
       db.select().from(ssotLayer),
       db.select().from(ssotKeyword),
+      db.select().from(ssotKeywordOntology),
       db.select().from(ssotSubKeyword),
       db.select().from(ssotItem),
       db.select().from(ssotGraphEdge),
@@ -158,6 +180,7 @@ export async function loadDraftGraph(): Promise<GraphManifest> {
     })),
     concepts: concepts.map((row) => ({
       canonicalCode: row.canonicalCode,
+      legacyId: row.legacyId,
       labelFa: row.labelFa,
       summaryFa: row.summaryFa ?? null,
       model: row.model ?? null,
@@ -210,13 +233,22 @@ export async function loadDraftGraph(): Promise<GraphManifest> {
         rummlerNeed: row.rummlerNeed as GraphManifest["keywords"][number]["rummlerNeed"],
         rummlerCellLabelFa: row.rummlerCellLabelFa ?? null,
         nadlerPairFa: row.nadlerPairFa ?? null,
-        vaultCodes: row.vaultCodes ?? [],
+        vaultRefs: row.vaultRefs ?? [],
         sourceCodes: row.sourceCodes ?? [],
         ismLevel: row.ismLevel ?? null,
         micmacQuadrant: row.micmacQuadrant ?? null,
         active: row.active,
         sortOrder: row.sortOrder,
       })),
+    keywordOntology: keywordOntology.map((row) => ({
+      keywordCode: row.keywordCode,
+      rummlerLevel: row.rummlerLevel as GraphManifest["keywordOntology"][number]["rummlerLevel"],
+      rummlerNeed: row.rummlerNeed as GraphManifest["keywordOntology"][number]["rummlerNeed"],
+      rummlerCellLabelFa: row.rummlerCellLabelFa ?? null,
+      nadlerPairFa: row.nadlerPairFa ?? null,
+      vaultRefs: row.vaultRefs ?? [],
+      sourceCodes: row.sourceCodes ?? [],
+    })),
     subKeywords: subKeywords
       .slice()
       .sort((a, b) => (a.keywordCode === b.keywordCode ? a.sortOrder - b.sortOrder : a.keywordCode.localeCompare(b.keywordCode)))
@@ -397,6 +429,13 @@ export async function publishGraphDraft(input: {
       payloadHash: hash,
     });
   });
+
+  // The engine reads through an in-process cache. Drop it and re-warm straight away, so the next
+  // report on this process is built from what was just published rather than from the previous
+  // revision (or, if we only cleared it, from the code fallback).
+  const { invalidateGraphContext, warmGraphContext } = await import("./runtime");
+  invalidateGraphContext();
+  if (domainCodeIsCasio(input.domainCode)) await warmGraphContext();
 
   return { ok: true, revision, hash, counts };
 }
