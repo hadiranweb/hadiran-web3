@@ -46,6 +46,7 @@ const ownerModules: ModuleLink[] = [
   { href: "/workspace/collaborations", fa: "همکاری‌ها", en: "Collaborations", icon: Users },
   { href: "/workspace/actions", fa: "اقدام‌ها", en: "Work queue", icon: PenLine },
   { href: "/workspace/analyzers", fa: "آینه‌ها", en: "Mirrors", icon: ScanSearch },
+  { href: "/workspace/graph", fa: "گراف تشخیص", en: "Diagnostic graph", icon: Wrench },
   { href: "/workspace/documents", fa: "سندساز", en: "Documents", icon: BookOpen },
   { href: "/workspace/bots", fa: "ربات‌ها", en: "Bots", icon: Wrench },
   { href: "/workspace/people", fa: "اعضا", en: "People", icon: Users },
