@@ -279,3 +279,64 @@ $$S_{\text{raw}}(k) = \frac{\sum_{(i \to k) \in E_k} w_{i,k} \cdot x^{\text{eff}
 - [x] **مرحلهٔ ۷ (Slice 7 — تکمیل شد در `v2.0.0`):** اصلاح و استانداردسازی ساختار کدینگ ده-محوری (`HADIRAN-CODING-2.0.0`) و پیاده‌سازی موتور گراف علّی «مؤثرها و متأثرها» (`DEMATEL + ISM + MICMAC + FCM`) در `src/lib/analyzers/casio-ss/coding-causal-graph.ts`، یکپارچه‌سازی در `report.ts` و `CasioSsReport.tsx`، و پوشش کامل در تست‌های خودکار.
 - [x] **مرحلهٔ ۸ (Slice 8 — تکمیل شد در `HADIRAN-SSOT-2.0.0`):** تثبیت مخزن `hadiranweb/hadiran-web3` (شاخهٔ `arena/1b7c6093-hadiran-web3`) به‌عنوان **منبع حقیقت واحد (`Single Source of Truth — SSOT`)** از طریق ماژول مرکزی `src/lib/analyzers/ssot-registry.ts` (شامل هر ۵۵ منبع علمی `S001..S055`، ۱۰۷ گویهٔ کدگذاری‌شده، ۱۵ کلیدواژه، ۷۵ زیرکلیدواژه، گراف علّی مؤثرها و متأثرها، همگام‌سازی خودکار هر دو پک `casio-ss` و `mindset-gate` در `src/lib/analyzers/authored.ts` و ارتقای سند چاپی `CasioResearchDocument.tsx`) با `17/17` تست سبز.
 
+
+- [x] **مرحلهٔ ۹ (Slice 9 — تکمیل شد در `HADIRAN-SSOT-2.1.0`):** انتقال **منبع حقیقت** از کد به PostgreSQL. مهاجرت `0030_ssot_graph.sql` دوازده جدول رابطه‌ای می‌سازد (`ssot_source`, `ssot_concept`, `ssot_process`, `ssot_layer`, `ssot_keyword`, `ssot_sub_keyword`, `ssot_item`, `ssot_graph_edge`, `ssot_causal_edge`, `ssot_context_rule`, `ssot_graph_revision`, `ssot_graph_audit`) و کل گراف را به سطر تبدیل می‌کند: ۵۵ منبع، ۲۵ مفهوم مخزن، ۹ فرایند `C1..C9`، ۵ لایه، ۱۵ کلیدواژه، ۷۵ زیرکلیدواژه، ۱۰۷ گویه، ۴۷۸ یال اندازه‌گیری چندبه‌چند، ۴۱ یال علّی جهت‌دار و ۹۰ قاعدهٔ تعدیل زمینه. مانیفست مخزن (`src/lib/analyzers/graph/manifest.ts`) دیگر فقط **یک‌بار بذر** می‌شود و هیچ‌گاه بازنویسی نمی‌کند؛ `analyzer_packs.pack` به **برازش‌شدهٔ قابل‌دورریختن** (`compile.ts`) از آخرین نسخهٔ منتشرشده تنزل یافته است. `src/lib/analyzers/authored.ts` نسخهٔ ۱ را در بوت خودکار منتشر می‌کند و ارتقای نسخهٔ کد، دیتابیس مستقرشده را بی‌صدا بازنویسی **نمی‌کند** — ترویج بذر فقط با `reseedGraphFromCode()` و با درخواست صریح مدیر انجام می‌شود.
+- [x] **مرحلهٔ ۱۰ (Slice 10 — تکمیل شد در `HADIRAN-SSOT-2.1.0`):** میز کنترل گراف در `/workspace/graph` با سه مسیر API (`GET/PUT /api/workspace/graph`، `POST .../publish`، `POST .../reseed`) و کامپوننت `SsotGraphEditor.tsx`: ویرایش برچسب کلیدواژه‌ها و زیرکلیدواژه‌ها، لغزندهٔ وزن یال‌های اندازه‌گیری، وزن یال‌های علّی، گزارش سلامت ساختاری، اختلاف پیش‌نویس با آخرین انتشار و تاریخچهٔ ممیزی. درگاه انتشار **در خود دیتابیس** قفل شده است: هشدارهای یکپارچگی با کد `409` انتشار را مسدود می‌کنند، نسخهٔ `published` با تریگر `BEFORE UPDATE OR DELETE` غیرقابل‌تغییر است و جدول ممیزی فقط‌افزودنی است.
+
+---
+
+## ۶. معماری لایهٔ داده پس از مرحلهٔ ۹ و ۱۰ (`HADIRAN-SSOT-2.1.0`)
+
+### ۶.۱ جهت قدرت: دیتابیس منبع است، کد بذر
+
+```text
+مانیفست مخزن (manifest.ts)  --[ فقط یک‌بار، وقتی گراف خالی است ]-->  jdraw tables ssot_*
+پیش‌نویس ssot_*            --[ validate -> integrity -> publish ]-->  ssot_graph_revision (immutable, hashed)
+نسخهٔ منتشرشده              --[ compile.ts ]------------------------>  analyzer_packs.pack  ->  موتور امتیازدهی
+```
+
+| نقش | مخزن | عمر |
+|---|---|---|
+| پیش‌نویس قابل‌ویرایش | جداول `ssot_*` | تا انتشار بعدی |
+| نسخهٔ میز کارِ قفل‌شده | `ssot_graph_revision.snapshot` | دائمی، غیرقابل‌تغییر با تریگر |
+| مدل خواندنی runtime | `analyzer_packs.pack` | قابل بازتولید؛ هرگز دستی ویرایش نمی‌شود |
+| تاریخچهٔ تغییرات | `ssot_graph_audit` | فقط‌افزودنی (تریگر `UPDATE/DELETE` را رد می‌کند) |
+
+### ۶.۲ قرارداد هش (`hash.ts`)
+
+هش `sha256` روی JSON canonical (کلیدها مرتب می‌شوند، `undefined` حذف می‌شود) محاسبه می‌شود و `counts` نیز در آن درهم می‌شود؛ بنابراین snapshot دست‌کاری‌شده‌ای که شمارش‌هایش با محتوایش نخواند، هش متفاوت می‌گیرد. همین هش، تکرار بذر را بی‌اثر می‌کند (`already_seeded`).
+
+### ۶.۳ دروازهٔ یکپارچگی (`integrity.ts`) — پیش از هر انتشار
+
+| کد | معنا | سطح |
+|---|---|---|
+| `duplicate_item` / `duplicate_keyword` / `duplicate_sub_keyword` | کد استاندارد تکراری | خطا |
+| `dangling_source` / `dangling_target` | یالی به گرهٔ ناموجود | خطا |
+| `unloaded_item` | گویهٔ `FL` که بر هیچ کلیدواژه‌ای بار نمی‌گذارد | خطا |
+| `unmeasured_keyword` | کلیدواژه‌ای بدون یال اندازه‌گیری ورودی | خطا |
+| `unlinked_bank_item` | گویهٔ `SCR`/`DIAG` بدون مسیر اتصال | هشدار |
+| `undeclared_source` | ارجاع به منبعی که در `ssot_source` اعلام نشده | خطا |
+| `causal_weight` / `zero_mass` / `layer_count` | شدت نامعتبر، وزن صفر، ساختار غیرپنج‌لایه | خطا |
+
+### ۶.۴ گارانتی رفتاری: آزمون طلایی
+
+`graph.test.ts` اثبات می‌کند که انتقال قدرت به دیتابیس **بدون هیچ تغییر رفتاری** است:
+
+```text
+assert.deepEqual(compilePack(buildGraphManifest(), buildCasioAuthoredPack()).pack, buildCasioAuthoredPack())
+assert.deepEqual(compilePack(buildGraphManifest(), mindsetGatePack).pack, mindsetGatePack)
+```
+
+یعنی مانیفست + کامپایلر، هر بخش `AnalyzerPack` (بخش‌ها، لنگرها، گزینه‌ها، یافته‌ها، یال‌ها و بردارهای وزن کلیدواژه‌ها) را دقیقاً بازتولید می‌کند؛ پس هر تغییری در دیتابیس، تنها منبع تغییر نمره است. در این مسیر دو نقص واقعی همان‌جا گرفته شد: حفظ `sort_order` یال‌ها (بدون آن بردار وزن جابه‌جا می‌شد) و حذف دو `introFa: undefined` صریح در `mindset-gate` که با `deepStrictEqual` ناسازگار بود.
+
+### ۶.۵ وضعیت تست
+
+`37` تست: `35` سبز، `2` با `DATABASE_URL` اجرا می‌شوند (idempotency بذر و انتشار واقعی) و در نبود دیتابیس `skip` می‌شوند. `tsc --noEmit` پاک، `next build` موفق، و ۱۴ فایل جدید بدون هیچ خطای `eslint` (۳۵ خطای از پیش‌موجود مخزن دست‌نخورده باقی ماند).
+
+### ۶.۶ برش بعدی (مرحلهٔ ۱۱ — هنوز انجام‌نشده)
+
+1. **اجرای سه‌مرحله‌ای در محصول:** مراحل ۴ و ۵ موتور (تانسور زمینه و بانک `SCR/DIAG`) هنوز از `AnalyzerRun.tsx` قابل‌پاسخ نیستند؛ کاربر فقط ۲۰ گویهٔ `FL` را می‌بیند.
+2. **UI مستقل `mindset-gate`:** صفر مسیر و کامپوننت در `src/app` و `src/components`.
+3. **حذف روت‌های دوگانهٔ سخت‌کد:** `src/app/analyzers/casio-ss/*` در کنار `src/app/analyzers/[slug]/*`.
+4. **مالکیت کامل سند چاپی:** `layerBands`، `crossPatterns`، `consent` و `botDisplay` هنوز از قالب کد می‌آیند و در ویرایشگر گراف قابل‌ویرایش نیستند.
+5. **کالیبراسیون آماری:** بازتقریر وزن‌ها از دادهٔ واقعی پاسخ‌ها (امتیازدهی `pG-DINA`/CDM) در برابر وزن‌های کارشناسی فعلی.
