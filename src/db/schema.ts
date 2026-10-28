@@ -3,6 +3,8 @@ import {
   serial,
   integer,
   bigint,
+  bigserial,
+  char,
   text,
   varchar,
   boolean,
@@ -948,6 +950,233 @@ export const assessmentEntitlements = pgTable(
   },
   (t) => [unique().on(t.accountId, t.attemptKind, t.attemptId, t.service)],
 );
+
+// ---------- HADIRAN-SSOT canonical graph (source of truth lives here, not in code) ----------
+
+/** Frozen snapshots. The runtime scores from the newest published revision. */
+export const ssotGraphRevision = pgTable(
+  "ssot_graph_revision",
+  {
+    id: serial("id").primaryKey(),
+    domainCode: varchar("domain_code", { length: 32 }).notNull(),
+    revision: integer("revision").notNull(),
+    status: varchar("status", { length: 16 }).notNull().default("draft"),
+    ssotVersion: varchar("ssot_version", { length: 32 }).notNull(),
+    codingVersion: varchar("coding_version", { length: 32 }).notNull(),
+    payloadHash: char("payload_hash", { length: 64 }).notNull(),
+    counts: jsonb("counts").$type<Record<string, number>>().notNull().default({}),
+    snapshot: jsonb("snapshot"),
+    noteFa: text("note_fa"),
+    createdBy: integer("created_by").references(() => accounts.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+  },
+  (t) => [unique().on(t.domainCode, t.revision)],
+);
+
+/** Declared research sources: S001..S055. */
+export const ssotSource = pgTable("ssot_source", {
+  canonicalCode: varchar("canonical_code", { length: 24 }).primaryKey(),
+  legacyId: varchar("legacy_id", { length: 24 }).notNull().unique(),
+  title: text("title").notNull(),
+  authors: text("authors"),
+  year: integer("year"),
+  kind: varchar("kind", { length: 24 }).notNull().default("paper"),
+  locator: text("locator"),
+  claimFa: text("claim_fa"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Ontology concepts lifted from the research vaults. */
+export const ssotConcept = pgTable("ssot_concept", {
+  canonicalCode: varchar("canonical_code", { length: 40 }).primaryKey(),
+  labelFa: text("label_fa").notNull(),
+  summaryFa: text("summary_fa"),
+  model: varchar("model", { length: 40 }),
+  sourceCodes: jsonb("source_codes").$type<string[]>().notNull().default([]),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Solo-org core processes C1..C9. */
+export const ssotProcess = pgTable("ssot_process", {
+  canonicalCode: varchar("canonical_code", { length: 24 }).primaryKey(),
+  legacyId: varchar("legacy_id", { length: 16 }).notNull().unique(),
+  labelFa: text("label_fa").notNull(),
+  summaryFa: text("summary_fa"),
+  keywordCodes: jsonb("keyword_codes").$type<string[]>().notNull().default([]),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** The five layers, and the prose the report prints for each of them. */
+export const ssotLayer = pgTable("ssot_layer", {
+  canonicalCode: varchar("canonical_code", { length: 24 }).primaryKey(),
+  legacyId: varchar("legacy_id", { length: 32 }).notNull().unique(),
+  domainCode: varchar("domain_code", { length: 32 }).notNull(),
+  layerNo: integer("layer_no").notNull(),
+  yamlKey: varchar("yaml_key", { length: 48 }),
+  titleFa: text("title_fa").notNull(),
+  constructFa: text("construct_fa"),
+  asIsFa: text("as_is_fa"),
+  toBeFa: text("to_be_fa"),
+  actionsFa: text("actions_fa"),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** The 15 primary keywords. */
+export const ssotKeyword = pgTable("ssot_keyword", {
+  canonicalCode: varchar("canonical_code", { length: 24 }).primaryKey(),
+  legacyId: varchar("legacy_id", { length: 24 }).notNull().unique(),
+  domainCode: varchar("domain_code", { length: 32 }).notNull(),
+  layerCode: varchar("layer_code", { length: 24 }).references(() => ssotLayer.canonicalCode, {
+    onDelete: "set null",
+  }),
+  layerNo: integer("layer_no").notNull(),
+  keywordNo: integer("keyword_no").notNull(),
+  labelFa: text("label_fa").notNull(),
+  constructFa: text("construct_fa"),
+  ownerRoleFa: text("owner_role_fa"),
+  horizonFa: varchar("horizon_fa", { length: 24 }),
+  whyFa: text("why_fa"),
+  asIsWeakFa: text("as_is_weak_fa"),
+  asIsGrowingFa: text("as_is_growing_fa"),
+  asIsStrongFa: text("as_is_strong_fa"),
+  toBeFa: text("to_be_fa"),
+  actionStepFa: text("action_step_fa"),
+  rummlerLevel: varchar("rummler_level", { length: 32 }),
+  rummlerNeed: varchar("rummler_need", { length: 16 }),
+  rummlerCellLabelFa: text("rummler_cell_label_fa"),
+  nadlerPairFa: text("nadler_pair_fa"),
+  vaultCodes: jsonb("vault_codes").$type<string[]>().notNull().default([]),
+  sourceCodes: jsonb("source_codes").$type<string[]>().notNull().default([]),
+  ismLevel: integer("ism_level"),
+  micmacQuadrant: varchar("micmac_quadrant", { length: 32 }),
+  active: boolean("active").notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** The 75 weighted sub-keywords. */
+export const ssotSubKeyword = pgTable("ssot_sub_keyword", {
+  canonicalCode: varchar("canonical_code", { length: 32 }).primaryKey(),
+  legacyId: varchar("legacy_id", { length: 32 }).notNull().unique(),
+  keywordCode: varchar("keyword_code", { length: 24 })
+    .notNull()
+    .references(() => ssotKeyword.canonicalCode, { onDelete: "cascade" }),
+  subNo: integer("sub_no").notNull(),
+  labelFa: text("label_fa").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Every assessment item, addressed by its canonical code. */
+export const ssotItem = pgTable("ssot_item", {
+  canonicalCode: varchar("canonical_code", { length: 32 }).primaryKey(),
+  legacyId: varchar("legacy_id", { length: 32 }).notNull().unique(),
+  axis: varchar("axis", { length: 8 }).notNull(),
+  tier: varchar("tier", { length: 8 }).notNull(),
+  domainCode: varchar("domain_code", { length: 32 }).notNull(),
+  layerNo: integer("layer_no"),
+  dimensionCode: varchar("dimension_code", { length: 24 }),
+  sectionId: varchar("section_id", { length: 64 }).notNull(),
+  sectionTitleFa: text("section_title_fa"),
+  sectionIntroFa: text("section_intro_fa"),
+  textFa: text("text_fa").notNull(),
+  helpFa: text("help_fa"),
+  reverse: boolean("reverse").notNull().default(false),
+  kind: varchar("kind", { length: 16 }).notNull().default("range"),
+  scaleMin: integer("scale_min").notNull().default(0),
+  scaleMax: integer("scale_max").notNull().default(10),
+  critical: boolean("critical").notNull().default(false),
+  anchors: jsonb("anchors").$type<{ 0: string; 5: string; 10: string } | null>(),
+  options: jsonb("options").$type<{ value: string; label: string }[] | null>(),
+  maxLength: integer("max_length"),
+  routing: jsonb("routing").$type<Record<string, unknown> | null>(),
+  sourceCodes: jsonb("source_codes").$type<string[]>().notNull().default([]),
+  sortOrder: integer("sort_order").notNull().default(0),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Many-to-many measurement edges: item ⇄ keyword and item ⇄ sub-keyword. */
+/**
+ * The many-to-many measurement network. One table carries every loading:
+ * item -> keyword, keyword -> sub-keyword, sub-keyword -> item, keyword -> layer,
+ * dimension -> keyword. sort_order preserves the published weight-vector order.
+ */
+export const ssotGraphEdge = pgTable(
+  "ssot_graph_edge",
+  {
+    id: serial("id").primaryKey(),
+    domainCode: varchar("domain_code", { length: 32 }).notNull(),
+    edgeKind: varchar("edge_kind", { length: 24 }).notNull(),
+    sourceCode: varchar("source_code", { length: 32 }).notNull(),
+    sourceKind: varchar("source_kind", { length: 16 }).notNull(),
+    targetCode: varchar("target_code", { length: 32 }).notNull(),
+    targetKind: varchar("target_kind", { length: 16 }).notNull(),
+    weight: doublePrecision("weight").notNull().default(1),
+    transform: varchar("transform", { length: 16 }).notNull().default("identity"),
+    sortOrder: integer("sort_order").notNull().default(0),
+    rationaleFa: text("rationale_fa"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [unique().on(t.domainCode, t.edgeKind, t.sourceCode, t.targetCode)],
+);
+
+/** Directed causal graph: influencer -> influenced. */
+export const ssotCausalEdge = pgTable("ssot_causal_edge", {
+  id: serial("id").primaryKey(),
+  edgeKey: varchar("edge_key", { length: 80 }).notNull().unique(),
+  domainCode: varchar("domain_code", { length: 32 }).notNull().default("DOM.CASIO_SS"),
+  fromCode: varchar("from_code", { length: 24 })
+    .notNull()
+    .references(() => ssotKeyword.canonicalCode, { onDelete: "cascade" }),
+  toCode: varchar("to_code", { length: 24 })
+    .notNull()
+    .references(() => ssotKeyword.canonicalCode, { onDelete: "cascade" }),
+  weight: doublePrecision("weight").notNull(),
+  edgeType: varchar("edge_type", { length: 24 }).notNull(),
+  ismLevel: integer("ism_level"),
+  mechanismFa: text("mechanism_fa"),
+  sourceCodes: jsonb("source_codes").$type<string[]>().notNull().default([]),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Context modulation tensor as rows: size / type weights per keyword. */
+export const ssotContextRule = pgTable(
+  "ssot_context_rule",
+  {
+    id: serial("id").primaryKey(),
+    ruleKind: varchar("rule_kind", { length: 16 }).notNull(),
+    contextCode: varchar("context_code", { length: 24 }).notNull(),
+    targetCode: varchar("target_code", { length: 24 })
+      .notNull()
+      .references(() => ssotKeyword.canonicalCode, { onDelete: "cascade" }),
+    factor: doublePrecision("factor").notNull(),
+    noteFa: text("note_fa"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [unique().on(t.ruleKind, t.contextCode, t.targetCode)],
+);
+
+/** Append-only journal: a BEFORE UPDATE OR DELETE trigger blocks mutation in 0030. */
+export const ssotGraphAudit = pgTable("ssot_graph_audit", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  domainCode: varchar("domain_code", { length: 32 }).notNull(),
+  action: varchar("action", { length: 32 }).notNull(),
+  entity: varchar("entity", { length: 32 }).notNull(),
+  entityCode: text("entity_code"),
+  actorId: integer("actor_id").references(() => accounts.id, { onDelete: "set null" }),
+  actorRole: text("actor_role"),
+  diff: jsonb("diff").$type<Record<string, unknown> | null>(),
+  payloadHash: char("payload_hash", { length: 64 }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
 
 export const conversations = pgTable("conversations", {
   id: serial("id").primaryKey(),

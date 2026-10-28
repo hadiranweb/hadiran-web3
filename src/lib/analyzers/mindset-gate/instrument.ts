@@ -69,7 +69,6 @@ export const gateSections: Section[] = [
   {
     id: "gate-agency",
     titleFa: "ارزیابی — فاعلیت و خودتنظیمی",
-    introFa: undefined,
     items: [
       {
         kind: "range",
@@ -104,7 +103,6 @@ export const gateSections: Section[] = [
   {
     id: "gate-problem",
     titleFa: "ارزیابی — تفکر مسئله‌محور",
-    introFa: undefined,
     items: [
       {
         kind: "range",

@@ -96,7 +96,7 @@ export function listAllCanonicalItems(): CanonicalItemRecord[] {
       domainCanonicalCode: "DOM.CASIO_SS",
       tier: isCtx ? "BIZ" : "FL",
       textFa: item.text,
-      reverse: Boolean(item.reverse),
+      reverse: item.kind === "range" && item.reverse,
     });
   }
 
@@ -134,7 +134,7 @@ export function listAllCanonicalItems(): CanonicalItemRecord[] {
       domainCanonicalCode: "DOM.MINDSET_GATE",
       tier: "MND",
       textFa: mnd.text,
-      reverse: Boolean(mnd.reverse),
+      reverse: mnd.kind === "range" && mnd.reverse,
     });
   }
 
