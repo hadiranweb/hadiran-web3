@@ -4,6 +4,7 @@ import { db, hasDatabaseUrl } from "@/db";
 import { studioPageVersions, studioPages } from "@/db/schema";
 import { validateStudioData, type StudioData } from "./validate";
 import { siteSlug, siteTarget } from "./site-pages";
+import { statusAfterSavingDraft } from "./publication-state";
 
 export function studioEnabled(): boolean {
   return process.env.HADIRAN_STUDIO_ENABLED === "true";
@@ -89,57 +90,95 @@ export async function saveStudioDraft(
 ): Promise<boolean> {
   if (!ready()) return false;
   try {
-    await db
-      .update(studioPages)
-      .set({
-        ...(input.titleFa ? { titleFa: input.titleFa } : {}),
-        ...(input.slug ? { slug: input.slug } : {}),
-        draftData: input.draft as unknown as Record<string, unknown>,
-        seo: input.seo,
-        status: "draft",
-        updatedAt: new Date(),
-      })
-      .where(eq(studioPages.id, id));
-    return true;
+    return await db.transaction(async (tx) => {
+      const [existing] = await tx
+        .select({ status: studioPages.status, publishedData: studioPages.publishedData })
+        .from(studioPages)
+        .where(eq(studioPages.id, id))
+        .for("update")
+        .limit(1);
+      if (!existing) return false;
+      // قفل ردیف و حفظ status، انتشار هم‌زمان را از unpublish شدن ناخواسته حفظ می‌کند.
+      const status = statusAfterSavingDraft(existing.status, existing.publishedData);
+      const updated = await tx
+        .update(studioPages)
+        .set({
+          ...(input.titleFa !== undefined ? { titleFa: input.titleFa } : {}),
+          ...(input.slug !== undefined ? { slug: input.slug } : {}),
+          draftData: input.draft as unknown as Record<string, unknown>,
+          seo: input.seo,
+          status,
+          updatedAt: new Date(),
+        })
+        .where(eq(studioPages.id, id))
+        .returning({ id: studioPages.id });
+      return updated.length > 0;
+    });
   } catch {
     return false;
   }
 }
 
-/** انتشار: draft روی published می‌نشیند و یک نسخهٔ تازه ساخته می‌شود. */
-export async function publishStudioPage(id: string, actorId: number | null): Promise<{ ok: boolean; version?: number }> {
-  if (!ready()) return { ok: false };
+export type StudioPublishInput = {
+  titleFa?: string;
+  slug?: string;
+  draft?: StudioData;
+  seo?: Record<string, unknown>;
+};
+
+/**
+ * انتشار اتمیک: قفل صفحه، اعتبارسنجی ترکیب، ثبت snapshot و جابه‌جایی publishedData
+ * در یک تراکنش. اگر ورودی تازه نرسد، draft ذخیره‌شدهٔ قبلی منتشر می‌شود.
+ */
+export async function publishStudioPage(
+  id: string,
+  actorId: number | null,
+  input?: StudioPublishInput,
+): Promise<{ ok: boolean; version?: number; error?: string }> {
+  if (!ready()) return { ok: false, error: "not_ready" };
   try {
-    const page = await getStudioPage(id);
-    if (!page) return { ok: false };
-    const clean = validateStudioData(page.draftData);
-    if (!clean) return { ok: false };
-    const versions = await db
-      .select({ version: studioPageVersions.version })
-      .from(studioPageVersions)
-      .where(eq(studioPageVersions.pageId, id))
-      .orderBy(desc(studioPageVersions.version))
-      .limit(1);
-    const nextVersion = (versions[0]?.version ?? 0) + 1;
-    await db.insert(studioPageVersions).values({
-      id: crypto.randomUUID(),
-      pageId: id,
-      version: nextVersion,
-      data: clean as unknown as Record<string, unknown>,
-      createdBy: actorId,
+    return await db.transaction(async (tx) => {
+      const [page] = await tx.select().from(studioPages).where(eq(studioPages.id, id)).for("update").limit(1);
+      if (!page) return { ok: false, error: "not_found" };
+      const clean = validateStudioData(input?.draft ?? page.draftData, { target: page.target, forPublish: true });
+      if (!clean) return { ok: false, error: "invalid_composition" };
+      const titleFa = input?.titleFa?.trim().slice(0, 256) || page.titleFa;
+      const slug = page.target === "standalone" ? input?.slug ?? page.slug : page.slug;
+      const seo = input?.seo ?? page.seo;
+      const versions = await tx
+        .select({ version: studioPageVersions.version })
+        .from(studioPageVersions)
+        .where(eq(studioPageVersions.pageId, id))
+        .orderBy(desc(studioPageVersions.version))
+        .limit(1);
+      const nextVersion = (versions[0]?.version ?? 0) + 1;
+      const now = new Date();
+      const updated = await tx
+        .update(studioPages)
+        .set({
+          titleFa,
+          slug,
+          draftData: clean as unknown as Record<string, unknown>,
+          publishedData: clean as unknown as Record<string, unknown>,
+          seo,
+          status: "published",
+          publishedAt: now,
+          updatedAt: now,
+        })
+        .where(eq(studioPages.id, id))
+        .returning({ id: studioPages.id });
+      if (!updated.length) return { ok: false, error: "not_found" };
+      await tx.insert(studioPageVersions).values({
+        id: crypto.randomUUID(),
+        pageId: id,
+        version: nextVersion,
+        data: clean as unknown as Record<string, unknown>,
+        createdBy: actorId,
+      });
+      return { ok: true, version: nextVersion };
     });
-    await db
-      .update(studioPages)
-      .set({
-        publishedData: clean as unknown as Record<string, unknown>,
-        status: "published",
-        publishedAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .where(eq(studioPages.id, id));
-    return { ok: true, version: nextVersion };
   } catch {
-    return { ok: false };
+    return { ok: false, error: "publish_failed" };
   }
 }
 
@@ -160,6 +199,13 @@ export async function duplicateStudioPage(id: string, actorId: number | null): P
   if (!ready()) return null;
   const page = await getStudioPage(id);
   if (!page) return null;
+  const source = validateStudioData(page.draftData, { target: page.target });
+  const draftData: StudioData = {
+    content: (source?.content ?? []).filter(
+      (block) => !["HadiranHomeHero", "SignInPanel", "AccountPanel"].includes(block.type),
+    ),
+    root: source?.root ?? { props: { title: "" } },
+  };
   return createStudioPage({
     slug: `${page.slug}-copy`.slice(0, 128),
     titleFa: `${page.titleFa} — رونوشت`,
@@ -169,9 +215,9 @@ export async function duplicateStudioPage(id: string, actorId: number | null): P
     try {
       await db
         .update(studioPages)
-        .set({ draftData: page.draftData, seo: page.seo, updatedAt: new Date() })
+        .set({ draftData: draftData as unknown as Record<string, unknown>, seo: page.seo, updatedAt: new Date() })
         .where(eq(studioPages.id, copy.id));
-      return { ...copy, draftData: page.draftData, seo: page.seo };
+      return { ...copy, draftData: draftData as unknown as Record<string, unknown>, seo: page.seo };
     } catch {
       return copy;
     }

@@ -6,7 +6,7 @@ import dynamic from "next/dynamic";
 
 // ادیتور سنگین است؛ فقط سمت کلاینت و تنبل بار می‌شود تا باندل عمومی سبک بماند.
 const Puck = dynamic(() => import("@puckeditor/core").then((m) => m.Puck), { ssr: false });
-import { studioConfig } from "@/lib/studio/config";
+import { studioConfigForTarget } from "@/lib/studio/config";
 import { EMPTY_STUDIO_DATA, type StudioData } from "@/lib/studio/validate";
 import { sitePageByTarget } from "@/lib/studio/site-pages";
 
@@ -15,6 +15,7 @@ type PageState = {
   slug: string;
   titleFa: string;
   status: string;
+  draftAhead?: boolean;
   target: string;
   seo: { title?: string; description?: string; index?: boolean };
 };
@@ -48,18 +49,34 @@ export function StudioEditor({ id }: { id: string }) {
     };
   }, [id]);
 
-  async function saveDraft() {
-    if (!page) return;
+  async function saveDraft(): Promise<boolean> {
+    if (!page) return false;
     setBusy(true);
     setError(null);
-    const res = await fetch(`/api/workspace/studio/pages/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ titleFa: page.titleFa, slug: page.slug, data, seo: page.seo }),
-    });
-    setBusy(false);
-    if (!res.ok) return setError("ذخیرهٔ پیش‌نویس نشد؛ داده یا اسلاگ نامعتبر است.");
-    setNotice("پیش‌نویس ذخیره شد.");
+    try {
+      const res = await fetch(`/api/workspace/studio/pages/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ titleFa: page.titleFa, slug: page.slug, data, seo: page.seo }),
+      });
+      if (!res.ok) {
+        setError("ذخیرهٔ پیش‌نویس نشد؛ داده، بلوک سیستمی یا اسلاگ نامعتبر است.");
+        return false;
+      }
+      const result = (await res.json()) as { draftAhead?: boolean };
+      setPage((current) => (current ? { ...current, draftAhead: Boolean(result.draftAhead) } : current));
+      setNotice(
+        result.draftAhead
+          ? "پیش‌نویس ذخیره شد؛ نسخهٔ منتشرشده تا انتشار بعدی روی سایت می‌ماند."
+          : "پیش‌نویس ذخیره شد.",
+      );
+      return true;
+    } catch {
+      setError("ارتباط با سرور برقرار نشد؛ پیش‌نویس ذخیره نشد.");
+      return false;
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function refreshLivePreview() {
@@ -78,20 +95,36 @@ export function StudioEditor({ id }: { id: string }) {
   }
 
   async function publish() {
+    if (!page) return;
     setBusy(true);
     setError(null);
-    await saveDraft();
-    const res = await fetch(`/api/workspace/studio/pages/${id}/publish`, { method: "POST" });
-    setBusy(false);
-    if (!res.ok) return setError("انتشار نشد.");
-    const json = (await res.json()) as { version?: number };
-    setPage((p) => (p ? { ...p, status: "published" } : p));
-    const siteDef = sitePageByTarget(page?.target);
-    setNotice(
-      siteDef
-        ? `منتشر شد (نسخهٔ ${json.version ?? "؟"}) و روی مسیر واقعی ${siteDef.path} اعمال شد.`
-        : `منتشر شد (نسخهٔ ${json.version ?? "؟"}). نشانی عمومی: /p/${page?.slug}`,
-    );
+    try {
+      const res = await fetch(`/api/workspace/studio/pages/${id}/publish`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ titleFa: page.titleFa, slug: page.slug, data, seo: page.seo }),
+      });
+      const json = (await res.json().catch(() => ({}))) as { version?: number; error?: string };
+      if (!res.ok) {
+        setError(
+          json.error === "invalid_composition"
+            ? "انتشار نشد: صفحه باید یک عنوان اصلی داشته باشد و بلوک سیستمیِ همان مسیر را کامل کند."
+            : "انتشار نشد؛ تغییرات ذخیره و منتشر نشدند.",
+        );
+        return;
+      }
+      setPage((p) => (p ? { ...p, status: "published", draftAhead: false } : p));
+      const siteDef = sitePageByTarget(page.target);
+      setNotice(
+        siteDef
+          ? `انتشار کامل شد (نسخهٔ ${json.version ?? "؟"}) و روی مسیر واقعی ${siteDef.path} اعمال شد.`
+          : `انتشار کامل شد (نسخهٔ ${json.version ?? "؟"}). نشانی عمومی: /p/${page.slug}`,
+      );
+    } catch {
+      setError("ارتباط با سرور برقرار نشد؛ انتشار انجام نشد.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   if (!page) {
@@ -161,13 +194,14 @@ export function StudioEditor({ id }: { id: string }) {
           </a>
         </div>
         <p className="text-xs text-slate-500 sm:col-span-3">
-          وضعیت: {page.status === "published" ? "منتشرشده" : page.status === "archived" ? "بایگانی" : "پیش‌نویس"} —
+          وضعیت: {page.status === "published" ? "منتشرشده" : page.status === "archived" ? "بایگانی" : "پیش‌نویس"}
+          {page.draftAhead ? " · پیش‌نویس تازه، هنوز منتشر نشده" : ""} —
           پیش‌نویس هیچ‌وقت عمومی نمی‌شود؛ انتشار، نسخهٔ تازه می‌سازد.
         </p>
       </div>
 
       <div dir="ltr" className="overflow-hidden rounded-2xl border border-slate-200 bg-white [&_.Puck]:min-h-[720px]">
-        <Puck config={studioConfig} data={data as never} onChange={(next) => setData(next as StudioData)} />
+        <Puck config={studioConfigForTarget(page.target)} data={data as never} onChange={(next) => setData(next as StudioData)} />
       </div>
       <p className="text-xs leading-6 text-slate-500">
         بوم ادیتور چپ‌به‌راست می‌ماند؛ پیش‌نمایش داخل بوم راست‌به‌چپ و فارسی است. بلوک‌ها فقط از سیستم طراحی هادیران‌اند؛

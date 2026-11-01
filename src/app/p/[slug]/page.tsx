@@ -26,8 +26,8 @@ export default async function StudioPublicPage({ params }: Props) {
   const { slug } = await params;
   const page = await getPublishedBySlug(slug);
   if (!page) notFound();
-  const data = validateStudioData(page.publishedData);
+  const data = validateStudioData(page.publishedData, { target: page.target, forPublish: true });
   if (!data) notFound();
-  const resolved = await resolveStudioData(data);
+  const resolved = await resolveStudioData(data, { mode: "public" });
   return <StudioRender data={resolved} />;
 }

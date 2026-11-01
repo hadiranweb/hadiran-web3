@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireOwner } from "@/lib/auth/guard";
 import { createStudioPage, listStudioPages, studioEnabled } from "@/lib/studio/pages";
 import { cleanSlug } from "@/lib/studio/validate";
+import { hasUnpublishedDraft } from "@/lib/studio/publication-state";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,7 @@ export async function GET() {
       slug: p.slug,
       titleFa: p.titleFa,
       status: p.status,
+      draftAhead: p.status === "published" && hasUnpublishedDraft(p.draftData, p.publishedData),
       target: p.target,
       updatedAt: p.updatedAt,
       publishedAt: p.publishedAt,

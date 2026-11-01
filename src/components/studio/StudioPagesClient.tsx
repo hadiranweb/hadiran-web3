@@ -9,6 +9,7 @@ export type StudioPageListItem = {
   slug: string;
   titleFa: string;
   status: string;
+  draftAhead?: boolean;
   target: string;
   updatedAt: string | null;
   publishedAt: string | null;
@@ -89,6 +90,7 @@ export function StudioPagesClient({ initial }: { initial: StudioPageListItem[] }
                     <span dir="ltr">/p/{page.slug}</span>
                   )}{" "}
                   · {STATUS_FA[page.status] ?? page.status}
+                  {page.draftAhead ? " · پیش‌نویسِ منتشرنشده" : ""}
                   {page.updatedAt ? ` · ویرایش: ${new Date(page.updatedAt).toLocaleString("fa-IR")}` : ""}
                 </p>
               </div>

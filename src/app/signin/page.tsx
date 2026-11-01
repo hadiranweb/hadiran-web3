@@ -5,6 +5,7 @@ import { getCurrentAccount } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import { HadiranMark } from "@/components/HadiranMark";
 import { PageShell } from "@/components/ui/PageShell";
+import { safeInternalNext } from "@/lib/auth/next-path";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ async function SignInPage({
 }) {
   const account = await getCurrentAccount();
   const { next } = await searchParams;
-  const nextPath = next?.startsWith("/") && !next.startsWith("//") ? next : "/";
+  const nextPath = safeInternalNext(next);
   if (account) redirect(nextPath);
 
   return (
@@ -44,6 +45,10 @@ export default withStudioTakeover("signin", SignInPage, {
     const account = await getCurrentAccount();
     if (!account) return;
     const { next } = await props.searchParams;
-    redirect(next?.startsWith("/") && !next.startsWith("//") ? next : "/");
+    redirect(safeInternalNext(next));
+  },
+  renderContext: async (props) => {
+    const { next } = await props.searchParams;
+    return { signInNextPath: safeInternalNext(next) };
   },
 });

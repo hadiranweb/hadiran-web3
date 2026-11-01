@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Phone, Lock, RefreshCw } from "lucide-react";
 import { publishAccount } from "@/lib/ui/draft";
+import { safeInternalNext } from "@/lib/auth/next-path";
 
 type Step = "phone" | "password" | "code";
 
@@ -64,7 +65,7 @@ export function SignInForm({
   hideHint?: boolean;
 }) {
   const router = useRouter();
-  const safeNext = nextPath.startsWith("/") && !nextPath.startsWith("//") ? nextPath : "/";
+  const safeNext = safeInternalNext(nextPath);
 
   const [step, setStep] = useState<Step>("phone");
   const [phone, setPhone] = useState("");

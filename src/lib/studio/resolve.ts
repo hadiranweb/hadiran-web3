@@ -15,6 +15,7 @@ import {
 import { publicKnowledgeFilter, publicKnowledgeJoin } from "@/lib/public/policy";
 import { readPublicCollection } from "@/lib/public/source";
 import { memoryItems } from "@/db/schema";
+import { safeInternalNext } from "@/lib/auth/next-path";
 import { STUDIO_LIVE_BLOCKS, type StudioData } from "./validate";
 
 export type StudioLiveItem = { title: string; href: string; meta: string };
@@ -59,7 +60,7 @@ async function itemsFor(type: string, props: Record<string, unknown>): Promise<S
       const { items } = await loadPublicProjects();
       return items.slice(0, limitOf(props)).map((row) => ({
         title: row.nameFa,
-        href: "/ecosystem",
+        href: "/lab",
         meta: row.descriptionFa ?? "",
       }));
     }
@@ -106,13 +107,27 @@ async function itemsFor(type: string, props: Record<string, unknown>): Promise<S
   }
 }
 
-/** نسخهٔ resolveشدهٔ داده برای رندر؛ آیتم‌های زنده داخل props می‌نشینند و هرگز ذخیره نمی‌شوند. */
-export async function resolveStudioData(data: StudioData): Promise<StudioData> {
+export type StudioResolveOptions = { mode?: "preview" | "public"; signInNextPath?: string };
+
+function safeNextPath(value: string | undefined): string {
+  return safeInternalNext(value);
+}
+
+/** نسخهٔ resolveشده برای رندر؛ دادهٔ زنده و props سیستمی هرگز داخل JSON ذخیره نمی‌شوند. */
+export async function resolveStudioData(data: StudioData, options: StudioResolveOptions = {}): Promise<StudioData> {
   const content = await Promise.all(
     data.content.map(async (block) => {
-      if (!STUDIO_LIVE_BLOCKS.includes(block.type)) return block;
-      const items = await itemsFor(block.type, block.props).catch(() => [] as StudioLiveItem[]);
-      return { ...block, props: { ...block.props, items } };
+      if (STUDIO_LIVE_BLOCKS.includes(block.type)) {
+        const items = await itemsFor(block.type, block.props).catch(() => [] as StudioLiveItem[]);
+        return { ...block, props: { ...block.props, items } };
+      }
+      if (block.type === "HadiranHomeHero") {
+        return { ...block, props: { ...block.props, interactive: options.mode === "public" } };
+      }
+      if (block.type === "SignInPanel") {
+        return { ...block, props: { ...block.props, nextPath: safeNextPath(options.signInNextPath) } };
+      }
+      return block;
     }),
   );
   return { content, root: data.root };

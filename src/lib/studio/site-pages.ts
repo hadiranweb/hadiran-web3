@@ -21,7 +21,7 @@ export type SitePageDef = {
 };
 
 export const SITE_PAGES: SitePageDef[] = [
-  { key: "home", path: "/", titleFa: "خانه", kind: "public", copyGroups: ["voice", "home", "rooms", "site"], note: "صفحهٔ اصلی؛ شعار و سه گام از «متن و نام» می‌آید." },
+  { key: "home", path: "/", titleFa: "خانه", kind: "public", copyGroups: ["voice", "home", "rooms", "site"], note: "برای حفظ تصویر واقعی، نشان و گفت‌وگوی زندهٔ خانه از بلوک سیستمی «سربرگ خانهٔ هادیران» استفاده کن؛ انتشار بدون آن رد می‌شود." },
   { key: "ecosystem", path: "/ecosystem", titleFa: "خانه (اکوسیستم)", kind: "public", copyGroups: ["house", "rooms"], note: "نقشهٔ اتاق‌های هادیران." },
   { key: "knowledge", path: "/knowledge", titleFa: "باغ دانش", kind: "public", copyGroups: ["knowledge", "rooms"], note: "فهرست دانش؛ برای بازسازی با بلوک «فهرست دانش (زنده)» آماده است." },
   { key: "analyzers", path: "/analyzers", titleFa: "آینه‌ها", kind: "public", copyGroups: ["mirrors", "rooms"], note: "هاب آینه‌ها؛ بلوک «آینه‌ها (زنده)» همان دادهٔ واقعی را می‌خواند." },
@@ -38,7 +38,7 @@ export const SITE_PAGES: SitePageDef[] = [
     titleFa: "ورود",
     kind: "auth",
     copyGroups: [],
-    note: "صفحهٔ کارکردی: در نسخهٔ استودیویی حتماً بلوک «فرم ورود» را بگذار؛ بدون آن فرم ورود نمایش داده نمی‌شود.",
+    note: "صفحهٔ کارکردی: بلوک «فرم ورود» الزامی است و مقصد امنِ next از نشانی ورود حفظ می‌شود؛ انتشار بدون فرم رد می‌شود.",
   },
   {
     key: "account",
@@ -46,7 +46,7 @@ export const SITE_PAGES: SitePageDef[] = [
     titleFa: "حساب کاربری",
     kind: "member",
     copyGroups: [],
-    note: "نسخهٔ کدی خریدها و تنظیمات حساب را دارد؛ انتشار نسخهٔ استودیویی جایگزین کامل بدنهٔ صفحه می‌شود، پس با احتیاط منتشر کن.",
+    note: "بلوک «حساب واقعی» محتوای سروریِ پروفایل، قفسه، معرف و فرم‌های حساب را در همان جای صفحه نگه می‌دارد؛ انتشار بدون آن رد می‌شود و اطلاعات شخصی در JSON ذخیره نمی‌شوند.",
   },
 ];
 
