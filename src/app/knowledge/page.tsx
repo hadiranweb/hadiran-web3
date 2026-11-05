@@ -191,4 +191,16 @@ async function KnowledgePage({ searchParams }: Props) {
   );
 }
 
-export default withStudioTakeover("knowledge", KnowledgePage);
+export default withStudioTakeover("knowledge", KnowledgePage, {
+  renderSlots: async () => {
+    const account = await getCurrentAccount();
+    return {
+      knowledgeOwnerAction: account?.role === "owner" ? (
+        <Link href="/workspace/capture" className="ws-button ws-primary">
+          <PenLine className="h-4 w-4" strokeWidth={1.5} />
+          نوشتن مطلب
+        </Link>
+      ) : undefined,
+    };
+  },
+});

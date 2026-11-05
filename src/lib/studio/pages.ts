@@ -2,9 +2,11 @@
 import { desc, eq } from "drizzle-orm";
 import { db, hasDatabaseUrl } from "@/db";
 import { studioPageVersions, studioPages } from "@/db/schema";
-import { validateStudioData, type StudioData } from "./validate";
+import { STUDIO_TARGET_BLOCKS, validateStudioData, type StudioData } from "./validate";
 import { siteSlug, siteTarget } from "./site-pages";
-import { statusAfterSavingDraft } from "./publication-state";
+import { canSeedUnmodifiedEmptyDraft, statusAfterSavingDraft } from "./publication-state";
+import { getSiteCopy } from "@/lib/content/site-copy";
+import { sitePageSeedData } from "./site-seeds";
 
 export function studioEnabled(): boolean {
   return process.env.HADIRAN_STUDIO_ENABLED === "true";
@@ -41,13 +43,21 @@ export async function createStudioPage(input: {
   titleFa: string;
   ownerId: number | null;
   target?: string;
+  draftData?: StudioData;
 }): Promise<StudioPageRow | null> {
   if (!ready()) return null;
   const id = crypto.randomUUID();
   try {
     const [row] = await db
       .insert(studioPages)
-      .values({ id, slug: input.slug, titleFa: input.titleFa, ownerId: input.ownerId, target: input.target ?? "standalone" })
+      .values({
+        id,
+        slug: input.slug,
+        titleFa: input.titleFa,
+        ownerId: input.ownerId,
+        target: input.target ?? "standalone",
+        ...(input.draftData ? { draftData: input.draftData as unknown as Record<string, unknown> } : {}),
+      })
       .returning();
     return row ?? null;
   } catch {
@@ -65,23 +75,63 @@ export async function getStudioPageByTarget(target: string): Promise<StudioPageR
   }
 }
 
+async function currentCodePageSeed(key: string, titleFa: string): Promise<StudioData> {
+  const copy = await getSiteCopy();
+  return sitePageSeedData(key, copy, titleFa);
+}
+
 /**
- * صفحهٔ استودیویی متناظر یک صفحهٔ سایت را برمی‌گرداند و اگر نبود می‌سازد.
- * اسلاگ داخلی است (`site-<key>`)؛ مسیر عمومی همان مسیر واقعی سایت است.
+ * صفحهٔ استودیویی متناظر یک صفحهٔ سایت را برمی‌گرداند و اگر نبود با محتوای فعلیِ صفحه می‌سازد.
+ * برای ردیف‌های قدیمیِ خالی هم baseline فقط یک‌بار در draft وارد می‌شود؛ published snapshot دست‌نخورده است.
  */
 export async function ensureSiteStudioPage(
   def: { key: string; titleFa: string },
   ownerId: number | null,
 ): Promise<StudioPageRow | null> {
   if (!ready()) return null;
-  const existing = await getStudioPageByTarget(siteTarget(def.key));
-  if (existing) return existing;
-  return createStudioPage({
-    slug: siteSlug(def.key),
-    titleFa: def.titleFa,
-    ownerId,
-    target: siteTarget(def.key),
-  });
+  const target = siteTarget(def.key);
+  const generated = await currentCodePageSeed(def.key, def.titleFa).catch(() => null);
+  const currentSeed = generated ? validateStudioData(generated, { target, forPublish: true }) : null;
+  try {
+    return await db.transaction(async (tx) => {
+      const [existing] = await tx.select().from(studioPages).where(eq(studioPages.target, target)).for("update").limit(1);
+      if (existing) {
+        if (canSeedUnmodifiedEmptyDraft(existing.draftData, existing.createdAt, existing.updatedAt)) {
+          // اگر همین صفحه snapshot منتشرشده دارد، آن را پیش‌نویس پایه کن؛ وگرنه خروجی فعلیِ کد را وارد کن.
+          const publishedSeed =
+            existing.status === "published"
+              ? validateStudioData(existing.publishedData, { target, forPublish: true })
+              : null;
+          const draftData = publishedSeed ?? currentSeed;
+          if (draftData && draftData.content.length > 0) {
+            const [updated] = await tx
+              .update(studioPages)
+              .set({ draftData: draftData as unknown as Record<string, unknown>, updatedAt: new Date() })
+              .where(eq(studioPages.id, existing.id))
+              .returning();
+            return updated ?? { ...existing, draftData: draftData as unknown as Record<string, unknown> };
+          }
+        }
+        return existing;
+      }
+      if (!currentSeed) return null;
+      const [created] = await tx
+        .insert(studioPages)
+        .values({
+          id: crypto.randomUUID(),
+          slug: siteSlug(def.key),
+          titleFa: def.titleFa,
+          ownerId,
+          target,
+          draftData: currentSeed as unknown as Record<string, unknown>,
+        })
+        .returning();
+      return created ?? null;
+    });
+  } catch {
+    // مسیر باز است حتی اگر درخواست هم‌زمانی ردیف را ساخته باشد.
+    return await getStudioPageByTarget(target);
+  }
 }
 
 export async function saveStudioDraft(
@@ -200,24 +250,24 @@ export async function duplicateStudioPage(id: string, actorId: number | null): P
   const page = await getStudioPage(id);
   if (!page) return null;
   const source = validateStudioData(page.draftData, { target: page.target });
-  const draftData: StudioData = {
-    content: (source?.content ?? []).filter(
-      (block) => !["HadiranHomeHero", "SignInPanel", "AccountPanel"].includes(block.type),
-    ),
-    root: source?.root ?? { props: { title: "" } },
-  };
+  const content = (source?.content ?? []).filter((block) => !STUDIO_TARGET_BLOCKS.includes(block.type));
+  if (!content.some((block) => block.type === "PageHero")) {
+    content.unshift({
+      type: "PageHero",
+      props: { kicker: "", title: `${page.titleFa} — رونوشت`, lead: "", primaryLabel: "", primaryHref: "", secondaryLabel: "", secondaryHref: "", align: "start" },
+    });
+  }
+  const draftData: StudioData = { content, root: source?.root ?? { props: { title: "" } } };
   return createStudioPage({
     slug: `${page.slug}-copy`.slice(0, 128),
     titleFa: `${page.titleFa} — رونوشت`,
     ownerId: actorId,
+    draftData,
   }).then(async (copy) => {
     if (!copy) return null;
     try {
-      await db
-        .update(studioPages)
-        .set({ draftData: draftData as unknown as Record<string, unknown>, seo: page.seo, updatedAt: new Date() })
-        .where(eq(studioPages.id, copy.id));
-      return { ...copy, draftData: draftData as unknown as Record<string, unknown>, seo: page.seo };
+      await db.update(studioPages).set({ seo: page.seo, updatedAt: new Date() }).where(eq(studioPages.id, copy.id));
+      return { ...copy, seo: page.seo };
     } catch {
       return copy;
     }

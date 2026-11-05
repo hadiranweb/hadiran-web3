@@ -1,7 +1,5 @@
 import { withStudioTakeover } from "@/components/studio/StudioTakeover";
-import { db } from "@/db";
-import { person } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { loadPublicPersonRecord } from "@/lib/public/person-profile";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/JsonLd";
@@ -10,7 +8,6 @@ import { PageShell } from "@/components/ui/PageShell";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Surface } from "@/components/ui/Surface";
 import { PublicSourceNotice } from "@/components/ui/PublicSourceNotice";
-import { readPublic } from "@/lib/public/source";
 import { getSiteCopy } from "@/lib/content/site-copy";
 
 
@@ -51,10 +48,7 @@ function ContactEmpty({ text }: { text: string }) {
 
 async function ContactPage() {
   const copy = await getSiteCopy();
-  const profile = await readPublic("public person contact", async () => {
-    const [row] = await db.select().from(person).where(eq(person.slug, "hadiran"));
-    return row ?? null;
-  });
+  const profile = await loadPublicPersonRecord();
   const hadiran = profile.data ?? null;
   const methods: ContactMethod[] = hadiran?.contactMethods ?? [];
   const sameAs = methods

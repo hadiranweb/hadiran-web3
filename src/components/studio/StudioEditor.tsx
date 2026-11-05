@@ -1,7 +1,7 @@
 "use client";
 
 import "@puckeditor/core/puck.css";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 
 // ادیتور سنگین است؛ فقط سمت کلاینت و تنبل بار می‌شود تا باندل عمومی سبک بماند.
@@ -24,7 +24,7 @@ const inputCls = "w-full rounded-xl border border-slate-300 px-3 py-2 text-sm";
 const btnCls = "rounded-full bg-slate-900 px-4 py-2 text-sm font-bold text-white disabled:opacity-50";
 const ghostCls = "rounded-full border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700 disabled:opacity-50";
 
-export function StudioEditor({ id }: { id: string }) {
+export function StudioEditor({ id, homePortrait }: { id: string; homePortrait?: ReactNode }) {
   const [page, setPage] = useState<PageState | null>(null);
   const [data, setData] = useState<StudioData>(EMPTY_STUDIO_DATA);
   const [busy, setBusy] = useState(false);
@@ -39,10 +39,10 @@ export function StudioEditor({ id }: { id: string }) {
         if (!cancelled) setError("صفحه پیدا نشد یا استودیو آماده نیست (مایگریشن 0034).");
         return;
       }
-      const json = (await res.json()) as { page: PageState & { draftData: StudioData } };
+      const json = (await res.json()) as { page: PageState & { draftData: StudioData; previewData?: StudioData } };
       if (cancelled) return;
       setPage(json.page);
-      setData((json.page.draftData as StudioData) ?? EMPTY_STUDIO_DATA);
+      setData(json.page.previewData ?? json.page.draftData ?? EMPTY_STUDIO_DATA);
     })();
     return () => {
       cancelled = true;
@@ -140,7 +140,7 @@ export function StudioEditor({ id }: { id: string }) {
           این صفحه، صفحهٔ واقعی «{sitePageByTarget(page.target)?.titleFa}» در مسیر{" "}
           <span dir="ltr">{sitePageByTarget(page.target)?.path}</span> است. تا وقتی منتشر نکنی، نسخهٔ فعلی سایت سر
           جایش می‌ماند؛ انتشار، بدنهٔ همان صفحه را با این بلوک‌ها جایگزین می‌کند و بایگانی/خالی‌کردن، نسخهٔ کدی را
-          برمی‌گرداند. {sitePageByTarget(page.target)?.note}
+          برمی‌گرداند. اگر draft خالی باشد، محتوای فعلی صفحه هنگام ورود به draft تبدیل می‌شود؛ فهرست‌های DB زنده‌اند. {sitePageByTarget(page.target)?.note}
         </p>
       )}
       <div className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:grid-cols-3">
@@ -201,7 +201,7 @@ export function StudioEditor({ id }: { id: string }) {
       </div>
 
       <div dir="ltr" className="overflow-hidden rounded-2xl border border-slate-200 bg-white [&_.Puck]:min-h-[720px]">
-        <Puck config={studioConfigForTarget(page.target)} data={data as never} onChange={(next) => setData(next as StudioData)} />
+        <Puck config={studioConfigForTarget(page.target, { homePortrait })} data={data as never} onChange={(next) => setData(next as StudioData)} />
       </div>
       <p className="text-xs leading-6 text-slate-500">
         بوم ادیتور چپ‌به‌راست می‌ماند؛ پیش‌نمایش داخل بوم راست‌به‌چپ و فارسی است. بلوک‌ها فقط از سیستم طراحی هادیران‌اند؛

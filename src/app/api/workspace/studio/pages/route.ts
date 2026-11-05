@@ -3,6 +3,7 @@ import { requireOwner } from "@/lib/auth/guard";
 import { createStudioPage, listStudioPages, studioEnabled } from "@/lib/studio/pages";
 import { cleanSlug } from "@/lib/studio/validate";
 import { hasUnpublishedDraft } from "@/lib/studio/publication-state";
+import { standalonePageSeedData } from "@/lib/studio/site-seeds";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
   const slug = cleanSlug(body.slug);
   const titleFa = typeof body.titleFa === "string" ? body.titleFa.trim().slice(0, 256) : "";
   if (!slug || !titleFa) return NextResponse.json({ error: "invalid_fields" }, { status: 400 });
-  const page = await createStudioPage({ slug, titleFa, ownerId: auth.account.id });
+  const page = await createStudioPage({ slug, titleFa, ownerId: auth.account.id, draftData: standalonePageSeedData(titleFa) });
   if (!page) return NextResponse.json({ error: "create_failed" }, { status: 409 });
   return NextResponse.json({ page: { id: page.id, slug: page.slug, titleFa: page.titleFa, status: page.status } });
 }

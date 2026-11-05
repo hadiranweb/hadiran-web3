@@ -12,7 +12,17 @@ test("اعتبارسنجی استودیو: allowlist دقیق است؛ داده�
   });
   assert.ok(ok);
   assert.equal(ok.content.length, 2);
+  assert.deepEqual(ok.content.map((block) => block.props.id), ["a1", "studio-ctaband-2"]);
   assert.equal(ok.content[1].props.href, "");
+  const duplicateIds = validateStudioData({
+    content: [
+      { type: "PageHero", props: { id: "same" } },
+      { type: "PageHero", props: { id: "same" } },
+    ],
+    root: {},
+  });
+  assert.ok(duplicateIds);
+  assert.deepEqual(duplicateIds.content.map((block) => block.props.id), ["same", "studio-pagehero-2"]);
   assert.equal(validateStudioData({ content: [{ type: "EvilBlock", props: {} }], root: {} }), null);
   assert.equal(validateStudioData("nope"), null);
   assert.equal(cleanSlug("My Page!"), null);
@@ -72,6 +82,9 @@ test("بلوک زنده: آیتم‌ها هرگز ذخیره نمی‌شوند �
         props: { heading: "دانش", topicSlug: "system-design", limit: "6", layout: "cards", items: [{ title: "جعلی" }] },
       },
       { type: "ShopGrid", props: { heading: "فروشگاه", kind: "course;DROP", items: [1] } },
+      { type: "EcosystemGrid", props: { heading: "اتاق‌ها", items: [{ title: "جعلی" }] } },
+      { type: "PersonDetails", props: { profile: { nameEn: "fake" }, source: "live" } },
+      { type: "ContactMethods", props: { emptyText: "خالی", methods: [{ label: "جعلی", value: "داده" }] } },
     ],
     root: {},
   });
@@ -79,6 +92,10 @@ test("بلوک زنده: آیتم‌ها هرگز ذخیره نمی‌شوند �
   assert.equal(out.content[0].props.items, undefined);
   assert.equal(out.content[0].props.topicSlug, "system-design");
   assert.equal(out.content[1].props.kind, "");
+  assert.equal(out.content[2].props.items, undefined);
+  assert.deepEqual(Object.keys(out.content[3].props), ["id"]);
+  assert.match(out.content[3].props.id, /^studio-persondetails-/);
+  assert.equal(out.content[4].props.methods, undefined);
 });
 
 test("ترکیب انتشار به مقصد وابسته است؛ H1 یکتا و بلوک سیستمیِ درست الزامی است", async () => {
@@ -87,6 +104,21 @@ test("ترکیب انتشار به مقصد وابسته است؛ H1 یکتا و
 
   assert.ok(validateStudioData(make("HadiranHomeHero", { title: "خانه" }), { target: "site:home", forPublish: true }));
   assert.equal(validateStudioData(make("HadiranHomeHero", { title: "خانه" }), { target: "site:privacy", forPublish: true }), null);
+  assert.ok(validateStudioData(make("HomeFlow", { title: "جریان" }), { target: "site:home" }));
+  assert.equal(validateStudioData(make("HomeFlow", { title: "جریان" }), { target: "site:privacy" }), null);
+  assert.equal(validateStudioData(make("EcosystemGrid"), { target: "site:person" }), null);
+  assert.equal(validateStudioData(make("PersonDetails"), { target: "site:contact" }), null);
+  for (const [target, liveType] of [
+    ["site:knowledge", "KnowledgeList"],
+    ["site:analyzers", "AnalyzerGrid"],
+    ["site:lab", "ProjectPipeline"],
+    ["site:courses", "CourseGrid"],
+    ["site:shop", "ShopGrid"],
+    ["site:topics", "TopicHub"],
+  ]) {
+    assert.equal(validateStudioData(make("PageHero", { title: "عنوان" }), { target, forPublish: true }), null);
+    assert.ok(validateStudioData({ content: [make("PageHero", { title: "عنوان" }).content[0], make(liveType).content[0]], root: {} }, { target, forPublish: true }));
+  }
   assert.ok(validateStudioData(make("SignInPanel", { heading: "ورود" }), { target: "site:signin", forPublish: true }));
   assert.equal(validateStudioData(make("SignInPanel", { heading: "ورود" }), { target: "site:account", forPublish: true }), null);
   assert.ok(validateStudioData(make("AccountPanel"), { target: "site:account", forPublish: true }));
@@ -102,7 +134,11 @@ test("تعریف Puck دقیقاً با allowlist اعتبارسنجی یکی ا
   const { studioConfig, studioConfigForTarget } = await import("./config.tsx");
   assert.deepEqual(Object.keys(studioConfig.components).sort(), [...STUDIO_BLOCK_TYPES].sort());
   assert.ok("HadiranHomeHero" in studioConfigForTarget("site:home").components);
+  assert.ok("HomeMarquee" in studioConfigForTarget("site:home").components);
+  assert.ok("HomeFlow" in studioConfigForTarget("site:home").components);
+  assert.ok("HomeRooms" in studioConfigForTarget("site:home").components);
   assert.ok(!("HadiranHomeHero" in studioConfigForTarget("site:privacy").components));
+  assert.ok(!("HomeFlow" in studioConfigForTarget("site:privacy").components));
   assert.ok("SignInPanel" in studioConfigForTarget("site:signin").components);
   assert.ok(!("SignInPanel" in studioConfigForTarget("standalone").components));
   assert.ok("AccountPanel" in studioConfigForTarget("site:account").components);

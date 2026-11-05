@@ -6,6 +6,9 @@
 export const STUDIO_BLOCK_TYPES = [
   "PageHero",
   "HadiranHomeHero",
+  "HomeMarquee",
+  "HomeFlow",
+  "HomeRooms",
   "SectionHeader",
   "RichText",
   "BentoGrid",
@@ -20,6 +23,10 @@ export const STUDIO_BLOCK_TYPES = [
   "ShopGrid",
   "SignInPanel",
   "AccountPanel",
+  "EcosystemGrid",
+  "PersonDetails",
+  "PersonPage",
+  "ContactMethods",
 ] as const;
 
 /** بلوک‌های زنده: در Data فقط تنظیمات می‌ماند؛ آیتم‌ها هنگام رندر از دادهٔ واقعی resolve می‌شوند و ذخیره نمی‌شوند. */
@@ -30,6 +37,9 @@ export const STUDIO_LIVE_BLOCKS: readonly StudioBlockType[] = [
   "AnalyzerGrid",
   "TopicHub",
   "ShopGrid",
+  "EcosystemGrid",
+  "PersonDetails",
+  "ContactMethods",
 ];
 
 export type StudioBlockType = (typeof STUDIO_BLOCK_TYPES)[number];
@@ -64,15 +74,36 @@ function cleanHref(value: unknown): string {
   }
 }
 
+const REQUIRED_LIVE_LIST_BLOCKS: Record<string, StudioBlockType> = {
+  "site:knowledge": "KnowledgeList",
+  "site:analyzers": "AnalyzerGrid",
+  "site:lab": "ProjectPipeline",
+  "site:courses": "CourseGrid",
+  "site:shop": "ShopGrid",
+  "site:topics": "TopicHub",
+};
+
 const SYSTEM_BLOCK_TARGETS: Partial<Record<StudioBlockType, string>> = {
   HadiranHomeHero: "site:home",
+  HomeMarquee: "site:home",
+  HomeFlow: "site:home",
+  HomeRooms: "site:home",
   SignInPanel: "site:signin",
   AccountPanel: "site:account",
+  EcosystemGrid: "site:ecosystem",
+  PersonDetails: "site:person",
+  PersonPage: "site:person",
+  ContactMethods: "site:contact",
 };
+
+export const STUDIO_TARGET_BLOCKS = Object.keys(SYSTEM_BLOCK_TARGETS) as StudioBlockType[];
 
 const STRING_PROPS: Record<StudioBlockType, string[]> = {
   PageHero: ["kicker", "title", "lead", "primaryLabel", "secondaryLabel"],
-  HadiranHomeHero: ["kicker", "title", "lead"],
+  HadiranHomeHero: ["kicker", "title", "lead", "roomsLine", "brandName"],
+  HomeMarquee: [],
+  HomeFlow: ["kicker", "title", "lead"],
+  HomeRooms: ["kicker", "title", "mapLabel"],
   SectionHeader: ["kicker", "title", "lead"],
   RichText: ["body"],
   BentoGrid: ["title"],
@@ -87,11 +118,18 @@ const STRING_PROPS: Record<StudioBlockType, string[]> = {
   ShopGrid: ["heading", "kind"],
   SignInPanel: ["heading", "lead"],
   AccountPanel: [],
+  EcosystemGrid: ["heading"],
+  PersonDetails: [],
+  PersonPage: ["fallbackName", "fallbackKicker", "intro", "missingText"],
+  ContactMethods: ["emptyText"],
 };
 
 const HREF_PROPS: Record<StudioBlockType, string[]> = {
   PageHero: ["primaryHref", "secondaryHref"],
   HadiranHomeHero: [],
+  HomeMarquee: [],
+  HomeFlow: [],
+  HomeRooms: ["mapHref"],
   SectionHeader: [],
   RichText: [],
   BentoGrid: [],
@@ -106,25 +144,36 @@ const HREF_PROPS: Record<StudioBlockType, string[]> = {
   ShopGrid: [],
   SignInPanel: [],
   AccountPanel: [],
+  EcosystemGrid: [],
+  PersonDetails: [],
+  PersonPage: [],
+  ContactMethods: [],
 };
 
 const ENUM_PROPS: Record<StudioBlockType, Record<string, string[]>> = {
   PageHero: { align: ["start", "center"] },
   HadiranHomeHero: {},
+  HomeMarquee: {},
+  HomeFlow: {},
+  HomeRooms: {},
   SectionHeader: { align: ["start", "center"] },
-  RichText: {},
+  RichText: { mode: ["paragraphs", "bullets"] },
   BentoGrid: { columns: ["2", "3"] },
   FAQ: {},
   CTABand: {},
   Divider: { space: ["sm", "md", "lg"] },
-  KnowledgeList: { limit: ["3", "6", "9"], layout: ["cards", "list"] },
-  ProjectPipeline: { limit: ["3", "6", "9"], layout: ["cards", "list"] },
-  CourseGrid: { limit: ["3", "6", "9"], layout: ["cards", "list"] },
-  AnalyzerGrid: { limit: ["3", "6", "9"], layout: ["cards", "list"] },
-  TopicHub: { limit: ["3", "6", "9"], layout: ["cards", "list"] },
-  ShopGrid: { limit: ["3", "6", "9"], layout: ["cards", "list"] },
+  KnowledgeList: { limit: ["3", "6", "9", "all"], layout: ["cards", "list"] },
+  ProjectPipeline: { limit: ["3", "6", "9", "all"], layout: ["cards", "list"] },
+  CourseGrid: { limit: ["3", "6", "9", "all"], layout: ["cards", "list"] },
+  AnalyzerGrid: { limit: ["3", "6", "9", "all"], layout: ["cards", "list"] },
+  TopicHub: { limit: ["3", "6", "9", "all"], layout: ["cards", "list"] },
+  ShopGrid: { limit: ["3", "6", "9", "all"], layout: ["cards", "list"] },
   SignInPanel: {},
   AccountPanel: {},
+  EcosystemGrid: {},
+  PersonDetails: {},
+  PersonPage: {},
+  ContactMethods: {},
 };
 
 function cleanProps(type: StudioBlockType, raw: Record<string, unknown>): Record<string, unknown> {
@@ -143,8 +192,33 @@ function cleanProps(type: StudioBlockType, raw: Record<string, unknown>): Record
       .map((item) => ({
         title: cleanString(item.title, 256),
         body: cleanString(item.body, 1000),
+        badge: cleanString(item.badge, 80),
+        href: cleanHref(item.href),
       }))
-      .filter((item) => item.title !== "کارت" || item.body.trim());
+      .filter((item) => Boolean(item.title.trim() || item.body.trim() || item.href))
+      .filter((item) => !(item.title.trim() === "کارت" && !item.body.trim() && !item.badge.trim() && !item.href));
+  }
+  if (type === "HomeMarquee") {
+    out.items = (Array.isArray(raw.items) ? raw.items.slice(0, 12) : [])
+      .filter(isRecord)
+      .map((item) => ({ label: cleanString(item.label, 128) }))
+      .filter((item) => item.label.trim());
+  }
+  if (type === "HomeFlow") {
+    out.items = (Array.isArray(raw.items) ? raw.items.slice(0, 12) : [])
+      .filter(isRecord)
+      .map((item) => ({
+        n: cleanString(item.n, 32),
+        title: cleanString(item.title, 256),
+        body: cleanString(item.body, 1000),
+      }))
+      .filter((item) => item.n || item.title.trim() || item.body.trim());
+  }
+  if (type === "HomeRooms") {
+    out.items = (Array.isArray(raw.items) ? raw.items.slice(0, 12) : [])
+      .filter(isRecord)
+      .map((item) => ({ label: cleanString(item.label, 128), href: cleanHref(item.href) }))
+      .filter((item) => item.label.trim() || item.href);
   }
   // حذف پیش‌فرض‌های دیده‌شدهٔ نسخهٔ نخست، تا در صفحه‌های قدیمی به‌صورت محتوای جعلی نمانند.
   if (type === "PageHero" && out.title === "عنوان صفحه") out.title = "";
@@ -187,11 +261,21 @@ export function validateStudioData(input: unknown, options: StudioValidationOpti
     const expectedTarget = SYSTEM_BLOCK_TARGETS[type];
     if (options.target && expectedTarget && options.target !== expectedTarget) return null;
     const props = isRecord(entry.props) ? entry.props : {};
+    let id = typeof props.id === "string" ? props.id.trim().slice(0, 64) : "";
+    if (!id || cleaned.some((block) => block.props.id === id)) {
+      const base = `studio-${type.toLowerCase()}-${cleaned.length + 1}`;
+      id = base;
+      let suffix = 2;
+      while (cleaned.some((block) => block.props.id === id)) {
+        id = `${base}-${suffix}`;
+        suffix += 1;
+      }
+    }
     cleaned.push({
       type,
       props: {
         ...cleanProps(type, props),
-        ...(typeof props.id === "string" ? { id: props.id.slice(0, 64) } : {}),
+        id,
       },
     });
   }
@@ -216,6 +300,16 @@ export function hasValidPageComposition(data: StudioData, target?: StudioTarget)
   const hadiranHeroCount = types.filter((type) => type === "HadiranHomeHero").length;
   const signInCount = types.filter((type) => type === "SignInPanel").length;
   const accountCount = types.filter((type) => type === "AccountPanel").length;
+  const ecosystemCount = types.filter((type) => type === "EcosystemGrid").length;
+  const personDetailsCount = types.filter((type) => type === "PersonDetails").length;
+  const personPageCount = types.filter((type) => type === "PersonPage").length;
+  const contactMethodsCount = types.filter((type) => type === "ContactMethods").length;
+  if (target === "site:person" && personPageCount > 0) {
+    const personPage = data.content.find((block) => block.type === "PersonPage");
+    return personPageCount === 1 && pageHeroCount === 0 && personDetailsCount === 0 &&
+      hadiranHeroCount === 0 && signInCount === 0 && accountCount === 0 &&
+      typeof personPage?.props.fallbackName === "string" && Boolean(personPage.props.fallbackName.trim());
+  }
   const h1Count = pageHeroCount + hadiranHeroCount + signInCount + accountCount;
   if (h1Count !== 1) return false;
   const h1Block = data.content.find((block) => ["PageHero", "HadiranHomeHero", "SignInPanel"].includes(block.type));
@@ -223,11 +317,16 @@ export function hasValidPageComposition(data: StudioData, target?: StudioTarget)
   if (h1Block && typeof h1Block.props.heading === "string" && !h1Block.props.heading.trim()) return false;
 
   if (target === "site:home") return hadiranHeroCount === 1;
+  const requiredLiveBlock = target ? REQUIRED_LIVE_LIST_BLOCKS[target] : undefined;
+  if (requiredLiveBlock) return pageHeroCount === 1 && types.filter((type) => type === requiredLiveBlock).length === 1;
   if (target === "site:signin") {
     const block = data.content.find((entry) => entry.type === "SignInPanel");
     return signInCount === 1 && Boolean(block?.props.heading);
   }
   if (target === "site:account") return accountCount === 1;
+  if (target === "site:ecosystem") return pageHeroCount === 1 && ecosystemCount === 1;
+  if (target === "site:person") return pageHeroCount === 1 && personDetailsCount === 1;
+  if (target === "site:contact") return pageHeroCount === 1 && contactMethodsCount === 1;
   if (target?.startsWith("site:")) return pageHeroCount === 1;
   return pageHeroCount === 1;
 }

@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { requireOwner } from "@/lib/auth/guard";
 import { getStudioPage, saveStudioDraft, studioEnabled } from "@/lib/studio/pages";
-import { cleanSeo, cleanSlug, validateStudioData } from "@/lib/studio/validate";
+import { cleanSeo, cleanSlug, EMPTY_STUDIO_DATA, validateStudioData } from "@/lib/studio/validate";
 import { hasUnpublishedDraft, statusAfterSavingDraft } from "@/lib/studio/publication-state";
+import { resolveStudioData } from "@/lib/studio/resolve";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,8 @@ export async function GET(_request: Request, { params }: Ctx) {
   const { id } = await params;
   const page = await getStudioPage(id);
   if (!page) return NextResponse.json({ error: "not_found" }, { status: 404 });
+  const draftData = validateStudioData(page.draftData, { target: page.target }) ?? EMPTY_STUDIO_DATA;
+  const previewData = await resolveStudioData(draftData, { mode: "preview" });
   return NextResponse.json({
     page: {
       id: page.id,
@@ -23,7 +26,8 @@ export async function GET(_request: Request, { params }: Ctx) {
       status: page.status,
       draftAhead: page.status === "published" && hasUnpublishedDraft(page.draftData, page.publishedData),
       target: page.target,
-      draftData: page.draftData,
+      draftData,
+      previewData,
       seo: page.seo,
       publishedAt: page.publishedAt,
     },

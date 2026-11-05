@@ -1,15 +1,5 @@
 import { withStudioTakeover } from "@/components/studio/StudioTakeover";
-import { db } from "@/db";
-import {
-  person,
-  skills,
-  topics,
-  organizations,
-  personSkills,
-  personTopics,
-  personOrganizations,
-} from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { loadPublicPersonProfile } from "@/lib/public/person-profile";
 import { ExternalLink } from "lucide-react";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -19,7 +9,6 @@ import { HadiranMark } from "@/components/HadiranMark";
 import { PageShell } from "@/components/ui/PageShell";
 import { Surface } from "@/components/ui/Surface";
 import { getSiteCopy } from "@/lib/content/site-copy";
-import { readPublic } from "@/lib/public/source";
 import { PublicSourceNotice } from "@/components/ui/PublicSourceNotice";
 
 export const dynamic = "force-dynamic";
@@ -35,33 +24,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 async function HadiranPage() {
   const copy = await getSiteCopy();
-  const profile = await readPublic("public person profile", async () => {
-    const [personRow] = await db.select().from(person).where(eq(person.slug, "hadiran"));
-    if (!personRow) return null;
-    const [personSkillsList, personTopicsList, personOrganizationsList] = await Promise.all([
-      db
-        .select({ id: skills.id, labelFa: skills.labelFa, slug: skills.slug })
-        .from(personSkills)
-        .innerJoin(skills, eq(personSkills.skillId, skills.id))
-        .where(eq(personSkills.personId, personRow.id)),
-      db
-        .select({ id: topics.id, labelFa: topics.labelFa, slug: topics.slug })
-        .from(personTopics)
-        .innerJoin(topics, eq(personTopics.topicId, topics.id))
-        .where(eq(personTopics.personId, personRow.id)),
-      db
-        .select({
-          id: organizations.id,
-          nameFa: organizations.nameFa,
-          url: organizations.url,
-          roleFa: personOrganizations.roleFa,
-        })
-        .from(personOrganizations)
-        .innerJoin(organizations, eq(personOrganizations.organizationId, organizations.id))
-        .where(eq(personOrganizations.personId, personRow.id)),
-    ]);
-    return { hadiran: personRow, personSkillsList, personTopicsList, personOrganizationsList };
-  });
+  const profile = await loadPublicPersonProfile();
 
   const hadiran = profile.data?.hadiran ?? null;
 
