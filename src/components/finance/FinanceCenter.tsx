@@ -30,7 +30,7 @@ export function FinanceCenter({ snapshot }: { snapshot: FinanceSnapshot }) {
           <h1>{personal ? t("خریدهای من","My purchases") : report ? t("گزارش تسویه‌ها","Settlement report") : t("مرکز سفارش","Order center")}</h1>
           <p>{report ? t("بر اساس زمان تسویه؛ نه شمارهٔ پیگیری و نه سود خالص.","Based on settlement time, not submitted references or net profit.") : t("وضعیت واقعی سفارش، مبلغ ثبت‌شده و دسترسی صادرشده.","Recorded order state, purchase amount and issued access.")}</p>
         </div>
-        <div className="fc-tools">
+        <div className="fc-tools">{snapshot.mode === "report" && <Link className="ws-button" href="/workspace/finance/lab">{t("آزمایشگاه معماری مالی", "Finance architecture lab")}</Link>}
           {personal ? <Link prefetch={false} className="ws-button" href="/account">{t("حساب من","My account")}</Link> : <Link prefetch={false} className="ws-button" href={report ? "/workspace/shop/orders?period=all" : "/workspace/finance"}>{report ? t("مرکز سفارش","Order center") : t("گزارش مالی","Financial report")}</Link>}
           {!personal ? <Link prefetch={false} className="ws-button" href="/workspace/shop">{t("مدیریت کالاها","Manage products")}</Link> : null}
           <button className="ws-button" disabled={busy} onClick={()=>refresh(()=>router.refresh())}><RefreshCw size={15}/>{t("به‌روزرسانی","Refresh")}</button>

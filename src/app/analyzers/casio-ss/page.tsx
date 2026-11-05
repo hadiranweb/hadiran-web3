@@ -1,3 +1,4 @@
+import { developmentTestLogin } from "@/lib/auth/config";
 import { previewStore } from "@/lib/preview/store";
 import { withPreviewAccess } from "@/lib/auth/preview-url";
 import type { Metadata } from "next";
@@ -52,7 +53,7 @@ export default async function CasioSsPage() {
   }
 
   return (
-    <PageShell width="narrow" className="py-6">
+    <PageShell width="wide" className="py-6 lp-analyzer-page">
       <JsonLd
         data={{
           "@context": "https://schema.org",
@@ -65,7 +66,7 @@ export default async function CasioSsPage() {
         }}
       />
 
-      <AnalyzerPublicScreen pack={pack} signedIn={Boolean(account)} resume={resume} />
+      <AnalyzerPublicScreen pack={pack} signedIn={Boolean(account)} resume={resume} previewLogin={Boolean(developmentTestLogin())} />
     </PageShell>
   );
 }

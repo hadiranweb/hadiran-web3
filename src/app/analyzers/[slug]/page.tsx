@@ -53,7 +53,7 @@ export default async function AnalyzerMemberPage({ params }: Props) {
   const path = analyzerPublicPath(pack.slug);
 
   return (
-    <PageShell width="narrow" className="py-6">
+    <PageShell width="wide" className="py-6 lp-analyzer-page">
       {indexable ? (
         <JsonLd
           data={{

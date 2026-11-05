@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Suspense, type ReactNode } from "react";
 import "./globals.css";
+import "./landings.css";
 import { OnboardingDialog } from "@/components/auth/OnboardingDialog";
 import { SiteChrome } from "@/components/SiteChrome";
 import { Nav } from "@/components/Nav";

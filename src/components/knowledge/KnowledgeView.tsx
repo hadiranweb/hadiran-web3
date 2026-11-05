@@ -8,14 +8,18 @@ export function KnowledgeView({
   title,
   bodyFa,
   slides,
+  articleFirst = false,
+  headingAnchors = false,
 }: {
   title: string;
   bodyFa?: string | null;
   slides: KnowledgeSlide[];
+  articleFirst?: boolean;
+  headingAnchors?: boolean;
 }) {
   const hasSlides = slides.length > 0;
   const hasBody = Boolean(bodyFa?.trim());
-  const [mode, setMode] = useState<"slides" | "article">(hasSlides ? "slides" : "article");
+  const [mode, setMode] = useState<"slides" | "article">(hasSlides && !articleFirst ? "slides" : "article");
 
   return (
     <div className="mt-6">
@@ -41,7 +45,7 @@ export function KnowledgeView({
       {mode === "slides" && hasSlides ? (
         <SlideReader slides={slides} title={title} />
       ) : (
-        <MarkdownReadonly source={bodyFa} className="mt-2" />
+        <MarkdownReadonly source={bodyFa} className="mt-2" headingAnchors={headingAnchors} />
       )}
     </div>
   );

@@ -24,43 +24,37 @@ export function assertCreatorCoupon(binding: CreatorCouponBinding): void {
   }
 }
 
+export const FEE_ROUNDING_MODES = ["reject_fraction", "floor", "ceil", "half_up"] as const;
+export type FeeRounding = (typeof FEE_ROUNDING_MODES)[number];
+/** All inputs stay integer IRR; never silently choose a financial rounding policy. */
+export function calculateCommissionFee(priceIRR: bigint, basisPoints: number, rounding?: FeeRounding): bigint {
+  if (typeof priceIRR !== "bigint" || priceIRR < ZERO) throw new Error("invalid_price");
+  if (!Number.isInteger(basisPoints) || basisPoints < 0 || basisPoints > 10000) throw new Error("invalid_commission");
+  if (rounding !== undefined && !FEE_ROUNDING_MODES.includes(rounding)) throw new Error("invalid_rounding");
+  const numerator = priceIRR * BigInt(basisPoints), remainder = numerator % FEE_DENOMINATOR;
+  if (remainder !== ZERO && (rounding === undefined || rounding === "reject_fraction")) throw new Error("commission_rounding_required");
+  const roundUp = rounding === "ceil" ? remainder !== ZERO : rounding === "half_up" && remainder * BigInt(2) >= FEE_DENOMINATOR;
+  return numerator / FEE_DENOMINATOR + (roundUp ? ONE : ZERO);
+}
+
 export function quoteAssessmentSale(input: {
   priceIRR: bigint;
   discountIRR: bigint;
   commissionBasisPoints: number;
-  rounding?: "floor" | "ceil";
+  rounding?: FeeRounding;
 }) {
   const { priceIRR, discountIRR, commissionBasisPoints, rounding } = input;
   if (typeof priceIRR !== "bigint" || priceIRR <= ZERO) throw new Error("invalid_price");
-  if (typeof discountIRR !== "bigint" || discountIRR < ZERO || discountIRR > priceIRR) {
-    throw new Error("invalid_discount");
-  }
-  if (!Number.isInteger(commissionBasisPoints) || commissionBasisPoints < 0 || commissionBasisPoints > 10000) {
-    throw new Error("invalid_commission");
-  }
-  if (rounding !== undefined && rounding !== "floor" && rounding !== "ceil") {
-    throw new Error("invalid_rounding");
-  }
-  const feeNumerator = priceIRR * BigInt(commissionBasisPoints);
-  const feeDenominator = FEE_DENOMINATOR;
-  const remainder = feeNumerator % feeDenominator;
-  // No unapproved implicit rounding policy for fractional rials.
-  if (remainder !== ZERO && rounding === undefined) throw new Error("commission_rounding_required");
-  const platformFeeIRR = feeNumerator / feeDenominator + (rounding === "ceil" && remainder !== ZERO ? ONE : ZERO);
+  if (typeof discountIRR !== "bigint" || discountIRR < ZERO || discountIRR > priceIRR) throw new Error("invalid_discount");
+  const platformFeeIRR = calculateCommissionFee(priceIRR, commissionBasisPoints, rounding);
   const authorCreditBeforeDiscountIRR = priceIRR - platformFeeIRR;
   return {
     currency: "IRR" as const,
-    priceIRR,
-    discountIRR,
-    commissionBasisPoints,
-    feeNumerator,
-    feeDenominator,
-    rounding: rounding ?? "exact",
-    payableIRR: priceIRR - discountIRR,
-    platformFeeIRR,
-    authorCreditBeforeDiscountIRR,
-    creatorDiscountDebitIRR: discountIRR,
-    // Explicitly signed: creator-funded coupons may create an author debt.
+    priceIRR, discountIRR, commissionBasisPoints,
+    feeNumerator: priceIRR * BigInt(commissionBasisPoints), feeDenominator: FEE_DENOMINATOR,
+    rounding: rounding ?? "exact", payableIRR: priceIRR - discountIRR,
+    platformFeeIRR, authorCreditBeforeDiscountIRR, creatorDiscountDebitIRR: discountIRR,
+    // Creator-funded coupons may create author debt; insufficient credit is not a coupon veto.
     authorNetIRR: authorCreditBeforeDiscountIRR - discountIRR,
   };
 }

@@ -22,7 +22,16 @@ function inline(value: string) {
     );
 }
 
-export function renderMarkdown(source: string): string {
+export function markdownHeadings(source: string) {
+  let inCode = false;
+  return source.replace(/\r\n?/g, "\n").split("\n").flatMap((line, index) => {
+    if (line.trim().startsWith("```")) { inCode = !inCode; return []; }
+    const match = !inCode && line.match(/^(#{1,3})\s+(.+)$/);
+    return match ? [{ id: `section-${index + 1}`, text: match[2], level: match[1].length }] : [];
+  });
+}
+
+export function renderMarkdown(source: string, headingAnchors = false): string {
   const lines = source.replace(/\r\n?/g, "\n").split("\n");
   const output: string[] = [];
   let inCode = false;
@@ -36,7 +45,7 @@ export function renderMarkdown(source: string): string {
     }
   };
 
-  for (const line of lines) {
+  for (const [index, line] of lines.entries()) {
     if (line.trim().startsWith("```")) {
       if (inCode) {
         output.push(`<pre><code>${escapeHtml(code.join("\n"))}</code></pre>`);
@@ -57,7 +66,7 @@ export function renderMarkdown(source: string): string {
     if (heading) {
       closeList();
       const level = heading[1].length;
-      output.push(`<h${level}>${inline(heading[2])}</h${level}>`);
+      output.push(`<h${level}${headingAnchors ? ` id="section-${index + 1}"` : ""}>${inline(heading[2])}</h${level}>`);
       continue;
     }
     const item = line.match(/^\s*[-*]\s+(.+)$/);

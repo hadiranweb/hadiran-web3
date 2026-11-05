@@ -1,3 +1,4 @@
+import { landingPreviewEnabled, sampleKnowledge } from "@/lib/landing/preview";
 import { and, eq, isNotNull } from "drizzle-orm";
 import { db } from "@/db";
 import { knowledge, memoryItems } from "@/db/schema";
@@ -10,6 +11,7 @@ export const publicKnowledgeFilter = and(
 );
 
 export async function getPublicKnowledgeBySlug(slug: string) {
+  if (landingPreviewEnabled()) return sampleKnowledge.find(item => item.slug === slug) ?? null;
   const rows = await db
     .select({ item: knowledge })
     .from(knowledge)

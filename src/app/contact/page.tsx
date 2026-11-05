@@ -28,7 +28,10 @@ export const metadata: Metadata = {
 type ContactMethod = { label: string; value: string; url?: string };
 
 export default async function ContactPage() {
-  const [hadiran] = await db.select().from(person).where(eq(person.slug, "hadiran"));
+  let hadiran: typeof person.$inferSelect | undefined;
+  let unavailable = !process.env.DATABASE_URL;
+  if (!unavailable) try { [hadiran] = await db.select().from(person).where(eq(person.slug, "hadiran")); }
+  catch { unavailable = true; console.error("[hadiran] public contact unavailable"); }
   const methods: ContactMethod[] = hadiran?.contactMethods ?? [];
   const sameAs = methods
     .map((m) => m.url)
@@ -58,7 +61,7 @@ export default async function ContactPage() {
       />
 
       <Surface className="p-6 sm:p-10">
-        {methods.length === 0 ? (
+        {unavailable ? <p className="text-sm leading-7 text-muted">فهرست راه‌های ارتباط اکنون در دسترس نیست؛ نشانی یا راه تماسِ جایگزین فرض نمی‌کنیم. می‌توانی از <Link href="/ecosystem" className="text-accent">نقشهٔ خانه</Link> ادامه بدهی.</p> : methods.length === 0 ? (
           <p className="text-sm leading-7 text-muted">
             راه ارتباط به‌زودی باز می‌شود. تا آن موقع، مسئله‌ات را در{" "}
             <Link href="/" className="text-accent">

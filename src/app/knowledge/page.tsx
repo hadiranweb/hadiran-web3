@@ -4,153 +4,38 @@ import { and, eq, like, or } from "drizzle-orm";
 import { publicKnowledgeFilter } from "@/lib/knowledge/public";
 import { getCurrentAccount } from "@/lib/auth/session";
 import Link from "@/components/workspace/WorkspaceLink";
-import { Search, PenLine } from "lucide-react";
+import { Search, PenLine, ArrowUpLeft } from "lucide-react";
 import type { Metadata } from "next";
-import { PageShell } from "@/components/ui/PageShell";
-import { PageHeader } from "@/components/ui/PageHeader";
-import { EmptyState } from "@/components/ui/EmptyState";
 import { knowledgeCopy } from "@/lib/copy";
-
+import { landingPreviewEnabled, sampleKnowledge } from "@/lib/landing/preview";
+import { KnowledgeExplorer } from "@/components/landing/KnowledgeExplorer";
+import { browserScope } from "@/lib/landing/scope";
+import { PreviewNotice } from "@/components/landing/PreviewNotice";
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: knowledgeCopy.title, description: knowledgeCopy.lede, alternates: { canonical: "/knowledge" } };
 
-export const metadata: Metadata = {
-  title: knowledgeCopy.title,
-  description: knowledgeCopy.lede,
-  alternates: { canonical: "/knowledge" },
-};
-
-const typeLabels: Record<string, string> = {
-  wiki: "ویکی",
-  article: "مقاله",
-  note: "یادداشت",
-  research: "تحقیق",
-  idea: "ایده",
-};
-
-interface Props {
-  searchParams: Promise<{ topic?: string; q?: string }>;
-}
-
-export default async function KnowledgePage({ searchParams }: Props) {
+export default async function KnowledgePage({ searchParams }: { searchParams: Promise<{ topic?: string; q?: string }> }) {
   const { topic, q } = await searchParams;
+  const preview = landingPreviewEnabled();
   const account = await getCurrentAccount();
-
   let allKnowledge: (typeof knowledge.$inferSelect)[] = [];
-  try {
-    const filters = [publicKnowledgeFilter];
-    if (q) {
-      filters.push(
-        or(
-          like(knowledge.titleFa, `%${q}%`),
-          like(knowledge.summaryFa, `%${q}%`),
-          like(knowledge.bodyFa, `%${q}%`),
-        ),
-      );
-    }
-    const rows = await db
-      .select({ item: knowledge })
-      .from(knowledge)
-      .innerJoin(memoryItems, eq(knowledge.memoryItemId, memoryItems.id))
-      .where(and(...filters));
-    allKnowledge = rows.map((row) => row.item);
-  } catch (error) {
-    console.error("[hadiran] knowledge list", error);
-  }
-
-  const topicLinks = await db
-    .select({
-      knowledgeId: knowledgeTopics.knowledgeId,
-      labelFa: topics.labelFa,
-      slug: topics.slug,
-    })
-    .from(knowledgeTopics)
-    .innerJoin(topics, eq(knowledgeTopics.topicId, topics.id));
-
   const topicsMap: Record<number, { labelFa: string; slug: string }[]> = {};
-  for (const row of topicLinks) {
-    if (!topicsMap[row.knowledgeId]) topicsMap[row.knowledgeId] = [];
-    topicsMap[row.knowledgeId].push({ labelFa: row.labelFa, slug: row.slug });
-  }
-
-  const filteredKnowledge = topic
-    ? allKnowledge.filter((k) => topicsMap[k.id]?.some((t) => t.slug === topic))
-    : allKnowledge;
-
-  const filterLabel =
-    (topic &&
-      Object.values(topicsMap)
-        .flat()
-        .find((t) => t.slug === topic)?.labelFa) ||
-    topic;
-
-  return (
-    <PageShell>
-      <PageHeader title={knowledgeCopy.title} lede={knowledgeCopy.lede}>
-        {account?.role === "owner" ? (
-          <Link
-            href="/workspace/capture"
-            className="mt-5 inline-flex items-center gap-1.5 rounded-[var(--radius-md)] bg-ink px-4 py-2 text-sm font-medium text-paper"
-          >
-            <PenLine className="h-4 w-4" strokeWidth={1.5} />
-            نوشتن مطلب
-          </Link>
-        ) : null}
-      </PageHeader>
-
-      <form action="/knowledge" method="get" className="mb-8 flex max-w-xl gap-2">
-        {topic ? <input type="hidden" name="topic" value={topic} /> : null}
-        <input
-          type="text"
-          name="q"
-          defaultValue={q || ""}
-          placeholder="جستجو در باغ دانش..."
-          className="flex-1 rounded-[var(--radius-md)] border border-line bg-elev px-4 py-2.5 text-sm text-ink outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
-        />
-        <button
-          type="submit"
-          className="inline-flex items-center gap-1 rounded-[var(--radius-md)] bg-accent px-4 py-2.5 text-sm font-medium text-accent-fg"
-        >
-          <Search className="h-4 w-4" strokeWidth={1.5} />
-          جستجو
-        </button>
-      </form>
-
-      {topic ? (
-        <div className="mb-6 flex flex-wrap items-center gap-2">
-          <span className="text-sm text-muted">فیلتر باغ دانش:</span>
-          <Link href={`/topics/${topic}`} className="rounded-full border border-line bg-elev px-3 py-1 text-sm text-ink">
-            {filterLabel}
-          </Link>
-          <Link href="/knowledge" className="text-sm text-muted hover:text-ink">
-            پاک کردن فیلتر
-          </Link>
-        </div>
-      ) : null}
-
-      {filteredKnowledge.length === 0 ? (
-        <EmptyState title="هنوز مطلب منتشرشده‌ای نیست." />
-      ) : (
-        <ul className="grid gap-5 md:grid-cols-2">
-          {filteredKnowledge.map((item) => (
-            <li key={item.id}>
-              <Link href={`/knowledge/${item.slug}`} className="surface block h-full p-6 transition hover:border-accent">
-                <p className="text-xs font-medium text-mark">{typeLabels[item.type] || item.type}</p>
-                <h2 className="mt-2 text-lg font-bold leading-[1.7] text-ink">{item.titleFa}</h2>
-                {item.summaryFa ? <p className="mt-2 line-clamp-3 text-sm leading-7 text-muted">{item.summaryFa}</p> : null}
-                {topicsMap[item.id]?.length ? (
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {topicsMap[item.id].map((t) => (
-                      <span key={t.slug} className="rounded-full bg-paper px-2 py-1 text-xs text-muted">
-                        {t.labelFa}
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </PageShell>
-  );
+  if (preview) allKnowledge = sampleKnowledge.filter(item => !q || `${item.titleFa} ${item.summaryFa} ${item.bodyFa}`.includes(q));
+  else try {
+    const filters = [publicKnowledgeFilter];
+    if (q) filters.push(or(like(knowledge.titleFa, `%${q}%`), like(knowledge.summaryFa, `%${q}%`), like(knowledge.bodyFa, `%${q}%`)));
+    const rows = await db.select({ item: knowledge }).from(knowledge).innerJoin(memoryItems, eq(knowledge.memoryItemId, memoryItems.id)).where(and(...filters));
+    allKnowledge = rows.map(row => row.item);
+    const topicLinks = await db.select({ knowledgeId: knowledgeTopics.knowledgeId, labelFa: topics.labelFa, slug: topics.slug }).from(knowledgeTopics).innerJoin(topics, eq(knowledgeTopics.topicId, topics.id));
+    for (const row of topicLinks) (topicsMap[row.knowledgeId] ||= []).push({ labelFa: row.labelFa, slug: row.slug });
+  } catch (error) { console.error("[hadiran] knowledge list", error); }
+  const items = topic ? allKnowledge.filter(item => topicsMap[item.id]?.some(t => t.slug === topic)) : allKnowledge;
+  const filterLabel = topic && Object.values(topicsMap).flat().find(t => t.slug === topic)?.labelFa;
+  return <main className="lp-page lp-knowledge-index"><header className="lp-collection-header"><span className="lp-eyebrow">باغ دانش / یادگیری در مسیر</span><h1>برای دیدن،<br /><span>از نو نگاه کنیم.</span></h1><div className="lp-collection-intro"><p>یادداشت‌ها، پرسش‌ها و تجربه‌هایی برای فهمیدنِ رابطه‌ها.<br />اینجا فکرها تمام نمی‌شوند؛ به فکرهای تازه راه می‌دهند.</p>{account?.role === "owner" && !preview ? <Link href="/workspace/capture" className="lp-text-link"><PenLine size={17} /> نوشتن مطلب</Link> : <span className="lp-eyebrow">مشاهده · ارتباط · یادگیری</span>}</div></header>
+    {preview && <PreviewNotice compact />}
+    <div className="lp-catalog-bar"><span>{items.length.toLocaleString("fa-IR")} نوشته{topic ? ` · ${filterLabel || topic}` : " برای ادامهٔ فکر کردن"}</span><form action="/knowledge" method="get" className="lp-search">{topic && <input type="hidden" name="topic" value={topic} />}<label className="sr-only" htmlFor="knowledge-search">جست‌وجو در باغ دانش</label><input id="knowledge-search" name="q" defaultValue={q || ""} placeholder="دنبال چه فکری می‌گردی؟" /><button aria-label="جست‌وجو" type="submit"><Search size={19} /></button></form></div>
+    {(q || topic) && <div className="lp-search-context"><span>{q ? `نتیجه برای «${q}»` : filterLabel || topic}</span><Link href="/knowledge">پاک کردن فیلتر ×</Link></div>}
+    <KnowledgeExplorer scope={browserScope(account)} items={items.map(item => ({ slug: item.slug, titleFa: item.titleFa, summaryFa: item.summaryFa, type: item.type, minutes: Math.max(1, Math.ceil((item.bodyFa || "").split(/\s+/).length / 180)), updated: (item.updatedAt || item.createdAt)?.toISOString() || "", topics: topicsMap[item.id] || [] }))} />
+    <div className="lp-knowledge-footer"><span aria-hidden="true">✳</span><p>هر نوشته، یک دریچه است؛ نه آخرین کلمه.</p><Link href="/analyzers" className="lp-text-link">نگاهی هم به آینه‌ها بینداز <ArrowUpLeft size={17} /></Link></div>
+  </main>;
 }

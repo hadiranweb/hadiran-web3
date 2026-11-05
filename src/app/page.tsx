@@ -1,3 +1,4 @@
+import { landingPreviewEnabled } from "@/lib/landing/preview";
 import { voice } from "@/lib/copy";
 import type { Metadata } from "next";
 import Link from "@/components/workspace/WorkspaceLink";
@@ -70,6 +71,7 @@ const jsonLd = {
 export default function HomePage() {
   return (
     <main className="flex-1">
+      {landingPreviewEnabled() && <div className="lp-home-links"><span>کشف کن، مقایسه کن، به کار ببند</span><Link href="/ecosystem">خانهٔ مسیرها ↗</Link><Link href="/shop">قفسه و مقایسه ↗</Link><Link href="/knowledge">باغ و ابزار مطالعه ↗</Link><Link href="/shop/thinking-notebook">محصول فیزیکی ↗</Link><Link href="/shop/systems-field-guide">محصول دیجیتال ↗</Link><Link href="/analyzers/casio-ss">آزمون ↗</Link><Link href="/knowledge/a-better-question">دانش ↗</Link></div>}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
       <section className="page-hero">

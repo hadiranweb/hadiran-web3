@@ -1,0 +1,20 @@
+"use client";
+import { useMemo, useState } from "react";
+import Link from "@/components/workspace/WorkspaceLink";
+import { ArrowUpLeft, LayoutGrid, List, Clock3 } from "lucide-react";
+import { LocalCollection, SaveButton, useCollection } from "./LocalCollection";
+export type PublicWriting = { slug: string; titleFa: string; summaryFa: string | null; type: string; minutes: number; updated: string; topics: { slug: string; labelFa: string }[] };
+const labels: Record<string, string> = { wiki: "ویکی", article: "مقاله", note: "یادداشت", research: "پژوهش", idea: "ایده" };
+export function KnowledgeExplorer({ items, scope }: { items: PublicWriting[]; scope: string }) {
+  const [view, setView] = useState("list");
+  const [type, setType] = useState("");
+  const [short, setShort] = useState(false);
+  const [sort, setSort] = useState("newest");
+  const [onlySaved, setOnlySaved] = useState(false);
+  const [saved] = useCollection(scope);
+  const rows = useMemo(() => items.filter(item => (!type || item.type === type) && (!short || item.minutes <= 5) && (!onlySaved || saved.some(row => row.href === `/knowledge/${item.slug}`))).sort((a, b) => sort === "shortest" ? a.minutes - b.minutes : b.updated.localeCompare(a.updated)), [items, type, short, sort, onlySaved, saved]);
+  return <><div className="lp-writing-tools"><div className="lp-tool-row"><div className="lp-view-toggle" role="group" aria-label="شیوهٔ نمایش نوشته‌ها"><button type="button" aria-label="نمای فهرست" aria-pressed={view === "list"} onClick={() => setView("list")}><List size={18} /></button><button type="button" aria-label="نمای کارت" aria-pressed={view === "grid"} onClick={() => setView("grid")}><LayoutGrid size={18} /></button></div><label className="lp-sort"><span className="sr-only">مرتب‌سازی نوشته‌ها</span><select aria-label="مرتب‌سازی نوشته‌ها" value={sort} onChange={e => setSort(e.target.value)}><option value="newest">تازه‌ترها اول</option><option value="shortest">کوتاه‌ترها اول</option></select></label><button type="button" className="lp-tool-button" aria-pressed={short} onClick={() => setShort(value => !value)}><Clock3 size={16} /> تا ۵ دقیقه</button><button type="button" className="lp-tool-button" aria-pressed={onlySaved} onClick={() => setOnlySaved(value => !value)}>فقط نشان‌شده‌ها</button></div><LocalCollection scope={scope} /></div>
+    <div className="lp-catalog-bar"><nav className="lp-filters" aria-label="نوع نوشته"><button type="button" aria-pressed={!type} onClick={() => setType("")}>همهٔ نوشته‌ها</button>{[...new Set(items.map(item => item.type))].map(value => <button type="button" key={value} aria-pressed={type === value} onClick={() => setType(value)}>{labels[value] || value}</button>)}</nav><span role="status">{rows.length.toLocaleString("fa-IR")} نوشته</span></div>
+    {rows.length ? <div className={view === "grid" ? "lp-writing-grid" : "lp-writing-list"}>{rows.map((item, i) => <article key={item.slug}><span className="lp-writing-number">{(i + 1).toLocaleString("fa-IR", { minimumIntegerDigits: 2 })}</span><div className="lp-writing-main"><Link href={`/knowledge/${item.slug}`}><span className="lp-eyebrow">{labels[item.type] || item.type}</span><h2>{item.titleFa}</h2><p>{item.summaryFa}</p></Link><div className="lp-writing-card-foot"><span className="lp-writing-foot">{item.minutes.toLocaleString("fa-IR")} دقیقه مطالعه {item.topics.map(topic => <span key={topic.slug}> · {topic.labelFa}</span>)}</span><SaveButton scope={scope} item={{ href: `/knowledge/${item.slug}`, title: item.titleFa, kind: "knowledge" }} /></div></div><Link href={`/knowledge/${item.slug}`} className="lp-writing-arrow" aria-label={`خواندن ${item.titleFa}`}><ArrowUpLeft size={25} strokeWidth={1.2} /></Link></article>)}</div> : <div className="lp-empty"><h2>با این فیلتر، نوشته‌ای پیدا نشد.</h2><p>برای نشان کردن، نوشته‌ای را باز کن یا فیلتر را بردار.</p><button type="button" className="lp-tool-button" onClick={() => { setType(""); setShort(false); setOnlySaved(false); }}>پاک کردن فیلترهای نمایش</button></div>}
+  </>;
+}
