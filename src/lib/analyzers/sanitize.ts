@@ -18,11 +18,18 @@ import {
   type LayerBand,
   type PackBotDisplay,
   type PackReport,
+  type ParameterValueKind,
   type RangeItem,
+  type ResponseEffect,
+  type ResponseEffectOperation,
+  type ResponseRule,
+  type ResponseRuleMatchKind,
+  type ScoringParameter,
   type ScaleAnchors,
   type Section,
   type TextItem,
 } from "@/lib/analyzers/pack";
+import { validateResponseScoring } from "@/lib/analyzers/response-scoring";
 
 /** فقط توکن‌های رزروشدهٔ مسیر، نه slug آزمون. */
 export const RESERVED_SLUGS = new Set(["new", "report"]);
@@ -49,6 +56,16 @@ const OPS = new Set<FormulaOp>([
 const STATUSES = new Set<AnalyzerPackStatus>(["draft", "open", "archived"]);
 const FINDING_KINDS = new Set(["group", "dimension", "layer", "symptom"]);
 const ITEM_KINDS = new Set(["range", "text", "choice"]);
+const PARAMETER_KINDS = new Set<ParameterValueKind>(["numeric", "category", "reference", "boolean", "text"]);
+const RESPONSE_MATCH_KINDS = new Set<ResponseRuleMatchKind>(["option", "numeric_range", "exact_value", "fallback"]);
+const RESPONSE_EFFECT_OPERATIONS = new Set<ResponseEffectOperation>([
+  "identity",
+  "reverse",
+  "set_value",
+  "add",
+  "multiply",
+  "weighted_value",
+]);
 
 export type SanitizeOk = { ok: true; pack: AnalyzerPack };
 export type SanitizeErr = { ok: false; error: string };
@@ -95,6 +112,26 @@ function asStringList(value: unknown, maxEach: number, maxCount: number): string
 function asNumber(value: unknown): number | undefined {
   if (typeof value !== "number" || !Number.isFinite(value)) return undefined;
   return value;
+}
+
+function asConfig(value: unknown): Record<string, unknown> | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  try {
+    const serialized = JSON.stringify(value);
+    if (!serialized || serialized.length > 16_000) return undefined;
+    const parsed: unknown = JSON.parse(serialized);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function asOptionValue(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const normalized = value.replace(/\s+/g, " ").trim();
+  return normalized && normalized.length <= 64 ? normalized : null;
 }
 
 function anchorsOf(raw: unknown): ScaleAnchors {
@@ -174,7 +211,14 @@ function sanitizeSection(raw: unknown, usedItems: Set<string>, usedSections: Set
     if (item) items.push(item);
   }
   const introFa = asTrimmed(row.introFa, 500) ?? undefined;
-  return introFa ? { id, titleFa, introFa, items } : { id, titleFa, items };
+  const role = row.role === "core" || row.role === "gate" || row.role === "context" ? row.role : undefined;
+  return {
+    id,
+    titleFa,
+    ...(introFa ? { introFa } : {}),
+    ...(role ? { role } : {}),
+    items,
+  };
 }
 
 function sanitizeFinding(raw: unknown, used: Set<string>): Finding | null {
@@ -208,6 +252,98 @@ function sanitizeKeyword(raw: unknown, used: Set<string>): Keyword | null {
   used.add(id);
   const children = asStringList(row.children, 160, 12);
   return children.length ? { id, labelFa, children } : { id, labelFa };
+}
+
+function sanitizeScoringParameter(raw: unknown, used: Set<string>): ScoringParameter | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const row = raw as Record<string, unknown>;
+  const id = asId(row.id);
+  const labelFa = asTrimmed(row.labelFa, 160);
+  const rawKind = row.valueKind;
+  if (rawKind != null && (typeof rawKind !== "string" || !PARAMETER_KINDS.has(rawKind as ParameterValueKind))) return null;
+  const valueKind = rawKind == null ? "numeric" : rawKind as ParameterValueKind;
+  if (!id || !labelFa || used.has(id)) return null;
+  const minValue = asNumber(row.minValue);
+  const maxValue = asNumber(row.maxValue);
+  if (minValue != null && maxValue != null && minValue > maxValue) return null;
+  const parameter: ScoringParameter = { id, labelFa, valueKind };
+  if (minValue != null) parameter.minValue = minValue;
+  if (maxValue != null) parameter.maxValue = maxValue;
+  const unit = asTrimmed(row.unit, 64);
+  if (unit) parameter.unit = unit;
+  const config = asConfig(row.config);
+  if (config) parameter.config = config;
+  used.add(id);
+  return parameter;
+}
+
+function sanitizeResponseRule(raw: unknown, used: Set<string>): ResponseRule | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const row = raw as Record<string, unknown>;
+  const id = asId(row.id);
+  const questionId = asId(row.questionId);
+  const matchKind = typeof row.matchKind === "string" && RESPONSE_MATCH_KINDS.has(row.matchKind as ResponseRuleMatchKind)
+    ? (row.matchKind as ResponseRuleMatchKind)
+    : null;
+  const usedKey = questionId && id ? `${questionId}:${id}` : "";
+  if (!id || !questionId || !matchKind || used.has(usedKey)) return null;
+  const rule: ResponseRule = { id, questionId, matchKind };
+  if (matchKind === "option") {
+    const optionValue = asOptionValue(row.optionValue);
+    if (!optionValue) return null;
+    rule.optionValue = optionValue;
+  } else if (matchKind === "exact_value") {
+    if (typeof row.exactValue !== "string" || row.exactValue.length > 500 || !row.exactValue.trim()) return null;
+    rule.exactValue = row.exactValue.replace(/\s+/g, " ").trim();
+  } else if (matchKind === "numeric_range") {
+    const rangeMin = asNumber(row.rangeMin);
+    const rangeMax = asNumber(row.rangeMax);
+    if (rangeMin == null && rangeMax == null) return null;
+    if (rangeMin != null) rule.rangeMin = rangeMin;
+    if (rangeMax != null) rule.rangeMax = rangeMax;
+    if (rangeMin != null && rangeMax != null && rangeMin >= rangeMax) return null;
+    rule.minInclusive = row.minInclusive !== false;
+    rule.maxInclusive = row.maxInclusive !== false;
+  }
+  const labelFa = asTrimmed(row.labelFa, 160);
+  if (labelFa) rule.labelFa = labelFa;
+  const config = asConfig(row.config);
+  if (config) rule.config = config;
+  used.add(usedKey);
+  return rule;
+}
+
+function sanitizeResponseEffect(raw: unknown, used: Set<string>): ResponseEffect | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const row = raw as Record<string, unknown>;
+  const id = asId(row.id);
+  const questionId = asId(row.questionId);
+  const parameterId = asId(row.parameterId);
+  const operation = typeof row.operation === "string" && RESPONSE_EFFECT_OPERATIONS.has(row.operation as ResponseEffectOperation)
+    ? (row.operation as ResponseEffectOperation)
+    : null;
+  const ruleId = row.ruleId == null || row.ruleId === "" ? undefined : asId(row.ruleId) ?? undefined;
+  if (!id || !questionId || !parameterId || !operation || used.has(id) || (row.ruleId != null && row.ruleId !== "" && !ruleId)) {
+    return null;
+  }
+  const effect: ResponseEffect = { id, questionId, parameterId, operation };
+  if (ruleId) effect.ruleId = ruleId;
+  const rawValue = row.value;
+  if (typeof rawValue === "number" && Number.isFinite(rawValue)) effect.value = rawValue;
+  else if (typeof rawValue === "string" && rawValue.trim()) effect.value = rawValue.slice(0, 1000);
+  else if (typeof rawValue === "boolean") effect.value = rawValue;
+  else if (rawValue != null) return null;
+  const coefficient = asNumber(row.coefficient);
+  if (coefficient != null) effect.coefficient = coefficient;
+  if (operation === "set_value" && effect.value === undefined) return null;
+  if (operation === "add" && typeof effect.value !== "number") return null;
+  if ((operation === "multiply" || operation === "weighted_value") && coefficient == null) return null;
+  if (!(["multiply", "weighted_value"].includes(operation)) && row.coefficient != null) return null;
+  if ((operation === "identity" || operation === "reverse") && effect.value !== undefined) return null;
+  const config = asConfig(row.config);
+  if (config) effect.config = config;
+  used.add(id);
+  return effect;
 }
 
 function sanitizeLayerBand(raw: unknown): LayerBand | null {
@@ -480,12 +616,66 @@ export function sanitizePack(raw: unknown, slug: string): SanitizeResult {
     if (formula) formulas.push(formula);
   }
 
+  const usedParameters = new Set<string>();
+  const parameters: ScoringParameter[] = [];
+  const parametersRaw = Array.isArray(row.parameters) ? row.parameters : [];
+  for (const entry of parametersRaw.slice(0, 200)) {
+    const parameter = sanitizeScoringParameter(entry, usedParameters);
+    if (!parameter) return { ok: false, error: "تعریف یکی از پارامترهای امتیاز نامعتبر یا تکراری است." };
+    parameters.push(parameter);
+  }
+
+  const questionById = new Map(sections.flatMap((section) => section.items).map((item) => [item.id, item]));
+  const usedRules = new Set<string>();
+  const responseRules: ResponseRule[] = [];
+  const rulesRaw = Array.isArray(row.responseRules) ? row.responseRules : [];
+  for (const entry of rulesRaw.slice(0, 400)) {
+    const rule = sanitizeResponseRule(entry, usedRules);
+    if (!rule) return { ok: false, error: "یکی از قواعد پاسخ نامعتبر یا تکراری است." };
+    const question = questionById.get(rule.questionId);
+    if (!question) return { ok: false, error: `سؤال قاعدهٔ پاسخ ${rule.id} پیدا نشد.` };
+    if (rule.matchKind === "option" && (question.kind !== "choice" || !question.options.some((option) => option.value === rule.optionValue))) {
+      return { ok: false, error: `گزینهٔ قاعدهٔ پاسخ ${rule.id} با سؤال سازگار نیست.` };
+    }
+    if (rule.matchKind === "numeric_range" && question.kind !== "range") {
+      return { ok: false, error: `قاعدهٔ بازه‌ای ${rule.id} فقط برای سؤال عددی مجاز است.` };
+    }
+    if (rule.matchKind === "exact_value" && question.kind === "choice" && !question.options.some((option) => option.value === rule.exactValue)) {
+      return { ok: false, error: `مقدار دقیق قاعدهٔ پاسخ ${rule.id} در گزینه‌های سؤال نیست.` };
+    }
+    responseRules.push(rule);
+  }
+
+  const knownParameterRefs = new Set<string>([
+    ...usedParameters,
+    ...usedFormulas,
+    ...usedSections,
+    ...formulas.flatMap((formula) => (formula.weights ?? []).flatMap((weight) => (weight.dimension ? [weight.dimension] : []))),
+  ]);
+  const usedEffects = new Set<string>();
+  const responseEffects: ResponseEffect[] = [];
+  const effectsRaw = Array.isArray(row.responseEffects) ? row.responseEffects : [];
+  for (const entry of effectsRaw.slice(0, 800)) {
+    const effect = sanitizeResponseEffect(entry, usedEffects);
+    if (!effect) return { ok: false, error: "یکی از اثرهای پاسخ نامعتبر یا تکراری است." };
+    if (!questionById.has(effect.questionId)) return { ok: false, error: `سؤال اثر پاسخ ${effect.id} پیدا نشد.` };
+    if (effect.ruleId && !responseRules.some((rule) => rule.questionId === effect.questionId && rule.id === effect.ruleId)) {
+      return { ok: false, error: `قاعدهٔ اثر پاسخ ${effect.id} پیدا نشد.` };
+    }
+    if (!knownParameterRefs.has(effect.parameterId)) {
+      return { ok: false, error: `پارامتر مقصد اثر پاسخ ${effect.id} تعریف نشده است.` };
+    }
+    responseEffects.push(effect);
+  }
+
   const known = new Set<string>([
     ...usedItems,
     ...usedSections,
     ...usedFindings,
     ...usedKeywords,
     ...usedFormulas,
+    ...usedParameters,
+    ...knownParameterRefs,
   ]);
   const extraEdges: Edge[] = [];
   const edgesRaw = Array.isArray(row.edges) ? row.edges : [];
@@ -518,10 +708,16 @@ export function sanitizePack(raw: unknown, slug: string): SanitizeResult {
     findings,
     keywords,
     edges,
+    ...(parameters.length ? { parameters } : {}),
+    ...(responseRules.length ? { responseRules } : {}),
+    ...(responseEffects.length ? { responseEffects } : {}),
     formulas,
     report: sanitizeReport(row.report),
     botDisplay: sanitizeBotDisplay(row.botDisplay),
   };
+
+  const responseScoringErrors = validateResponseScoring(pack, { requireCoverage: status === "open" });
+  if (responseScoringErrors.length) return { ok: false, error: responseScoringErrors[0]! };
 
   try {
     assertPack(pack);

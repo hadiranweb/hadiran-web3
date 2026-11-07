@@ -35,10 +35,16 @@ export function ConvertDocumentControls({
       const data = (await res.json()) as {
         items?: { id: number }[];
         error?: string;
+        errors?: { attemptId: number; error: string }[];
       };
       const id = data.items?.[0]?.id;
+      const errorCode = data.error ?? data.errors?.[0]?.error;
       if (!res.ok || !id) {
-        setError(data.error === "bad_template" ? "این قالب برای این تفسیر نیست." : "تبدیل انجام نشد.");
+        setError(errorCode === "bad_template"
+          ? "این قالب با نسخهٔ آزمونِ همین نوبت سازگار نیست."
+          : errorCode === "attempt_version_unavailable"
+            ? "نسخهٔ دقیق این نوبت برای ساخت سند در دسترس نیست."
+            : "تبدیل انجام نشد.");
         return;
       }
       onConverted(id);

@@ -14,6 +14,7 @@ import type {
   PackReport,
   Section,
 } from "@/lib/analyzers/pack";
+import { ResponseScoringEditor } from "@/components/analyzers/ResponseScoringEditor";
 import { DEFAULT_ANCHORS } from "@/lib/analyzers/sanitize";
 import { AnalyzerResponses } from "@/components/analyzers/AnalyzerResponses";
 import { AnalyzerInterpretation } from "@/components/analyzers/AnalyzerInterpretation";
@@ -36,7 +37,7 @@ const ops: FormulaOp[] = [
   "matmul",
 ];
 
-type Tab = "meta" | "items" | "score" | "report" | "bot" | "responses" | "interpret" | "access";
+type Tab = "meta" | "items" | "score" | "rules" | "report" | "bot" | "responses" | "interpret" | "access";
 
 function emptyReport(): PackReport {
   return {
@@ -86,6 +87,15 @@ export function AnalyzerEditor({
   function patch(next: AnalyzerPack) {
     setPack(next);
     setSaved(false);
+  }
+
+  function patchSections(sections: Section[]) {
+    const next = clonePack(pack);
+    next.sections = sections;
+    const liveQuestionIds = new Set(sections.flatMap((section) => section.items.map((item) => item.id)));
+    next.responseRules = (next.responseRules ?? []).filter((rule) => liveQuestionIds.has(rule.questionId));
+    next.responseEffects = (next.responseEffects ?? []).filter((effect) => liveQuestionIds.has(effect.questionId));
+    patch(next);
   }
 
   async function save() {
@@ -161,6 +171,7 @@ export function AnalyzerEditor({
                   ["meta", "مشخصات"],
                   ["items", `سؤال‌ها (${itemCount})`],
                   ["score", "نمره"],
+                  ["rules", "قواعد پاسخ"],
                   ["report", "گزارش"],
                   ["bot", "ربات"],
                 ] as [Tab, string][])
@@ -284,15 +295,20 @@ export function AnalyzerEditor({
             <SectionCard
               key={section.id}
               section={section}
+              lockedQuestionIds={[...new Set([
+                ...(pack.responseRules ?? []).map((rule) => rule.questionId),
+                ...(pack.responseEffects ?? []).map((effect) => effect.questionId),
+              ])]}
+              sectionIdLocked={(pack.responseEffects ?? []).some((effect) => effect.parameterId === section.id)}
               onChange={(next) => {
-                const copy = clonePack(pack);
-                copy.sections[sectionIndex] = next;
-                patch(copy);
+                const sections = [...pack.sections];
+                sections[sectionIndex] = next;
+                patchSections(sections);
               }}
               onRemove={() => {
-                const copy = clonePack(pack);
-                copy.sections.splice(sectionIndex, 1);
-                patch(copy);
+                const sections = [...pack.sections];
+                sections.splice(sectionIndex, 1);
+                patchSections(sections);
               }}
               onAdd={(kind) => addItem(sectionIndex, kind)}
             />
@@ -327,8 +343,16 @@ export function AnalyzerEditor({
               patch({ ...pack, keywords, edges: [...kept, ...extraEdges] });
             }}
           />
-          <FormulasEditor formulas={pack.formulas} onChange={(formulas) => patch({ ...pack, formulas })} />
+          <FormulasEditor
+            formulas={pack.formulas}
+            lockedIds={[...new Set((pack.responseEffects ?? []).map((effect) => effect.parameterId))]}
+            onChange={(formulas) => patch({ ...pack, formulas })}
+          />
         </section>
+      ) : null}
+
+      {tab === "rules" ? (
+        <ResponseScoringEditor pack={pack} onChange={patch} />
       ) : null}
 
       {tab === "report" ? (
@@ -388,11 +412,15 @@ export function AnalyzerEditor({
 
 function SectionCard({
   section,
+  lockedQuestionIds,
+  sectionIdLocked,
   onChange,
   onRemove,
   onAdd,
 }: {
   section: Section;
+  lockedQuestionIds: string[];
+  sectionIdLocked: boolean;
   onChange: (section: Section) => void;
   onRemove: () => void;
   onAdd: (kind: Item["kind"]) => void;
@@ -410,6 +438,8 @@ function SectionCard({
           className={fieldClass}
           dir="ltr"
           value={section.id}
+          disabled={sectionIdLocked}
+          title={sectionIdLocked ? "این شناسه در اثر پاسخ استفاده می‌شود." : undefined}
           onChange={(event) => onChange({ ...section, id: event.target.value })}
           placeholder="id"
         />
@@ -425,6 +455,7 @@ function SectionCard({
           <li key={`${item.id}-${index}`} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
             <ItemEditor
               item={item}
+              idLocked={lockedQuestionIds.includes(item.id)}
               onChange={(next) => {
                 const items = [...section.items];
                 items[index] = next;
@@ -455,10 +486,12 @@ function SectionCard({
 
 function ItemEditor({
   item,
+  idLocked,
   onChange,
   onRemove,
 }: {
   item: Item;
+  idLocked: boolean;
   onChange: (item: Item) => void;
   onRemove: () => void;
 }) {
@@ -469,6 +502,8 @@ function ItemEditor({
           className={fieldClass}
           dir="ltr"
           value={item.id}
+          disabled={idLocked}
+          title={idLocked ? "ابتدا قواعد و اثرهای وابسته را حذف کنید تا شناسه عوض شود." : undefined}
           onChange={(event) => onChange({ ...item, id: event.target.value } as Item)}
         />
         <p className="self-center text-xs text-slate-500">{item.kind}</p>
@@ -765,9 +800,11 @@ function KeywordsEditor({
 
 function FormulasEditor({
   formulas,
+  lockedIds,
   onChange,
 }: {
   formulas: Formula[];
+  lockedIds: string[];
   onChange: (formulas: Formula[]) => void;
 }) {
   return (
@@ -781,6 +818,8 @@ function FormulasEditor({
                 className={fieldClass}
                 dir="ltr"
                 value={formula.id}
+                disabled={lockedIds.includes(formula.id)}
+                title={lockedIds.includes(formula.id) ? "این خروجی در اثر پاسخ مقصد است؛ ابتدا آن اثر را بردارید." : undefined}
                 onChange={(event) => {
                   const next = [...formulas];
                   next[index] = { ...formula, id: event.target.value };

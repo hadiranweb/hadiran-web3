@@ -5,7 +5,7 @@ import { JsonLd } from "@/components/JsonLd";
 import { PageShell } from "@/components/ui/PageShell";
 import { analyzerPublicPath } from "@/lib/analyzers/paths";
 import { readAttempt } from "@/lib/analyzers/attempts";
-import { loadPack } from "@/lib/analyzers/registry";
+import { loadPack, loadPackForAttempt } from "@/lib/analyzers/registry";
 import { getCurrentAccount } from "@/lib/auth/session";
 import { absoluteUrl } from "@/lib/site";
 
@@ -13,10 +13,19 @@ export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ slug: string }> };
 
-async function visiblePack(slug: string, role?: string) {
-  const pack = await loadPack(slug);
-  if (!pack || pack.status === "archived") return null;
-  if (pack.status !== "open" && role !== "owner") return null;
+async function visiblePack(slug: string, account?: { id: number; role: string }) {
+  let pack;
+  let resumableVersion = false;
+  if (account) {
+    const resolved = await loadPackForAttempt(slug, account.id, "in_progress");
+    if (resolved.attemptFound && !resolved.pack) return null;
+    pack = resolved.pack ?? await loadPack(slug);
+    resumableVersion = resolved.attemptFound && resolved.pack?.packVersionId != null;
+  } else {
+    pack = await loadPack(slug);
+  }
+  if (!pack || (pack.status === "archived" && !resumableVersion)) return null;
+  if (pack.status !== "open" && account?.role !== "owner" && !resumableVersion) return null;
   return pack;
 }
 
@@ -36,7 +45,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function AnalyzerMemberPage({ params }: Props) {
   const { slug } = await params;
   const account = await getCurrentAccount();
-  const pack = await visiblePack(slug, account?.role);
+  const pack = await visiblePack(slug, account ? { id: account.id, role: account.role } : undefined);
   if (!pack) notFound();
 
   let resume = false;

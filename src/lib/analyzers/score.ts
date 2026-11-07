@@ -1,12 +1,15 @@
 import { findItem, itemsOf, type AnalyzerPack, type Band, type Formula } from "@/lib/analyzers/pack";
+import { applyResponseScoring, type ResponseScoreValue } from "@/lib/analyzers/response-scoring";
 
 export type PackScore = {
   version: string;
   effective: Record<string, number>;
   scores: Record<string, number | string>;
+  /** Response effects before formula outputs; absent on legacy attempt snapshots. */
+  parameters?: Record<string, ResponseScoreValue>;
 };
 
-function asNumber(value: number | string, ref: string): number {
+function asNumber(value: ResponseScoreValue, ref: string): number {
   if (typeof value !== "number" || !Number.isFinite(value)) {
     throw new Error(`score ${ref} is not numeric`);
   }
@@ -34,10 +37,14 @@ function resolve(
   pack: AnalyzerPack,
   answers: Record<string, number | string>,
   scores: Record<string, number | string>,
+  parameters: Record<string, ResponseScoreValue>,
   ref: string,
 ): number {
   if (Object.prototype.hasOwnProperty.call(scores, ref)) {
     return asNumber(scores[ref]!, ref);
+  }
+  if (Object.prototype.hasOwnProperty.call(parameters, ref)) {
+    return asNumber(parameters[ref]!, ref);
   }
   return effectiveOf(pack, answers, ref);
 }
@@ -46,43 +53,44 @@ function runFormula(
   pack: AnalyzerPack,
   answers: Record<string, number | string>,
   scores: Record<string, number | string>,
+  parameters: Record<string, ResponseScoreValue>,
   formula: Formula,
 ): number | string {
   const refs = formula.of ?? [];
 
   if (formula.op === "reverse") {
     if (refs.length !== 1) throw new Error(`${formula.id}: reverse needs one ref`);
-    return 10 - resolve(pack, answers, scores, refs[0]!);
+    return 10 - resolve(pack, answers, scores, parameters, refs[0]!);
   }
 
   if (formula.op === "mean") {
     if (!refs.length) throw new Error(`${formula.id}: mean needs refs`);
-    const total = refs.reduce((sum, ref) => sum + resolve(pack, answers, scores, ref), 0);
+    const total = refs.reduce((sum, ref) => sum + resolve(pack, answers, scores, parameters, ref), 0);
     return total / refs.length;
   }
 
   if (formula.op === "sum") {
-    return refs.reduce((sum, ref) => sum + resolve(pack, answers, scores, ref), 0);
+    return refs.reduce((sum, ref) => sum + resolve(pack, answers, scores, parameters, ref), 0);
   }
 
   if (formula.op === "sum_div") {
     if (!formula.divisor) throw new Error(`${formula.id}: sum_div needs divisor`);
-    const total = refs.reduce((sum, ref) => sum + resolve(pack, answers, scores, ref), 0);
+    const total = refs.reduce((sum, ref) => sum + resolve(pack, answers, scores, parameters, ref), 0);
     return total / formula.divisor;
   }
 
   if (formula.op === "weighted_sum") {
     const weights = formula.weights ?? [];
     if (!weights.length) throw new Error(`${formula.id}: weighted_sum needs weights`);
-    return weights.reduce((sum, row) => sum + resolve(pack, answers, scores, row.item) * row.weight, 0);
+    return weights.reduce((sum, row) => sum + resolve(pack, answers, scores, parameters, row.item) * row.weight, 0);
   }
 
   if (formula.op === "argmin") {
     if (!refs.length) throw new Error(`${formula.id}: argmin needs refs`);
     let best = refs[0]!;
-    let bestValue = resolve(pack, answers, scores, best);
+    let bestValue = resolve(pack, answers, scores, parameters, best);
     for (const ref of refs.slice(1)) {
-      const value = resolve(pack, answers, scores, ref);
+      const value = resolve(pack, answers, scores, parameters, ref);
       if (value < bestValue) {
         best = ref;
         bestValue = value;
@@ -93,7 +101,7 @@ function runFormula(
 
   if (formula.op === "band") {
     if (refs.length !== 1) throw new Error(`${formula.id}: band needs one ref`);
-    const value = resolve(pack, answers, scores, refs[0]!);
+    const value = resolve(pack, answers, scores, parameters, refs[0]!);
     const hit = (formula.bands ?? []).find((band) => bandMatch(value, band));
     if (!hit) throw new Error(`${formula.id}: no band for ${value}`);
     return hit.id;
@@ -101,7 +109,7 @@ function runFormula(
 
   if (formula.op === "cap_if") {
     if (refs.length !== 1) throw new Error(`${formula.id}: cap_if needs one ref`);
-    let current = scores[refs[0]!] ?? resolve(pack, answers, scores, refs[0]!);
+    let current = scores[refs[0]!] ?? parameters[refs[0]!] ?? resolve(pack, answers, scores, parameters, refs[0]!);
     if (typeof current !== "string") throw new Error(`${formula.id}: cap_if needs a band id`);
     const watched = formula.watch ?? [];
     if (!watched.length) return current;
@@ -121,7 +129,7 @@ function runFormula(
     const dims = new Map<string, number>();
     for (const row of weights) {
       const dim = row.dimension ?? formula.id;
-      dims.set(dim, (dims.get(dim) ?? 0) + resolve(pack, answers, scores, row.item) * row.weight);
+      dims.set(dim, (dims.get(dim) ?? 0) + resolve(pack, answers, scores, parameters, row.item) * row.weight);
     }
     for (const [dim, value] of dims) {
       scores[`${formula.id}:${dim}`] = value;
@@ -141,10 +149,11 @@ export function scorePack(pack: AnalyzerPack, answers: Record<string, number | s
     effective[item.id] = effectiveOf(pack, answers, item.id);
   }
 
+  const parameters = applyResponseScoring(pack, answers);
   const scores: Record<string, number | string> = {};
   for (const formula of pack.formulas) {
-    scores[formula.id] = runFormula(pack, answers, scores, formula);
+    scores[formula.id] = runFormula(pack, answers, scores, parameters, formula);
   }
 
-  return { version: pack.version, effective, scores };
+  return { version: pack.version, effective, scores, parameters };
 }

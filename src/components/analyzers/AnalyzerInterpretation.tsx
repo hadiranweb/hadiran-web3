@@ -66,6 +66,7 @@ export function AnalyzerInterpretation({ slug, pack }: { slug: string; pack: Ana
       <ul className="space-y-2">
         {submitted.map((row) => {
           const open = openId === row.attemptId;
+          const packMatchesAttempt = row.instrumentVersion === pack.version;
           return (
             <li key={row.attemptId} className="rounded-2xl border border-slate-200 bg-white">
               <button
@@ -77,12 +78,13 @@ export function AnalyzerInterpretation({ slug, pack }: { slug: string; pack: Ana
                   <span className="block font-medium text-slate-900">{row.nameFa}</span>
                   <span className="mt-1 block text-xs text-slate-500">
                     {row.publicCode ? `شناسه ${row.publicCode}` : "بدون شناسهٔ نمایشی"}
-                    {row.businessName ? ` · ${row.businessName}` : ""}
+                    {packMatchesAttempt && row.businessName ? ` · ${row.businessName}` : ""}
                     {` · ${row.phone}`}
+                    {!packMatchesAttempt ? ` · نسخهٔ آزمون ${row.instrumentVersion}` : ""}
                   </span>
                 </span>
                 <span className="flex flex-col items-end gap-1 text-xs text-slate-500">
-                  {row.gate ? <GateChip gate={row.gate} /> : null}
+                  {packMatchesAttempt && row.gate ? <GateChip gate={row.gate} /> : null}
                   <span>{whenFa(row.submittedAt ?? row.updatedAt)}</span>
                 </span>
               </button>
@@ -103,7 +105,13 @@ export function AnalyzerInterpretation({ slug, pack }: { slug: string; pack: Ana
                       )
                     }
                   />
-                  <AttemptInterpretation pack={pack} row={row} />
+                  {packMatchesAttempt ? (
+                    <AttemptInterpretation pack={pack} row={row} />
+                  ) : (
+                    <p className="px-4 py-4 text-sm text-slate-500">
+                      این نوبت با نسخهٔ دیگری از آزمون ثبت شده است؛ برای دیدن تفسیر دقیق از «پیش‌نمایش زنده» استفاده کنید.
+                    </p>
+                  )}
                 </div>
               ) : null}
             </li>

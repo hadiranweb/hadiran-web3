@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAccount } from "@/lib/auth/guard";
 import { consentAttempt, readAttempt, retakeAttempt, saveAnswer, submitAttempt } from "@/lib/analyzers/attempts";
-import { loadPack } from "@/lib/analyzers/registry";
+import { loadPack, loadPackForAttempt } from "@/lib/analyzers/registry";
 import { assessmentExecutionOffer } from "@/lib/finance/assessment-orders";
 
 export const dynamic = "force-dynamic";
@@ -9,10 +9,13 @@ export const dynamic = "force-dynamic";
 type Ctx = { params: Promise<{ slug: string }> };
 
 async function resolveRunnablePack(slug: string, account: { id: number; role: string }) {
-  const pack = await loadPack(slug);
+  const resolved = await loadPackForAttempt(slug, account.id, "in_progress");
+  if (resolved.attemptFound && !resolved.pack) return null;
+  const pack = resolved.pack ?? await loadPack(slug);
   if (!pack) return null;
-  if (pack.status === "archived") return null;
-  if (pack.status === "open") return pack;
+  const resumableVersion = resolved.attemptFound && pack.packVersionId != null;
+  if (pack.status === "archived" && !resumableVersion) return null;
+  if (pack.status === "open" || resumableVersion) return pack;
   if (account.role === "owner") return pack;
   const { analyzerAccess } = await import("@/lib/analyzers/access");
   const access = await analyzerAccess(account, slug);

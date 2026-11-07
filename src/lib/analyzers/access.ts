@@ -54,25 +54,26 @@ export async function listAccessiblePacks(account: {
   role: AccountRole | string;
 }): Promise<{ pack: AnalyzerPack; access: AnalyzerAccess }[]> {
   await ensureAccessSchema();
-  await listAuthoredPacks();
+  const authored = await listAuthoredPacks();
   if (isOwner(account.role)) {
-    const packs = await listAuthoredPacks();
-    return packs.map((pack) => ({
+    return authored.map((pack) => ({
       pack,
       access: { view: true, edit: true, responses: true, grant: true },
     }));
   }
-  const rows = await db.select().from(analyzerPacks);
+  const rows = await db.select({ slug: analyzerPacks.slug, createdBy: analyzerPacks.createdBy }).from(analyzerPacks);
   const grants = await db.select().from(analyzerGrants).where(eq(analyzerGrants.accountId, account.id));
   const grantBySlug = new Map(grants.map((row) => [row.slug, row]));
+  const packBySlug = new Map(authored.map((pack) => [pack.slug, pack]));
   const out: { pack: AnalyzerPack; access: AnalyzerAccess }[] = [];
   for (const row of rows) {
-    if (!row.pack?.slug || RESERVED_SLUGS.has(row.pack.slug)) continue;
+    const pack = packBySlug.get(row.slug);
+    if (!pack || RESERVED_SLUGS.has(pack.slug)) continue;
     const mine = row.createdBy === account.id;
     const grant = grantBySlug.get(row.slug);
     if (!mine && !grant) continue;
     out.push({
-      pack: row.pack,
+      pack,
       access: mine
         ? { view: true, edit: true, responses: true, grant: true }
         : {

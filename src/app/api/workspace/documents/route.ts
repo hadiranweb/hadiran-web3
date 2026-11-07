@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { analyzerAccess, listAccessiblePacks } from "@/lib/analyzers/access";
 import { readAuthoredPack } from "@/lib/analyzers/authored";
-import { templateAllowedForPack } from "@/lib/analyzers/document-templates";
 import { convertAttemptDocument, listConvertedDocuments } from "@/lib/analyzers/persist-report";
 import { readWorkspaceAttempt } from "@/lib/analyzers/workspace-attempts";
 import { requireAnalyzerDesk } from "@/lib/auth/guard";
@@ -49,10 +48,6 @@ export async function POST(request: Request) {
   if (!pack) return NextResponse.json({ error: "not_found" }, { status: 404 });
   const access = await analyzerAccess(auth.account, slug);
   if (!access.responses) return NextResponse.json({ error: "forbidden" }, { status: 403 });
-  if (!templateAllowedForPack(pack, templateId)) {
-    return NextResponse.json({ error: "bad_template" }, { status: 400 });
-  }
-
   const items = [];
   const errors: { attemptId: number; error: string }[] = [];
   const seen = new Set<number>();
@@ -78,6 +73,9 @@ export async function POST(request: Request) {
       const code = error instanceof Error ? error.message : "convert_failed";
       errors.push({ attemptId, error: code });
     }
+  }
+  if (!items.length && errors.length && errors.every((row) => row.error === "bad_template")) {
+    return NextResponse.json({ error: "bad_template", items, errors }, { status: 400 });
   }
   return NextResponse.json({ items, errors });
 }
