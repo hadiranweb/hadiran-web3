@@ -1,6 +1,6 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
-import { accountPublicCodes, accounts, analyzerAttempts, analyzerReports, casioAttempts } from "@/db/schema";
+import { accountPublicCodes, accounts, analyzerAttempts, analyzerReports } from "@/db/schema";
 import { resolveLivePack } from "@/lib/analyzers/authored";
 import { gateOf } from "@/lib/analyzers/gate";
 import { findItem, itemsOf, type AnalyzerPack } from "@/lib/analyzers/pack";
@@ -8,7 +8,6 @@ import { attemptKindOf } from "@/lib/analyzers/document-templates";
 import {
   ensureAccountProfileSchema,
   ensureAnalyzerAuthoringSchema,
-  ensureCasioAttemptsSchema,
   ensureInterpretationDocumentsSchema,
 } from "@/lib/auth/schema-guard";
 import type {
@@ -187,34 +186,6 @@ export async function readWorkspaceAttempt(slug: string, attemptId: number): Pro
   if (!pack) return null;
   await ensureAccountProfileSchema();
 
-  if (slug === "casio-ss") {
-    await ensureCasioAttemptsSchema();
-    const rows = await db
-      .select({
-        attemptId: casioAttempts.id,
-        instrumentVersion: casioAttempts.instrumentVersion,
-        status: casioAttempts.status,
-        answers: casioAttempts.answers,
-        results: casioAttempts.results,
-        submittedAt: casioAttempts.submittedAt,
-        updatedAt: casioAttempts.updatedAt,
-        givenName: accounts.givenName,
-        familyName: accounts.familyName,
-        displayName: accounts.displayName,
-        phone: accounts.phone,
-        publicCode: accountPublicCodes.code,
-        referrerAccountId: casioAttempts.referrerAccountId,
-        discountCode: casioAttempts.discountCode,
-      })
-      .from(casioAttempts)
-      .innerJoin(accounts, eq(accounts.id, casioAttempts.accountId))
-      .leftJoin(accountPublicCodes, eq(accountPublicCodes.accountId, accounts.id))
-      .where(eq(casioAttempts.id, attemptId))
-      .limit(1);
-    const [row] = await withReferrerCodes(pack, rows);
-    return row ?? null;
-  }
-
   await ensureAnalyzerAuthoringSchema();
   const rows = await db
     .select({
@@ -246,33 +217,6 @@ export async function listWorkspaceAttempts(slug: string): Promise<WorkspaceAtte
   const pack = await resolveLivePack(slug);
   if (!pack) return [];
   await ensureAccountProfileSchema();
-
-  if (slug === "casio-ss") {
-    await ensureCasioAttemptsSchema();
-    const rows = await db
-      .select({
-        attemptId: casioAttempts.id,
-        instrumentVersion: casioAttempts.instrumentVersion,
-        status: casioAttempts.status,
-        answers: casioAttempts.answers,
-        results: casioAttempts.results,
-        submittedAt: casioAttempts.submittedAt,
-        updatedAt: casioAttempts.updatedAt,
-        givenName: accounts.givenName,
-        familyName: accounts.familyName,
-        displayName: accounts.displayName,
-        phone: accounts.phone,
-        publicCode: accountPublicCodes.code,
-        referrerAccountId: casioAttempts.referrerAccountId,
-        discountCode: casioAttempts.discountCode,
-      })
-      .from(casioAttempts)
-      .innerJoin(accounts, eq(accounts.id, casioAttempts.accountId))
-      .leftJoin(accountPublicCodes, eq(accountPublicCodes.accountId, accounts.id))
-      .orderBy(desc(casioAttempts.submittedAt), desc(casioAttempts.updatedAt))
-      .limit(300);
-    return withReferrerCodes(pack, rows);
-  }
 
   await ensureAnalyzerAuthoringSchema();
   const rows = await db

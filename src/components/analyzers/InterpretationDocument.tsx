@@ -1,9 +1,7 @@
 import { HadiranMark } from "@/components/HadiranMark";
-import { CasioResearchDocument } from "@/components/analyzers/CasioResearchDocument";
 import { ChromeDocument } from "@/components/analyzers/ChromeDocument";
 import { renderChromeDocument } from "@/lib/analyzers/document-chrome";
 import { mergeChrome, readDocumentChrome } from "@/lib/analyzers/document-templates-store";
-import { documentLayoutKey } from "@/lib/analyzers/document-templates";
 import { faNum, type InterpretationDocument } from "@/lib/analyzers/document-model";
 
 function whenFa(value: string | null) {
@@ -27,7 +25,6 @@ export async function InterpretationDocumentView({ doc }: { doc: InterpretationD
       />
     );
   }
-  if (documentLayoutKey(doc.templateId) === "casio-ss") return <CasioResearchDocument doc={doc} />;
   return <HadiranDocument doc={doc} />;
 }
 

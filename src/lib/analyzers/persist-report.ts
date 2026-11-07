@@ -6,7 +6,6 @@ import {
   analyzerReportActions,
   analyzerReportLayers,
   analyzerReports,
-  casioAttempts,
 } from "@/db/schema";
 import {
   buildInterpretationDocument,
@@ -164,7 +163,7 @@ async function hydrate(report: typeof analyzerReports.$inferSelect): Promise<Int
 }
 
 export async function readStoredInterpretation(
-  attemptKind: "casio" | "analyzer",
+  attemptKind: string,
   attemptId: number,
 ): Promise<InterpretationDocument | null> {
   await ensureInterpretationDocumentsSchema();
@@ -246,15 +245,7 @@ export async function documentIdByAttempt(
   return map;
 }
 
-async function attemptOwnerId(attemptKind: "casio" | "analyzer", attemptId: number): Promise<number | null> {
-  if (attemptKind === "casio") {
-    const [row] = await db
-      .select({ accountId: casioAttempts.accountId })
-      .from(casioAttempts)
-      .where(eq(casioAttempts.id, attemptId))
-      .limit(1);
-    return row?.accountId ?? null;
-  }
+async function attemptOwnerId(attemptId: number): Promise<number | null> {
   const [row] = await db
     .select({ accountId: analyzerAttempts.accountId })
     .from(analyzerAttempts)
@@ -302,7 +293,7 @@ async function upsertSnapshot(input: {
   pack: AnalyzerPack;
   accountId: number;
   attemptId: number;
-  attemptKind: "casio" | "analyzer";
+  attemptKind: "analyzer";
   templateId: string;
   doc: InterpretationDocument;
   chromeSnapshot: Record<string, unknown>;
@@ -362,8 +353,8 @@ export async function convertAttemptDocument(input: {
   }
   const row = input.row;
   if (row.status !== "submitted") throw new Error("not_submitted");
-  const attemptKind = attemptKindOf(input.pack.slug);
-  const accountId = await attemptOwnerId(attemptKind, input.attemptId);
+  const attemptKind = "analyzer" as const;
+  const accountId = await attemptOwnerId(input.attemptId);
   if (!accountId) throw new Error("missing_account");
   const doc = buildInterpretationDocument(input.pack, row, templateId);
   const chrome = clipDocumentChrome(await readDocumentChrome(templateId, input.converterAccountId));
@@ -386,21 +377,7 @@ export async function readMemberConvertedDocument(
   accountId: number,
 ): Promise<InterpretationDocument | null> {
   await ensureInterpretationDocumentsSchema();
-  const attemptKind = attemptKindOf(pack.slug);
-  if (pack.slug === "casio-ss") {
-    const [row] = await db
-      .select({ id: casioAttempts.id })
-      .from(casioAttempts)
-      .where(and(eq(casioAttempts.accountId, accountId), eq(casioAttempts.status, "submitted")))
-      .orderBy(desc(casioAttempts.submittedAt))
-      .limit(1);
-    if (!row) return null;
-    const { canReadPaidAssessmentService } = await import("@/lib/finance/assessment-access");
-    if (!(await canReadPaidAssessmentService({ slug: pack.slug, accountId, attemptId: row.id, service: "document" }))) {
-      return null;
-    }
-    return readStoredInterpretation(attemptKind, row.id);
-  }
+  const attemptKind = "analyzer" as const;
   const [row] = await db
     .select({ id: analyzerAttempts.id })
     .from(analyzerAttempts)

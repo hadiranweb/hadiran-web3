@@ -12,7 +12,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: absoluteUrl("/knowledge"), lastModified: now, changeFrequency: "weekly", priority: 0.8 },
     { url: absoluteUrl("/lab"), lastModified: now, changeFrequency: "weekly", priority: 0.8 },
     { url: absoluteUrl("/analyzers"), lastModified: now, changeFrequency: "weekly", priority: 0.7 },
-    { url: absoluteUrl("/analyzers/casio-ss"), lastModified: now, changeFrequency: "monthly", priority: 0.6 },
     { url: absoluteUrl("/courses"), lastModified: now, changeFrequency: "weekly", priority: 0.8 },
     { url: absoluteUrl("/topics"), lastModified: now, changeFrequency: "weekly", priority: 0.7 },
     { url: absoluteUrl("/contact"), lastModified: now, changeFrequency: "monthly", priority: 0.5 },
@@ -113,7 +112,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         .select({ slug: analyzerPacks.slug, status: analyzerPacks.status, updatedAt: analyzerPacks.updatedAt })
         .from(analyzerPacks);
       for (const row of analyzerRows) {
-        if (row.status !== "open" || row.slug === "casio-ss") continue;
+        if (row.status !== "open") continue;
         entries.push({
           url: absoluteUrl(`/analyzers/${row.slug}`),
           lastModified: row.updatedAt ?? now,

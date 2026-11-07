@@ -4,8 +4,6 @@ import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { analyzerDocumentTemplateOverrides, analyzerDocumentTemplates } from "@/db/schema";
 import {
-  CASIO_TEMPLATE_CSS,
-  CASIO_TEMPLATE_HTML,
   HADIRAN_TEMPLATE_CSS,
   HADIRAN_TEMPLATE_HTML,
   SYSTEM_DIAGNOSIS_TEMPLATE_CSS,
@@ -28,19 +26,6 @@ function readPublicSvg(rel: string): string {
 
 export function defaultChrome(templateId: string): DocumentChrome {
   const id = canonicalizeTemplateId(templateId);
-  if (id === "casio-ss") {
-    return {
-      html: CASIO_TEMPLATE_HTML,
-      css: CASIO_TEMPLATE_CSS,
-      logos: {
-        light: readPublicSvg("casio-ss/logos/casio_logo_light.svg"),
-        dark: readPublicSvg("casio-ss/logos/casio_logo_dark.svg"),
-        seal: readPublicSvg("casio-ss/logos/casio_seal_red.svg"),
-      },
-      pageSize: "A4",
-      pageMargin: "0",
-    };
-  }
   if (id === "system-diagnosis") {
     return {
       html: SYSTEM_DIAGNOSIS_TEMPLATE_HTML,
@@ -67,20 +52,11 @@ export function defaultChrome(templateId: string): DocumentChrome {
   };
 }
 
-function staleCasioChrome(html: string, css: string) {
-  return !html.includes("{{{overallChartSvg}}}") || !html.includes("keywordGraphGroups") || !css.includes("keyword-graph");
-}
-
 export function mergeChrome(templateId: string, raw: unknown, baseRaw?: unknown): DocumentChrome {
   const fallback = baseRaw !== undefined ? mergeChrome(templateId, baseRaw) : defaultChrome(templateId);
   const parsed = parseChrome(raw);
-  const id = canonicalizeTemplateId(templateId);
-  let html = parsed.html.trim() ? parsed.html : fallback.html;
-  let css = parsed.css.trim() ? parsed.css : fallback.css;
-  if (id === "casio-ss" && staleCasioChrome(html, css)) {
-    html = fallback.html;
-    css = fallback.css;
-  }
+  const html = parsed.html.trim() ? parsed.html : fallback.html;
+  const css = parsed.css.trim() ? parsed.css : fallback.css;
   return {
     html,
     css,
@@ -122,7 +98,7 @@ export type StoredDocumentTemplate = {
   chrome: DocumentChrome;
 };
 
-const ALLOWED_TEMPLATE_IDS = new Set(["hadiran", "casio-ss", "system-diagnosis"]);
+const ALLOWED_TEMPLATE_IDS = new Set(["hadiran", "system-diagnosis"]);
 
 function toStored(
   row: typeof analyzerDocumentTemplates.$inferSelect,

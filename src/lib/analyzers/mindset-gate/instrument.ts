@@ -1,6 +1,6 @@
 /**
  * آزمون مستقل «دروازه و ارزیابی الگوی ذهنی» (mindset-gate).
- * تفکیک‌شده از عارضه‌یابی کسب‌وکار (casio-ss) طبق قفل معماری جداسازی دامنه‌ها.
+ * این pack یک آزمون مستقل در رجیستری تألیف است.
  * پشتوانهٔ نظری: Rotter (1966) Locus of Control, Bandura (1997) Self-Efficacy & Agency,
  * Lazarus & Folkman (1984) Problem-Focused Coping, Menold & Bogner (2016) GESIS 0-10 Scale.
  */

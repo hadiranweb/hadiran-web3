@@ -1,8 +1,7 @@
 /**
  * رجیستری مرکزی «منبع حقیقت واحد» (HADIRAN-SSOT-2.0.0) — فقط برای دو آزمون تازه.
  *
- * قفل جداسازی: کاسیو (casio-ss) و رباتش بیرون از این رجیستری‌اند و هیچ اتصال
- * بین‌دامنه‌ای (Bridge) وجود ندارد؛ هر آزمون دامنهٔ مستقل خودش را دارد.
+ * این رجیستری فقط داده‌های کانونیکالِ دو دامنهٔ زیر را نگه می‌دارد.
  * این ماژول موجودیت‌های منظومهٔ «عارضه‌یابی سیستم کسب‌وکار» و «ارزیابی الگوی ذهنی»
  * (منابع علمی، مفاهیم، گویه‌ها، کلیدواژه‌ها، گراف علّی) را در یک نقطه تجمیع می‌کند.
  */
@@ -48,7 +47,7 @@ export type CanonicalItemRecord = {
   reverse?: boolean;
 };
 
-/** فهرست یکپارچهٔ ۱۰۷ گویهٔ استاندارد دو دامنه (بدون هیچ گویه‌ای از کاسیو). */
+/** فهرست یکپارچهٔ گویه‌های استاندارد دو دامنهٔ کانونیکال. */
 export function listAllCanonicalItems(): CanonicalItemRecord[] {
   const records: CanonicalItemRecord[] = [];
 
@@ -102,7 +101,7 @@ export function listAllCanonicalItems(): CanonicalItemRecord[] {
   return records;
 }
 
-/** پک‌های کانونیکال این رجیستری؛ کاسیو عمداً این‌جا نیست. */
+/** پک‌های کانونیکال این رجیستری. */
 export function buildAllCanonicalPacks(): AnalyzerPack[] {
   return [systemDiagnosisPack, mindsetGatePack];
 }

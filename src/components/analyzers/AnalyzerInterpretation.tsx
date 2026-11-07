@@ -1,12 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CasioSsReport } from "@/components/analyzers/CasioSsReport";
 import { ConvertDocumentControls } from "@/components/analyzers/ConvertDocumentControls";
 import { GateChip, GateStatus } from "@/components/analyzers/GateStatus";
 import { GenericReportView } from "@/components/analyzers/GenericReport";
 import { gateOf } from "@/lib/analyzers/gate";
-import { buildCasioReport } from "@/lib/analyzers/casio-ss/report";
 import { buildGenericReport } from "@/lib/analyzers/generic-report";
 import type { AnalyzerPack } from "@/lib/analyzers/pack";
 import type { WorkspaceAttemptRow } from "@/lib/analyzers/workspace-attempt-types";
@@ -118,17 +116,12 @@ export function AnalyzerInterpretation({ slug, pack }: { slug: string; pack: Ana
 
 function AttemptInterpretation({ pack, row }: { pack: AnalyzerPack; row: WorkspaceAttemptRow }) {
   const gate = row.gate ?? gateOf(pack, row.rawResults);
-  type View =
-    | { kind: "casio"; report: ReturnType<typeof buildCasioReport> }
-    | { kind: "generic"; report: ReturnType<typeof buildGenericReport> };
+  type View = ReturnType<typeof buildGenericReport>;
 
   // بازتولید تفسیر داده است، نه رندر؛ خطا را همین‌جا می‌گیریم و JSX را بیرون از try می‌سازیم.
   let view: View | null = null;
   try {
-    view =
-      pack.slug === "casio-ss"
-        ? { kind: "casio", report: buildCasioReport(pack, row.rawAnswers, row.rawResults) }
-        : { kind: "generic", report: buildGenericReport(pack, row.rawAnswers, row.rawResults) };
+    view = buildGenericReport(pack, row.rawAnswers, row.rawResults);
   } catch {
     view = null;
   }
@@ -145,11 +138,7 @@ function AttemptInterpretation({ pack, row }: { pack: AnalyzerPack; row: Workspa
   return (
     <div className="space-y-4 px-4 py-4">
       {gate ? <GateStatus gate={gate} /> : null}
-      {view.kind === "casio" ? (
-        <CasioSsReport report={view.report} showHubLink={false} />
-      ) : (
-        <GenericReportView report={view.report} hubHref={null} />
-      )}
+      <GenericReportView report={view} hubHref={null} />
     </div>
   );
 }

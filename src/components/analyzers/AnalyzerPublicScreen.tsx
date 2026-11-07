@@ -12,10 +12,12 @@ export function AnalyzerPublicScreen({
   pack,
   signedIn,
   resume,
+  isOwner,
 }: {
   pack: AnalyzerPack;
   signedIn: boolean;
   resume: boolean;
+  isOwner: boolean;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -38,7 +40,7 @@ export function AnalyzerPublicScreen({
   }
 
   if (running) {
-    return <AnalyzerRun pack={pack} />;
+    return <AnalyzerRun pack={pack} isOwner={isOwner} />;
   }
 
   const estimate = estimatePack(pack.sections);

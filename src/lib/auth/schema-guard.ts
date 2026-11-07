@@ -3,7 +3,6 @@ import { db } from "@/db";
 
 let passwordColumnsReady = false;
 let profileSchemaReady = false;
-let casioAttemptsReady = false;
 let analyzerAuthoringReady = false;
 let botsReady = false;
 let accessReady = false;
@@ -50,36 +49,6 @@ export async function ensureAccountProfileSchema() {
     )
   `);
   profileSchemaReady = true;
-}
-
-/** Safety net if pre-start skipped 0012. Idempotent. */
-export async function ensureCasioAttemptsSchema() {
-  if (casioAttemptsReady) return;
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS casio_attempts (
-      id SERIAL PRIMARY KEY,
-      account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
-      instrument_version VARCHAR(64) NOT NULL,
-      consent_at TIMESTAMPTZ,
-      answers JSONB NOT NULL DEFAULT '{}'::jsonb,
-      status VARCHAR(16) NOT NULL DEFAULT 'in_progress',
-      submitted_at TIMESTAMPTZ,
-      created_at TIMESTAMPTZ DEFAULT NOW(),
-      updated_at TIMESTAMPTZ DEFAULT NOW()
-    )
-  `);
-  await db.execute(sql`
-    CREATE UNIQUE INDEX IF NOT EXISTS casio_attempts_open_account
-    ON casio_attempts (account_id)
-    WHERE status = 'in_progress'
-  `);
-  await db.execute(sql`ALTER TABLE casio_attempts ADD COLUMN IF NOT EXISTS results JSONB`);
-  await db.execute(sql`
-    ALTER TABLE casio_attempts
-    ADD COLUMN IF NOT EXISTS referrer_account_id INTEGER REFERENCES accounts(id) ON DELETE SET NULL
-  `);
-  await db.execute(sql`ALTER TABLE casio_attempts ADD COLUMN IF NOT EXISTS discount_code VARCHAR(32)`);
-  casioAttemptsReady = true;
 }
 
 /** Safety net if pre-start skipped 0014. Idempotent. */
@@ -203,7 +172,6 @@ export async function ensureAccessSchema() {
   `);
   await ensureAccountProfileSchema();
   await ensureAnalyzerAuthoringSchema();
-  await ensureCasioAttemptsSchema();
   await ensureBotsSchema();
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS analyzer_grants (
@@ -293,9 +261,7 @@ export async function ensureInterpretationDocumentsSchema() {
   await db.execute(sql`
     INSERT INTO analyzer_document_templates (id, title_fa, layout_key, brand_name_fa, system)
     VALUES
-      ('hadiran', 'هادیران', 'hadiran', 'هادیران', TRUE),
-      ('casio-research', 'پژوهش پنج‌لایه', 'casio-ss', 'کاسیو', TRUE),
-      ('casio-ss', 'کاسیو · پنج‌لایه', 'casio-ss', 'کاسیو', TRUE)
+      ('hadiran', 'هادیران', 'hadiran', 'هادیران', TRUE)
     ON CONFLICT (id) DO NOTHING
   `);
   await db.execute(sql`

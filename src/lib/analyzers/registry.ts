@@ -1,4 +1,3 @@
-import { casioSsPack } from "@/lib/analyzers/casio-ss/pack";
 import { mindsetGatePack } from "@/lib/analyzers/mindset-gate/pack";
 import { systemDiagnosisPack } from "@/lib/analyzers/system-diagnosis/pack";
 import { listAuthoredPacks, resolveLivePack } from "@/lib/analyzers/authored";
@@ -8,10 +7,10 @@ import { sanitizePack } from "@/lib/analyzers/sanitize";
 /**
  * پک‌های کد فقط «بذر اولیه»‌اند (برای DB خالی و Fallback بدون دیتابیس).
  * منبع اجرای واقعی، ردیف analyzer_packs است — برای دو آزمون تازه با بذر مدیر
- * (authored.ts: ensureManagerSeeds) و برای کاسیو با بذر خودش. ویرایش از میز
+ * (authored.ts: ensureManagerSeeds). ویرایش از میز
  * آزمون‌ساز روی DB می‌نشیند و بر بذر کد غلبه می‌کند (loadPack/loadPacks).
  */
-const codePacksList: AnalyzerPack[] = [casioSsPack, mindsetGatePack, systemDiagnosisPack];
+const codePacksList: AnalyzerPack[] = [mindsetGatePack, systemDiagnosisPack];
 
 for (const pack of codePacksList) assertPack(pack);
 

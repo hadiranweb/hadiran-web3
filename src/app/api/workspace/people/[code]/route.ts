@@ -75,7 +75,7 @@ export async function PATCH(request: Request, { params }: Ctx) {
     if (!result.ok) return fail(result.error);
   }
   if (body.attempt && typeof body.attempt === "object") {
-    const kind = body.attempt.kind === "casio" || body.attempt.kind === "analyzer" ? body.attempt.kind : null;
+    const kind = body.attempt.kind === "analyzer" ? body.attempt.kind : null;
     const attemptId = typeof body.attempt.id === "number" ? body.attempt.id : Number(body.attempt.id);
     if (!kind || !Number.isInteger(attemptId) || attemptId < 1) return fail("attempt_missing");
     result = await setAttemptReferrer({

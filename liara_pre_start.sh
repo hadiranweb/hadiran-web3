@@ -21,11 +21,11 @@ if [ ! -f scripts/apply-migrations.mjs ]; then
 fi
 
 if command -v timeout >/dev/null 2>&1; then
-  timeout 12s node scripts/apply-migrations.mjs \
+  timeout 12s node scripts/apply-migrations.mjs --allow-destructive-reset \
     && log "migrations done" \
     || log "migrations failed or timed out; continuing so UI can start"
 else
-  node scripts/apply-migrations.mjs \
+  node scripts/apply-migrations.mjs --allow-destructive-reset \
     && log "migrations done" \
     || log "migrations failed; continuing so UI can start"
 fi

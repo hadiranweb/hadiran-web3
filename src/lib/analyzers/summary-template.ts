@@ -1,6 +1,5 @@
 /** قالب یک‌پاراگرافی برای عضو؛ تفسیر کامل فقط در میز آزمون‌ساز. بدون eval. */
 
-import { buildCasioReport } from "@/lib/analyzers/casio-ss/report";
 import { buildGenericReport } from "@/lib/analyzers/generic-report";
 import { findItem, itemsOf, type AnalyzerPack } from "@/lib/analyzers/pack";
 import type { PackScore } from "@/lib/analyzers/score";
@@ -18,9 +17,6 @@ const ALIASES: Record<string, string> = {
 };
 
 const FALLBACK = "پاسخ‌های شما ثبت شد. تفسیر تفصیلی نزد آزمون‌ساز می‌ماند.";
-
-export const DEFAULT_USER_SUMMARY =
-  "ارزیابی «{name}» ثبت شد. در این نوبت بلوغ سیستم {maturity} است و گلوگاه {bottleneck} دیده می‌شود. تفسیر تفصیلی نزد آزمون‌ساز می‌ماند.";
 
 function faNum(value: number | string) {
   return String(value).replace(/\d/g, (digit) => FA[Number(digit)] ?? digit);
@@ -102,49 +98,17 @@ export function summaryVars(
     }
   }
 
-  if (pack.slug === "casio-ss") {
-    try {
-      const report = buildCasioReport(pack, answers, results);
-      vars.total = faScore(report.total);
-      vars["diagnosis-total"] = vars.total;
-      vars.maturity = report.maturity.labelFa;
+  try {
+    const report = buildGenericReport(pack, answers, results);
+    if (report.bottleneck) {
       vars.bottleneck = report.bottleneck.titleFa;
-      vars["bottleneck.title"] = report.bottleneck.titleFa;
-      vars["bottleneck.score"] = faScore(report.bottleneck.score);
       vars["bottleneck.id"] = report.bottleneck.id;
-      if (report.businessName) vars.business = report.businessName;
-      vars.closing = report.closingFa;
-      for (const layer of report.layers) {
-        vars[layer.id] = faScore(layer.score);
-        vars[`${layer.id}.score`] = faScore(layer.score);
-        vars[`${layer.id}.title`] = layer.titleFa;
-        vars[`${layer.id}.as_is`] = layer.asIsFa;
-        vars[`${layer.id}.to_be`] = layer.toBeFa;
-        vars[`${layer.id}.actions`] = layer.actionsFa;
-        vars[`${layer.id}.band`] = layer.band.labelFa;
-        if (layer.isBottleneck) {
-          vars["bottleneck.as_is"] = layer.asIsFa;
-          vars["bottleneck.to_be"] = layer.toBeFa;
-          vars["bottleneck.actions"] = layer.actionsFa;
-          vars["bottleneck.band"] = layer.band.labelFa;
-        }
-      }
-    } catch {
-      // keep score snapshot vars
     }
-  } else {
-    try {
-      const report = buildGenericReport(pack, answers, results);
-      if (report.bottleneck) {
-        vars.bottleneck = report.bottleneck.titleFa;
-        vars["bottleneck.id"] = report.bottleneck.id;
-      }
-      for (const row of report.scores) {
-        vars[row.id] = typeof row.value === "number" ? faScore(row.value) : String(row.value);
-      }
-    } catch {
-      // keep snapshot vars
+    for (const row of report.scores) {
+      vars[row.id] = typeof row.value === "number" ? faScore(row.value) : String(row.value);
     }
+  } catch {
+    // keep score snapshot vars
   }
 
   return vars;
@@ -163,9 +127,7 @@ export function renderUserSummary(
   answers: Record<string, number | string>,
   results: PackScore | null,
 ): string {
-  const template =
-    pack.report?.userSummaryTemplateFa?.trim() ||
-    (pack.slug === "casio-ss" ? DEFAULT_USER_SUMMARY : "");
+  const template = pack.report?.userSummaryTemplateFa?.trim() || "";
   if (!template) return FALLBACK;
   const text = interpolateSummary(template, summaryVars(pack, answers, results)).replace(/\n{3,}/g, "\n\n").trim();
   return text || FALLBACK;

@@ -24,7 +24,7 @@ import {
   type TextItem,
 } from "@/lib/analyzers/pack";
 
-/** فقط بخش‌های مسیر، نه شناسهٔ آزمون. casio-ss قابل تألیف است. */
+/** فقط توکن‌های رزروشدهٔ مسیر، نه slug آزمون. */
 export const RESERVED_SLUGS = new Set(["new", "report"]);
 
 export const DEFAULT_ANCHORS: ScaleAnchors = {

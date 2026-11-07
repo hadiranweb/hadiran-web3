@@ -86,17 +86,17 @@ test("missing commission is not a zero fee", () => {
 
 test("creator coupon binds product and issuer from trusted rows", () => {
   assertCreatorCoupon({
-    productId: "casio-ss:document",
+    productId: "sample-analyzer:document",
     productCreatorId: 4,
-    couponProductId: "casio-ss:document",
+    couponProductId: "sample-analyzer:document",
     couponIssuerId: 4,
   });
   assert.throws(
     () =>
       assertCreatorCoupon({
-        productId: "casio-ss:document",
+        productId: "sample-analyzer:document",
         productCreatorId: 4,
-        couponProductId: "casio-ss:interpretation",
+        couponProductId: "sample-analyzer:interpretation",
         couponIssuerId: 4,
       }),
     /coupon_product_mismatch/,
@@ -104,9 +104,9 @@ test("creator coupon binds product and issuer from trusted rows", () => {
   assert.throws(
     () =>
       assertCreatorCoupon({
-        productId: "casio-ss:document",
+        productId: "sample-analyzer:document",
         productCreatorId: 4,
-        couponProductId: "casio-ss:document",
+        couponProductId: "sample-analyzer:document",
         couponIssuerId: 9,
       }),
     /coupon_issuer_mismatch/,

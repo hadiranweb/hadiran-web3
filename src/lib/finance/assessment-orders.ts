@@ -4,7 +4,6 @@ import {
   accounts,
   analyzerAttempts,
   analyzerPacks,
-  casioAttempts,
   assessmentEntitlements,
   assessmentOrders,
   assessmentTariffs,
@@ -116,7 +115,6 @@ export async function assessmentExecutionOffer(input: {
   accountId: number;
   attemptId: number | null;
 }): Promise<{ available: boolean; priceIrr: string | null; entitled: boolean } | null> {
-  if (attemptKindOf(input.slug) !== "analyzer") return null;
   const tariff = await activeAssessmentTariff(input.slug, "execution");
   if (!tariff) return { available: false, priceIrr: null, entitled: false };
   return {
@@ -193,9 +191,6 @@ export async function upsertAssessmentTariff(input: {
   activate?: boolean;
 }) {
   if (!isAssessmentService(input.service)) throw new AssessmentError("invalid_service", 400);
-  if (input.service === "execution" && attemptKindOf(input.slug) !== "analyzer") {
-    throw new AssessmentError("invalid_service", 400);
-  }
   await ensureAssessmentLedgerSchema();
   return db.transaction(async (tx) => {
     const who = await actor(tx, input.actorId, false);
@@ -323,9 +318,6 @@ export async function createAssessmentOrder(input: {
   if (!Number.isInteger(input.attemptId) || input.attemptId <= 0) throw new AssessmentError("invalid_attempt", 400);
   const service: AssessmentService = input.service;
   const attemptKind = attemptKindOf(input.slug);
-  if (service === "execution" && attemptKind !== "analyzer") {
-    throw new AssessmentError("invalid_service", 400);
-  }
   await ensureAssessmentLedgerSchema();
   return db.transaction(async (tx) => {
     await tx.execute(
@@ -333,32 +325,21 @@ export async function createAssessmentOrder(input: {
     );
     const who = await actor(tx, input.buyerId);
     if (who.role === "owner") throw new AssessmentError("owner_cannot_buy", 403);
-    if (attemptKind === "analyzer") {
-      const [attempt] = await tx
-        .select({ status: analyzerAttempts.status })
-        .from(analyzerAttempts)
-        .where(
-          and(
-            eq(analyzerAttempts.id, input.attemptId),
-            eq(analyzerAttempts.accountId, who.id),
-            eq(analyzerAttempts.slug, input.slug),
-          ),
-        )
-        .limit(1)
-        .for("share");
-      if (!attempt) throw new AssessmentError("invalid_attempt", 404);
-      if (service === "execution" ? attempt.status !== "in_progress" : attempt.status !== "submitted") {
-        throw new AssessmentError("assessment_not_ready", 409);
-      }
-    } else {
-      const [attempt] = await tx
-        .select({ status: casioAttempts.status })
-        .from(casioAttempts)
-        .where(and(eq(casioAttempts.id, input.attemptId), eq(casioAttempts.accountId, who.id)))
-        .limit(1)
-        .for("share");
-      if (!attempt) throw new AssessmentError("invalid_attempt", 404);
-      if (attempt.status !== "submitted") throw new AssessmentError("assessment_not_ready", 409);
+    const [attempt] = await tx
+      .select({ status: analyzerAttempts.status })
+      .from(analyzerAttempts)
+      .where(
+        and(
+          eq(analyzerAttempts.id, input.attemptId),
+          eq(analyzerAttempts.accountId, who.id),
+          eq(analyzerAttempts.slug, input.slug),
+        ),
+      )
+      .limit(1)
+      .for("share");
+    if (!attempt) throw new AssessmentError("invalid_attempt", 404);
+    if (service === "execution" ? attempt.status !== "in_progress" : attempt.status !== "submitted") {
+      throw new AssessmentError("assessment_not_ready", 409);
     }
     const tariff = await activeAssessmentTariff(input.slug, service, tx);
     if (!tariff) throw new AssessmentError("tariff_undefined", 409);
@@ -460,7 +441,7 @@ async function autoDeliverIfReady(order: OrderRow) {
     }
     if (order.service === "document") {
       const { readStoredInterpretation } = await import("@/lib/analyzers/persist-report");
-      const stored = await readStoredInterpretation(order.attemptKind as "analyzer" | "casio", order.attemptId);
+      const stored = await readStoredInterpretation(order.attemptKind, order.attemptId);
       if (stored) return await deliverAssessmentOrder({ orderId: order.id });
     }
   } catch (error) {

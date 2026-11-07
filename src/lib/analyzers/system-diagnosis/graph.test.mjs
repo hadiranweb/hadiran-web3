@@ -131,7 +131,6 @@ test("SSOT: مانیفست کامل است، کاسیو بیرون است و ه�
   assert.equal(m.counts.subKeywords, 75);
   assert.ok(m.counts.researchSources >= 30, "research sources present");
   assert.equal(buildAllCanonicalPacks().length, 2);
-  assert.equal(getCanonicalPackBySlug("casio-ss"), null);
   assert.equal(getCanonicalPackBySlug("system-diagnosis")?.slug, "system-diagnosis");
   assert.equal(getCanonicalPackBySlug("mindset-gate")?.slug, "mindset-gate");
 

@@ -67,7 +67,12 @@ export default async function AnalyzerMemberPage({ params }: Props) {
         />
       ) : null}
 
-      <AnalyzerPublicScreen pack={pack} signedIn={Boolean(account)} resume={resume} />
+      <AnalyzerPublicScreen
+        pack={pack}
+        signedIn={Boolean(account)}
+        resume={resume}
+        isOwner={account?.role === "owner"}
+      />
     </PageShell>
   );
 }

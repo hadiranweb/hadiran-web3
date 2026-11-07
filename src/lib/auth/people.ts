@@ -8,7 +8,6 @@ import {
   authEvents,
   botChatSessions,
   bots,
-  casioAttempts,
   otpChallenges,
   passwordSetupTokens,
   sessions,
@@ -212,19 +211,6 @@ export async function loadPerson(publicCode: string): Promise<PersonDetail | nul
     .leftJoin(accountPublicCodes, eq(accountPublicCodes.accountId, accounts.id))
     .where(eq(accounts.referredByAccountId, row.id));
 
-  const casioAsReferrer = await db
-    .select({
-      id: casioAttempts.id,
-      accountId: casioAttempts.accountId,
-      referrerAccountId: casioAttempts.referrerAccountId,
-      givenName: accounts.givenName,
-      familyName: accounts.familyName,
-      displayName: accounts.displayName,
-    })
-    .from(casioAttempts)
-    .innerJoin(accounts, eq(accounts.id, casioAttempts.accountId))
-    .where(eq(casioAttempts.referrerAccountId, row.id));
-
   const analyzerAsReferrer = await db
     .select({
       id: analyzerAttempts.id,
@@ -239,15 +225,6 @@ export async function loadPerson(publicCode: string): Promise<PersonDetail | nul
     .innerJoin(accounts, eq(accounts.id, analyzerAttempts.accountId))
     .where(eq(analyzerAttempts.referrerAccountId, row.id));
 
-  const casioTaken = await db
-    .select({
-      id: casioAttempts.id,
-      accountId: casioAttempts.accountId,
-      referrerAccountId: casioAttempts.referrerAccountId,
-    })
-    .from(casioAttempts)
-    .where(eq(casioAttempts.accountId, row.id));
-
   const analyzerTaken = await db
     .select({
       id: analyzerAttempts.id,
@@ -261,49 +238,25 @@ export async function loadPerson(publicCode: string): Promise<PersonDetail | nul
   const extraIds = [
     row.referredByAccountId,
     ...children.map((item) => item.id),
-    ...casioAsReferrer.map((item) => item.accountId),
     ...analyzerAsReferrer.map((item) => item.accountId),
-    ...casioTaken.map((item) => item.referrerAccountId),
     ...analyzerTaken.map((item) => item.referrerAccountId),
   ].filter((id): id is number => typeof id === "number");
 
   const codeById = await loadCodeMap([...new Set([row.id, ...extraIds])]);
   const role = asRole(row.role);
-  const theyUsed: PersonAttemptLink[] = [
-    ...casioTaken
-      .filter((item) => item.referrerAccountId)
-      .map((item) => ({
-        kind: "casio" as const,
-        id: item.id,
-        slug: "casio-ss",
-        takerCode: codeById.get(row.id) ?? code,
-        takerNameFa: nameFa(row),
-        referrerCode: item.referrerAccountId ? (codeById.get(item.referrerAccountId) ?? null) : null,
-        direction: "they_used" as const,
-      })),
-    ...analyzerTaken
-      .filter((item) => item.referrerAccountId)
-      .map((item) => ({
-        kind: "analyzer" as const,
-        id: item.id,
-        slug: item.slug,
-        takerCode: codeById.get(row.id) ?? code,
-        takerNameFa: nameFa(row),
-        referrerCode: item.referrerAccountId ? (codeById.get(item.referrerAccountId) ?? null) : null,
-        direction: "they_used" as const,
-      })),
-  ];
-  const usedTheirs: PersonAttemptLink[] = [
-    ...casioAsReferrer.map((item) => ({
-      kind: "casio" as const,
+  const theyUsed: PersonAttemptLink[] = analyzerTaken
+    .filter((item) => item.referrerAccountId)
+    .map((item) => ({
+      kind: "analyzer" as const,
       id: item.id,
-      slug: "casio-ss",
-      takerCode: codeById.get(item.accountId) ?? "",
-      takerNameFa: nameFa(item),
-      referrerCode: code,
-      direction: "used_theirs" as const,
-    })),
-    ...analyzerAsReferrer.map((item) => ({
+      slug: item.slug,
+      takerCode: codeById.get(row.id) ?? code,
+      takerNameFa: nameFa(row),
+      referrerCode: item.referrerAccountId ? (codeById.get(item.referrerAccountId) ?? null) : null,
+      direction: "they_used" as const,
+    }));
+  const usedTheirs: PersonAttemptLink[] = analyzerAsReferrer
+    .map((item) => ({
       kind: "analyzer" as const,
       id: item.id,
       slug: item.slug,
@@ -311,8 +264,8 @@ export async function loadPerson(publicCode: string): Promise<PersonDetail | nul
       takerNameFa: nameFa(item),
       referrerCode: code,
       direction: "used_theirs" as const,
-    })),
-  ].filter((item) => item.takerCode);
+    }))
+    .filter((item) => item.takerCode);
 
   return {
     publicCode: code,
@@ -330,7 +283,7 @@ export async function loadPerson(publicCode: string): Promise<PersonDetail | nul
     familyName: row.familyName,
     email: row.email,
     telegramUserId: row.telegramUserId,
-    attemptCount: casioTaken.length + analyzerTaken.length,
+    attemptCount: analyzerTaken.length,
     referred: children
       .filter((item) => item.publicCode)
       .map((item) => ({
@@ -407,7 +360,7 @@ export async function setChildReferrer(input: {
 
 export async function setAttemptReferrer(input: {
   publicCode: string;
-  kind: "casio" | "analyzer";
+  kind: "analyzer";
   attemptId: number;
   referrer: unknown;
   actorId: number;
@@ -425,15 +378,6 @@ export async function setAttemptReferrer(input: {
     referrerAccountId = id;
   }
 
-  if (input.kind === "casio") {
-    const [row] = await db.select().from(casioAttempts).where(eq(casioAttempts.id, input.attemptId)).limit(1);
-    if (!row) return { ok: false, error: "attempt_missing" };
-    if (row.accountId !== target.id && row.referrerAccountId !== target.id) {
-      return { ok: false, error: "attempt_unrelated" };
-    }
-    await db.update(casioAttempts).set({ referrerAccountId }).where(eq(casioAttempts.id, row.id));
-    return { ok: true };
-  }
 
   const [row] = await db.select().from(analyzerAttempts).where(eq(analyzerAttempts.id, input.attemptId)).limit(1);
   if (!row) return { ok: false, error: "attempt_missing" };
@@ -516,7 +460,6 @@ export async function wipePerson(input: {
   }
   if (fields.includes("attempts")) {
     await db.delete(analyzerReports).where(eq(analyzerReports.accountId, target.id));
-    await db.delete(casioAttempts).where(eq(casioAttempts.accountId, target.id));
     await db.delete(analyzerAttempts).where(eq(analyzerAttempts.accountId, target.id));
   }
   if (fields.includes("phone")) {
@@ -551,7 +494,6 @@ export async function deletePerson(input: {
     .update(accounts)
     .set({ referredByAccountId: null, updatedAt: new Date() })
     .where(eq(accounts.referredByAccountId, target.id));
-  await db.update(casioAttempts).set({ referrerAccountId: null }).where(eq(casioAttempts.referrerAccountId, target.id));
   await db
     .update(analyzerAttempts)
     .set({ referrerAccountId: null })

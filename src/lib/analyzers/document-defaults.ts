@@ -119,8 +119,6 @@ export const HADIRAN_TEMPLATE_CSS = `/* جای لوگو */
 }
 `;
 
-export { CASIO_TEMPLATE_HTML } from "@/lib/analyzers/casio-ss/template-html";
-export { CASIO_TEMPLATE_CSS } from "@/lib/analyzers/casio-ss/template-css";
 
 /** قالب پایهٔ «عارضه‌یابی سیستم کسب‌وکار»: جدول امتیاز کلیدواژه‌ها، موج‌های مداخلهٔ علّی و برگهٔ A3. */
 export const SYSTEM_DIAGNOSIS_TEMPLATE_HTML = `<section class="doc-page hadiran-cover">

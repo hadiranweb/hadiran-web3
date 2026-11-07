@@ -1,57 +1,38 @@
-import { Client } from "pg";
-import { MIGRATION_FILES } from "./migration-files";
+import { spawn } from "node:child_process";
+import { access } from "node:fs/promises";
+import path from "node:path";
 
 export async function runHadiranMigrations(): Promise<void> {
-  const url = process.env.DATABASE_URL;
-  if (!url) {
+  if (!process.env.DATABASE_URL) {
     console.log("[hadiran] migrate skip: DATABASE_URL missing");
     return;
   }
 
-  const client = new Client({
-    connectionString: url,
-    connectionTimeoutMillis: 8000,
-  });
+  const cwd = process.cwd();
+  const scriptPath = path.join(cwd, "scripts", "apply-migrations.mjs");
   try {
-    await Promise.race([
-      client.connect(),
-      new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error("database connect timed out after 8000ms")), 8000);
-      }),
-    ]);
-  } catch (error) {
-    await client.end().catch(() => {});
-    throw error;
+    await access(scriptPath);
+  } catch {
+    throw new Error("scripts/apply-migrations.mjs is missing from the runtime image");
   }
-  try {
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS _hadiran_schema_migrations (
-        id TEXT PRIMARY KEY,
-        applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      )
-    `);
 
-    for (const file of MIGRATION_FILES) {
-      const already = await client.query("SELECT 1 FROM _hadiran_schema_migrations WHERE id = $1", [
-        file.id,
-      ]);
-      if ((already.rowCount ?? 0) > 0) {
-        console.log(`[hadiran] migrate skip ${file.id}`);
-        continue;
+  const args = [scriptPath];
+  if (process.env.NODE_ENV === "production") args.push("--allow-destructive-reset");
+
+  await new Promise<void>((resolve, reject) => {
+    const child = spawn(process.execPath, args, {
+      cwd,
+      env: process.env,
+      stdio: "inherit",
+    });
+
+    child.once("error", reject);
+    child.once("exit", (code, signal) => {
+      if (code === 0) {
+        resolve();
+        return;
       }
-      console.log(`[hadiran] migrate apply ${file.id}`);
-      await client.query("BEGIN");
-      try {
-        await client.query(file.sql);
-        await client.query("INSERT INTO _hadiran_schema_migrations (id) VALUES ($1)", [file.id]);
-        await client.query("COMMIT");
-      } catch (error) {
-        await client.query("ROLLBACK");
-        throw error;
-      }
-    }
-    console.log("[hadiran] migrate done");
-  } finally {
-    await client.end().catch(() => {});
-  }
+      reject(new Error(`migration process ended with code=${code ?? "null"} signal=${signal ?? "none"}`));
+    });
+  });
 }

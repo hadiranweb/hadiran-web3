@@ -68,11 +68,11 @@ export function radarSvgHtml(points: RadarPoint[], size = 320, caption = "نما
   const bottleneckNote = points.some((point) => point.bottleneck) ? " · رأس سرخ = گلوگاه" : "";
   const scale = `مقیاس ${faNum(0)} تا ${faScore(points[0]?.max ?? 20)}`;
 
-  return `<figure class="casio-radar doc-radar">
+  return `<figure class="doc-radar">
   <svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" role="img" aria-label="${caption}">
     ${ringMarkup}${axes}<polygon points="${dataPoly}" fill="rgba(21,96,130,0.28)" stroke="#156082" stroke-width="1.6"/>${dots}${labels}
   </svg>
-  <figcaption>${caption}${bottleneckNote}<span class="casio-radar-scale"> ${scale}</span></figcaption>
+  <figcaption>${caption}${bottleneckNote}<span class="doc-radar-scale"> ${scale}</span></figcaption>
 </figure>`;
 }
 

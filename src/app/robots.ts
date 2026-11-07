@@ -17,7 +17,6 @@ export default function robots(): MetadataRoute.Robots {
           "/account/",
           "/workspace",
           "/workspace/",
-          "/analyzers/casio-ss/report",
           "/analyzers/*/report",
           "/shop/orders",
           "/shop/orders/",

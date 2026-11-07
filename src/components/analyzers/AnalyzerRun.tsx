@@ -47,10 +47,10 @@ function persianError(code: string) {
 
 type DraftState = { consent: boolean; answers: AnswerMap; index: number };
 
-export function AnalyzerRun({ pack }: { pack: AnalyzerPack }) {
+export function AnalyzerRun({ pack, isOwner = false }: { pack: AnalyzerPack; isOwner?: boolean }) {
   const router = useRouter();
   const allItems = itemsOf(pack);
-  const draftKey = pack.slug === "casio-ss" ? "casio-ss" : `analyzer:${pack.slug}`;
+  const draftKey = `analyzer:${pack.slug}`;
   const api = `/api/analyzers/${pack.slug}`;
   const reportHref = `/analyzers/${pack.slug}/report`;
 
@@ -272,10 +272,12 @@ export function AnalyzerRun({ pack }: { pack: AnalyzerPack }) {
             <p key={para}>{para}</p>
           ))}
         </div>
-        {pack.slug !== "casio-ss" && executionOffer ? (
+        {executionOffer ? (
           <div className="mt-5 rounded-[var(--radius-md)] border border-line bg-elev p-4 text-sm">
             {executionOffer.available && executionOffer.priceIrr ? (
               <p className="text-ink">اجرای آزمون همراه نتیجهٔ پایه: {financeMoney(executionOffer.priceIrr, "IRR")}.</p>
+            ) : isOwner ? (
+              <p className="text-muted">تعرفهٔ اجرا هنوز تعریف نشده است. مالک می‌تواند این آزمون را فقط برای بررسی داخلی اجرا کند؛ اجرای اعضا تا تعیین تعرفه بسته می‌ماند.</p>
             ) : (
               <p className="text-mark">تعرفهٔ اجرا هنوز تعریف و فعال نشده؛ در وضعیت فعلی این آزمون قابل ثبت نیست.</p>
             )}
@@ -456,7 +458,7 @@ export function AnalyzerRun({ pack }: { pack: AnalyzerPack }) {
             disabled={
               busy ||
               (item.kind === "text" ? !textDraft.trim() : !done) ||
-              (pack.slug !== "casio-ss" && executionOffer?.available === false)
+              (!isOwner && executionOffer?.available === false)
             }
             onClick={() => {
               if (item.kind === "text" && textDraft.trim()) {
@@ -474,8 +476,7 @@ export function AnalyzerRun({ pack }: { pack: AnalyzerPack }) {
           </button>
         )}
       </div>
-      {pack.slug !== "casio-ss" &&
-      attemptId &&
+      {attemptId &&
       executionOffer?.available &&
       executionOffer.priceIrr &&
       !executionOffer.entitled ? (

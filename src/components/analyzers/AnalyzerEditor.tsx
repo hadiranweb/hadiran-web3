@@ -914,7 +914,7 @@ function ReportEditor({
             value={
               canonicalizeTemplateId(
                 report.documentTemplateId ||
-                  (pack.slug === "casio-ss" ? "casio-ss" : "hadiran"),
+                  "hadiran",
               )
             }
             onChange={(event) => onChange({ ...report, documentTemplateId: event.target.value })}
@@ -927,7 +927,7 @@ function ReportEditor({
           </select>
         </label>
         <p className="text-xs leading-6 text-slate-500">
-          هادیران ظاهر محصول است. کاسیو · پنج‌لایه همان چیدمان پژوهش با لوگوی کاسیو و نمودار چندوجهی لایه‌هاست.
+          قالب‌های سند بر اساس ساختار بستهٔ آزمون در دسترس‌اند؛ قالب عمومی هادیران برای آزمون‌های تازه استفاده می‌شود.
         </p>
         <label className="block text-sm">
           <span className="mb-1 block text-slate-600">خلاصهٔ کاربر (قالب)</span>

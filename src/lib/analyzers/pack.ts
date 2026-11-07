@@ -74,7 +74,7 @@ export type PackReport = {
   closingFa?: string;
   /** قالب یک‌پاراگرافی برای عضو. پارامترها داخل {آکولاد}. سند چندصفحه جداست. */
   userSummaryTemplateFa?: string;
-  /** قالب HTML سند: hadiran | casio-ss (و قالب‌های بعدی در جدول). */
+  /** شناسهٔ قالب سند از رجیستری قالب‌ها؛ آزمون‌ساز آن را در Pack ثبت می‌کند. */
   documentTemplateId?: string;
   businessNameItemId?: string;
   contextFields?: ReportContextFieldDef[];

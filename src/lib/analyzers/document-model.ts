@@ -1,7 +1,6 @@
 /** قرارداد نازک سند تفسیر. رندر چاپ از همین می‌خواند؛ نمرهٔ تازه نمی‌سازد. */
 
-import { buildCasioReport, layerBandFor } from "@/lib/analyzers/casio-ss/report";
-import { buildDiagnosisReport } from "@/lib/analyzers/system-diagnosis/report";
+import { buildDiagnosisReport, layerBandFor } from "@/lib/analyzers/system-diagnosis/report";
 import type { RespondentCausalGraphSummary } from "@/lib/analyzers/system-diagnosis/coding-causal-graph";
 import type { AdaptiveDeepDiveSummary } from "@/lib/analyzers/system-diagnosis/deep-dive-a3";
 import { buildGenericReport } from "@/lib/analyzers/generic-report";
@@ -145,51 +144,6 @@ export function buildInterpretationDocument(
     "نتیجهٔ این ارزیابی یک راهنمای کلی است، نه حکم قطعی دربارهٔ شما یا کسب‌وکارتان.";
 
   const resolvedTemplateId = resolveDocumentTemplateId(pack, templateId);
-
-  if (pack.slug === "casio-ss") {
-    const report = buildCasioReport(pack, row.rawAnswers, snapshot);
-    return {
-      packNameFa: pack.nameFa,
-      packSlug: pack.slug,
-      version: report.instrumentVersion,
-      templateId: resolvedTemplateId,
-      personNameFa: row.nameFa,
-      businessNameFa: report.businessName ?? row.businessName,
-      publicCode: row.publicCode,
-      submittedAt: row.submittedAt,
-      context: report.context,
-      totalScore: report.total,
-      totalScoreMax: 100,
-      totalFa: faScore(report.total),
-      maturityFa: report.maturity.labelFa,
-      bottleneckId: report.bottleneck.id,
-      bottleneckFa: report.bottleneck.titleFa,
-      bottleneckScore: report.bottleneck.score,
-      bottleneckScoreFa: faScore(report.bottleneck.score),
-      layers: report.layers.map((layer) => ({
-        id: layer.id,
-        titleFa: layer.titleFa,
-        constructFa: layer.constructFa,
-        score: layer.score,
-        scoreMax: 20,
-        scoreFa: faScore(layer.score),
-        scoreMaxFa: faNum(20),
-        statusFa: layer.band.labelFa,
-        asIsFa: layer.asIsFa,
-        toBeFa: layer.toBeFa,
-        actionsFa: layer.actionsFa,
-        isBottleneck: layer.isBottleneck,
-        keywords: layer.keywords.map((keyword) => ({
-          id: keyword.id,
-          titleFa: keyword.titleFa,
-          children: keyword.children,
-        })),
-      })),
-      scores: [],
-      patterns: report.patterns.map((pattern) => ({ meaningFa: pattern.meaningFa, actionFa: pattern.actionFa })),
-      closingFa: report.closingFa || closing,
-    };
-  }
 
   if (pack.slug === "system-diagnosis") {
     const report = buildDiagnosisReport(pack, row.rawAnswers, snapshot);

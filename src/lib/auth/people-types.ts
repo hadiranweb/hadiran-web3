@@ -35,7 +35,7 @@ export type PersonLink = {
 };
 
 export type PersonAttemptLink = {
-  kind: "casio" | "analyzer";
+  kind: "analyzer";
   id: number;
   slug: string;
   takerCode: string;

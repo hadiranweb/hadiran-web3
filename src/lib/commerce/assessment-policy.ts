@@ -4,9 +4,9 @@ export const ASSESSMENT_EXECUTION_SERVICE = "execution" as const;
 export const ASSESSMENT_SERVICES = [ASSESSMENT_EXECUTION_SERVICE, ...ASSESSMENT_ADDON_SERVICES] as const;
 export type AssessmentService = (typeof ASSESSMENT_SERVICES)[number];
 
-/** Casio keeps its isolated interpretation/document policy; execution pricing is for authored analyzer runs. */
-export function assessmentTariffServices(slug: string): readonly AssessmentService[] {
-  return slug === "casio-ss" ? ASSESSMENT_ADDON_SERVICES : ASSESSMENT_SERVICES;
+/** Every authored analyzer pack uses the same execution and add-on service contract. */
+export function assessmentTariffServices(_slug: string): readonly AssessmentService[] {
+  return ASSESSMENT_SERVICES;
 }
 
 const ZERO = BigInt(0);

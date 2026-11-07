@@ -1,1 +1,0 @@
-export { casioSsPack } from "./instrument";

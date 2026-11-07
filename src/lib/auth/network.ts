@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { accountPublicCodes, accounts, analyzerAttempts, casioAttempts } from "@/db/schema";
+import { accountPublicCodes, accounts, analyzerAttempts } from "@/db/schema";
 import { ensureAccessSchema } from "./schema-guard";
 import { roleFa, type AccountRole } from "./roles";
 
@@ -66,42 +66,31 @@ export async function listMyReferrals(accountId: number): Promise<{
   attempts: { publicCode: string; nameFa: string; slug: string }[];
 }> {
   await ensureAccessSchema();
-  const people = await db
-    .select({
-      givenName: accounts.givenName,
-      familyName: accounts.familyName,
-      displayName: accounts.displayName,
-      role: accounts.role,
-      publicCode: accountPublicCodes.code,
-    })
-    .from(accounts)
-    .leftJoin(accountPublicCodes, eq(accountPublicCodes.accountId, accounts.id))
-    .where(eq(accounts.referredByAccountId, accountId));
-
-  const casio = await db
-    .select({
-      givenName: accounts.givenName,
-      familyName: accounts.familyName,
-      displayName: accounts.displayName,
-      publicCode: accountPublicCodes.code,
-    })
-    .from(casioAttempts)
-    .innerJoin(accounts, eq(accounts.id, casioAttempts.accountId))
-    .leftJoin(accountPublicCodes, eq(accountPublicCodes.accountId, accounts.id))
-    .where(eq(casioAttempts.referrerAccountId, accountId));
-
-  const generic = await db
-    .select({
-      givenName: accounts.givenName,
-      familyName: accounts.familyName,
-      displayName: accounts.displayName,
-      publicCode: accountPublicCodes.code,
-      slug: analyzerAttempts.slug,
-    })
-    .from(analyzerAttempts)
-    .innerJoin(accounts, eq(accounts.id, analyzerAttempts.accountId))
-    .leftJoin(accountPublicCodes, eq(accountPublicCodes.accountId, accounts.id))
-    .where(eq(analyzerAttempts.referrerAccountId, accountId));
+  const [people, attempts] = await Promise.all([
+    db
+      .select({
+        givenName: accounts.givenName,
+        familyName: accounts.familyName,
+        displayName: accounts.displayName,
+        role: accounts.role,
+        publicCode: accountPublicCodes.code,
+      })
+      .from(accounts)
+      .leftJoin(accountPublicCodes, eq(accountPublicCodes.accountId, accounts.id))
+      .where(eq(accounts.referredByAccountId, accountId)),
+    db
+      .select({
+        givenName: accounts.givenName,
+        familyName: accounts.familyName,
+        displayName: accounts.displayName,
+        publicCode: accountPublicCodes.code,
+        slug: analyzerAttempts.slug,
+      })
+      .from(analyzerAttempts)
+      .innerJoin(accounts, eq(accounts.id, analyzerAttempts.accountId))
+      .leftJoin(accountPublicCodes, eq(accountPublicCodes.accountId, accounts.id))
+      .where(eq(analyzerAttempts.referrerAccountId, accountId)),
+  ]);
 
   return {
     accounts: people
@@ -111,17 +100,12 @@ export async function listMyReferrals(accountId: number): Promise<{
         nameFa: nameOf(row),
         roleFa: roleFa(row.role as AccountRole),
       })),
-    attempts: [
-      ...casio.filter((row) => row.publicCode).map((row) => ({
-        publicCode: row.publicCode as string,
-        nameFa: nameOf(row),
-        slug: "casio-ss",
-      })),
-      ...generic.filter((row) => row.publicCode).map((row) => ({
+    attempts: attempts
+      .filter((row) => row.publicCode)
+      .map((row) => ({
         publicCode: row.publicCode as string,
         nameFa: nameOf(row),
         slug: row.slug,
       })),
-    ],
   };
 }

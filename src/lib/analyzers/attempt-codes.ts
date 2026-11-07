@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { analyzerAttempts, casioAttempts } from "@/db/schema";
+import { analyzerAttempts } from "@/db/schema";
 import { quoteDiscount, redeemDiscount } from "@/lib/commerce/discount";
 import { publicCodeByAccountId } from "@/lib/auth/public-code";
 import { resolveReferralCode } from "@/lib/auth/referral";
@@ -51,27 +51,6 @@ export async function applyAttemptCodes(input: {
   const patch: { referrerAccountId?: number; discountCode?: string; updatedAt: Date } = { updatedAt: new Date() };
   if (referrerAccountId != null) patch.referrerAccountId = referrerAccountId;
   if (discount) patch.discountCode = discount;
-
-  if (input.slug === "casio-ss") {
-    const [open] = await db
-      .select({ referrerAccountId: casioAttempts.referrerAccountId, discountCode: casioAttempts.discountCode })
-      .from(casioAttempts)
-      .where(and(eq(casioAttempts.accountId, input.accountId), eq(casioAttempts.status, "in_progress")))
-      .limit(1);
-    if (open?.referrerAccountId) delete patch.referrerAccountId;
-    if (open?.discountCode) delete patch.discountCode;
-    if (patch.referrerAccountId != null || patch.discountCode) {
-      await db
-        .update(casioAttempts)
-        .set(patch)
-        .where(and(eq(casioAttempts.accountId, input.accountId), eq(casioAttempts.status, "in_progress")));
-    }
-    return {
-      ok: true,
-      referrerAccountId: patch.referrerAccountId ?? open?.referrerAccountId ?? null,
-      discountCode: patch.discountCode ?? open?.discountCode ?? null,
-    };
-  }
 
   const [open] = await db
     .select({ referrerAccountId: analyzerAttempts.referrerAccountId, discountCode: analyzerAttempts.discountCode })

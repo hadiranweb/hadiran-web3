@@ -2,11 +2,9 @@ import {
   BOTTLENECK_AS_IS_LABEL_FA,
   KEYWORD_ACCENT_COLORS,
   KEYWORD_GRAPH_NOTE_FA,
-  casioSummaryCopy,
-} from "@/lib/analyzers/casio-ss/report-copy";
+} from "@/lib/analyzers/document-copy";
 import { overallChartSvg, radarSvgHtml } from "@/lib/analyzers/document-radar-svg";
 import { faNum, type InterpretationDocument } from "@/lib/analyzers/document-model";
-import { canonicalizeTemplateId } from "@/lib/analyzers/document-templates";
 import { renderMustache, stripUnsafeHtml } from "@/lib/analyzers/mustache";
 
 export type DocumentLogos = {
@@ -139,14 +137,15 @@ export function documentTemplateContext(doc: InterpretationDocument, chrome: Doc
     accentColor: KEYWORD_ACCENT_COLORS[index % KEYWORD_ACCENT_COLORS.length],
   }));
   const bottleneckAsIsFa = bottleneckLayer?.asIsFa ?? "";
-  const summary = casioSummaryCopy({
-    personNameFa: doc.personNameFa,
-    totalScore: doc.totalScore,
-    totalFa: doc.totalFa ?? "—",
-    totalMaxFa: faNum(doc.totalScoreMax ?? 100),
-    bottleneckFa: doc.bottleneckFa ?? bottleneckLayer?.titleFa ?? "",
-    bottleneckAsIsFa,
-  });
+  const summaryTitleFa = doc.bottleneckFa
+    ? `گلوگاه برجسته: ${doc.bottleneckFa}`
+    : `خلاصهٔ ارزیابی «${doc.packNameFa}»`;
+  const summaryParagraphsFa = [
+    `${doc.personNameFa} عزیز، ارزیابی «${doc.packNameFa}» ثبت شده است.`,
+    ...(doc.totalFa ? [`نمرهٔ کلی: ${doc.totalFa} از ${faNum(doc.totalScoreMax ?? 100)}.`] : []),
+    ...(doc.bottleneckFa ? [`گلوگاه ثبت‌شده: ${doc.bottleneckFa}.`] : []),
+    ...(bottleneckAsIsFa ? [`وضعیت موجود: ${bottleneckAsIsFa}`] : []),
+  ];
 
   const a3sheet = doc.deepDive?.a3Sheet;
   const a3 = a3sheet
@@ -201,11 +200,11 @@ export function documentTemplateContext(doc: InterpretationDocument, chrome: Doc
     hasContext: doc.context.length > 0,
     hasPatterns: doc.patterns.length > 0,
     hasPublicCode: Boolean(doc.publicCode),
-    hasSummary: summary.summaryParagraphsFa.length > 0,
+    hasSummary: summaryParagraphsFa.length > 0,
     hasKeywordGraph: keywordGraphGroups.length > 0,
     hasQr: false,
-    summaryTitleFa: summary.summaryTitleFa,
-    summaryParagraphsFa: summary.summaryParagraphsFa,
+    summaryTitleFa,
+    summaryParagraphsFa,
     keywordGraphGroups,
     a3,
     hasA3: Boolean(a3),
@@ -320,7 +319,7 @@ export function renderChromeDocument(chrome: DocumentChrome, doc: Interpretation
   const ctx = documentTemplateContext(doc, chrome);
   const html = stripUnsafeHtml(renderMustache(chrome.html, ctx));
   const css = renderMustache(chrome.css, ctx);
-  const layout = canonicalizeTemplateId(doc.templateId) === "casio-ss" ? "doc-casio" : "doc-hadiran";
+  const layout = "doc-hadiran";
   return {
     html,
     css,
@@ -332,8 +331,8 @@ export function renderChromeDocument(chrome: DocumentChrome, doc: Interpretation
 
 export function sampleInterpretationDocument(templateId: string): InterpretationDocument {
   return {
-    packNameFa: "عارضه‌یابی پنج‌لایه",
-    packSlug: "casio-ss",
+    packNameFa: "آزمون نمونه",
+    packSlug: "sample-analyzer",
     version: "پیش‌نمایش",
     templateId,
     personNameFa: "نمونهٔ پیش‌نمایش",
