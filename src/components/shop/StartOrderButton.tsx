@@ -30,6 +30,7 @@ export function StartOrderButton({ slug }: { slug: string }) {
           payout_not_configured: "مقصد دریافت هنوز تنظیم نشده.",
           already_entitled: "این کالا را قبلاً گرفته‌ای.",
           listing_unavailable: "این کالا در دسترس نیست.",
+          subscription_plan_unavailable: "تنظیم سهمیه یا مدت اشتراک کامل و فعال نیست.",
           invalid_discount: "کد تخفیف نامعتبر است.",
           unknown_discount: "کد تخفیف پیدا نشد.",
           discount_exhausted: "ظرفیت این کد تمام شده.",

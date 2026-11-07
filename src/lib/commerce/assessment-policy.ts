@@ -1,6 +1,13 @@
 /** Pure quotation rules only. Authorization, posting and fulfillment stay server-side. */
-export const ASSESSMENT_SERVICES = ["interpretation", "document"] as const;
+export const ASSESSMENT_ADDON_SERVICES = ["interpretation", "document"] as const;
+export const ASSESSMENT_EXECUTION_SERVICE = "execution" as const;
+export const ASSESSMENT_SERVICES = [ASSESSMENT_EXECUTION_SERVICE, ...ASSESSMENT_ADDON_SERVICES] as const;
 export type AssessmentService = (typeof ASSESSMENT_SERVICES)[number];
+
+/** Casio keeps its isolated interpretation/document policy; execution pricing is for authored analyzer runs. */
+export function assessmentTariffServices(slug: string): readonly AssessmentService[] {
+  return slug === "casio-ss" ? ASSESSMENT_ADDON_SERVICES : ASSESSMENT_SERVICES;
+}
 
 const ZERO = BigInt(0);
 const ONE = BigInt(1);

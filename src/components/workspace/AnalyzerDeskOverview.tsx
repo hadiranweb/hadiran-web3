@@ -21,7 +21,15 @@ const states: Record<string, [string, string]> = {
   archived: ["بایگانی", "Archived"],
 };
 
-export function AnalyzerDeskOverview({ snapshot, canCreate }: { snapshot: DeskSnapshot; canCreate: boolean }) {
+export function AnalyzerDeskOverview({
+  snapshot,
+  canCreate,
+  authoringQuota,
+}: {
+  snapshot: DeskSnapshot;
+  canCreate: boolean;
+  authoringQuota: { isOwner: boolean; remaining: number | null; activeSubscriptions: number; nextExpiry: string | null } | null;
+}) {
   const { t, locale, number } = useWorkspaceLocale();
   const router = useRouter();
   const [busy, refresh] = useTransition();
@@ -52,6 +60,28 @@ export function AnalyzerDeskOverview({ snapshot, canCreate }: { snapshot: DeskSn
           ) : null}
         </div>
       </header>
+      {canCreate && snapshot.source === "live" ? (
+        <section className="rh-panel flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-semibold">{t("سهمیهٔ ساخت آزمون", "Assessment-authoring quota")}</h2>
+            {authoringQuota?.isOwner ? (
+              <p className="mt-1 text-sm text-slate-600">{t("مالک برای ساخت آزمون به اشتراک نیاز ندارد.", "Owner authoring is not quota-gated.")}</p>
+            ) : authoringQuota ? (
+              <p className="mt-1 text-sm text-slate-600">
+                {t("آزمون قابل ساخت", "Assessments available")}: {number(authoringQuota.remaining ?? 0)}
+                {authoringQuota.nextExpiry ? ` · ${t("تمدید تا", "Active until")} ${date(authoringQuota.nextExpiry)}` : ""}
+              </p>
+            ) : (
+              <p className="mt-1 text-sm text-slate-600">{t("وضعیت اشتراک در دسترس نیست.", "Subscription status is unavailable.")}</p>
+            )}
+          </div>
+          {!authoringQuota?.isOwner ? (
+            <Link className="rh-button" href="/shop?kind=assessment_authoring_subscription">
+              {t("خرید یا تمدید اشتراک", "Buy or renew a subscription")}
+            </Link>
+          ) : null}
+        </section>
+      ) : null}
       {snapshot.source !== "live" ? (
         <p className="rh-warning" role="status">
           {t("داده‌ها در دسترس نیستند؛ دادهٔ نمونه جایگزین نشده است.", "Data is unavailable; no sample records have been substituted.")}

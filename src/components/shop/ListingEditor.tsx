@@ -24,6 +24,9 @@ type Initial = {
   specs?: SpecRow[] | null;
   imageUrls?: string[];
   courseId: number | null;
+  authoringQuota?: number | null;
+  authoringDurationDays?: number | null;
+  authoringRenewalPolicy?: "immediate" | "after_current" | null;
   published: boolean;
 };
 
@@ -38,7 +41,9 @@ export function ListingEditor({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [kind, setKind] = useState<ShopKind>(
-    initial?.kind === "physical_good" || initial?.kind === "course_access"
+    initial?.kind === "physical_good" ||
+    initial?.kind === "course_access" ||
+    initial?.kind === "assessment_authoring_subscription"
       ? initial.kind
       : "digital_entitlement",
   );
@@ -65,6 +70,11 @@ export function ListingEditor({
       specs: specs.filter((row) => row.key.trim() && row.value.trim()),
       images: imageUrls,
       courseId: String(form.get("courseId") ?? "") || null,
+      authoringQuota: kind === "assessment_authoring_subscription" ? String(form.get("authoringQuota") ?? "") : null,
+      authoringDurationDays:
+        kind === "assessment_authoring_subscription" ? String(form.get("authoringDurationDays") ?? "") : null,
+      authoringRenewalPolicy:
+        kind === "assessment_authoring_subscription" ? String(form.get("authoringRenewalPolicy") ?? "") : null,
       published: form.get("published") === "on",
     };
     const url = initial ? `/api/workspace/shop/listings/${initial.id}` : "/api/workspace/shop/listings";
@@ -101,7 +111,7 @@ export function ListingEditor({
       <fieldset className="rounded-2xl border border-slate-200 p-3">
         <legend className="px-1 text-sm font-medium text-slate-700">نوع کالا</legend>
         <div className="flex flex-wrap gap-3 text-sm">
-          {(["digital_entitlement", "physical_good", "course_access"] as const).map((value) => (
+          {(["digital_entitlement", "physical_good", "course_access", "assessment_authoring_subscription"] as const).map((value) => (
             <label key={value} className="flex items-center gap-2">
               <input type="radio" name="kind" checked={kind === value} onChange={() => setKind(value)} />
               {shopKindFa(value)}
@@ -109,6 +119,50 @@ export function ListingEditor({
           ))}
         </div>
       </fieldset>
+      {kind === "assessment_authoring_subscription" ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block text-sm">
+            سهمیهٔ ساخت آزمون
+            <input
+              name="authoringQuota"
+              type="number"
+              min={1}
+              max={100000}
+              required
+              defaultValue={initial?.authoringQuota ?? ""}
+              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+            />
+          </label>
+          <label className="block text-sm">
+            مدت اشتراک (روز)
+            <input
+              name="authoringDurationDays"
+              type="number"
+              min={1}
+              max={3650}
+              required
+              defaultValue={initial?.authoringDurationDays ?? ""}
+              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+            />
+          </label>
+          <label className="block text-sm sm:col-span-2">
+            سیاست شروع تمدید
+            <select
+              name="authoringRenewalPolicy"
+              required
+              defaultValue={initial?.authoringRenewalPolicy ?? ""}
+              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+            >
+              <option value="">انتخاب سیاست</option>
+              <option value="immediate">شروع هر اشتراک از زمان تأیید همان سفارش</option>
+              <option value="after_current">شروع پس از پایان دیرترین اشتراک فعلی</option>
+            </select>
+          </label>
+          <p className="text-xs leading-6 text-slate-500 sm:col-span-2">
+            سهمیه هنگام ساخت آزمون مصرف می‌شود؛ ویرایش آزمون موجود سهمیهٔ تازه نمی‌گیرد. دوره از زمان شروعِ تعیین‌شده و تأیید سفارش محاسبه می‌شود.
+          </p>
+        </div>
+      ) : null}
       <label className="block text-sm">
         خلاصه
         <textarea name="summaryFa" rows={3} defaultValue={initial?.summaryFa ?? ""} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" />

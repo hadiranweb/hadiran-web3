@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 type Tariff = {
-  service: "interpretation" | "document";
+  service: "execution" | "interpretation" | "document";
   priceToman: string;
   commissionPercent: string;
   rounding: "" | "floor" | "ceil";
@@ -12,8 +12,9 @@ type Tariff = {
 };
 
 const LABELS = {
-  interpretation: "تفسیر کامل",
-  document: "سند چندصفحه",
+  execution: "اجرای آزمون همراه نتیجهٔ پایه",
+  interpretation: "تفسیر کامل (مستقل)",
+  document: "سند چندصفحه (مستقل)",
 } as const;
 
 export function AssessmentTariffForm({
@@ -65,10 +66,10 @@ export function AssessmentTariffForm({
 
   return (
     <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4">
-      <h2 className="text-base font-bold text-slate-900">تعرفهٔ خدمات این نوبت</h2>
+      <h2 className="text-base font-bold text-slate-900">تعرفهٔ این آزمون</h2>
       <p className="text-sm leading-7 text-slate-600">
-        ذخیره به ریال دقیق است؛ نمایش تومان. کارمزد از قیمت پیش از تخفیف. بدون تعرفهٔ کامل، فروش فعال نمی‌شود و قیمت صفر
-        فرض نمی‌شود.
+        یک تعرفهٔ اجرا، نتیجهٔ پایهٔ همان نوبت را هم شامل می‌شود؛ همان اجرا دوباره شارژ نمی‌شود. تفسیر و سند عرضه‌های مستقل‌اند.
+        مبلغ با IRR ذخیره و به تومان نمایش داده می‌شود. تعرفهٔ ناقص فعال نمی‌شود و قیمت صفر فرض نمی‌شود.
       </p>
       {rows.map((row) => (
         <fieldset key={row.service} className="space-y-3 rounded-xl border border-slate-100 p-3" disabled={Boolean(busy)}>

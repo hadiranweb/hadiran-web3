@@ -175,6 +175,7 @@ export async function saveAnswer(
 export async function submitAttempt(
   accountId: number,
   pack: AnalyzerPack,
+  options: { isOwner?: boolean } = {},
 ): Promise<{ ok: true; attempt: AttemptView } | { ok: false; error: string }> {
   await ensureAnalyzerAuthoringSchema();
   const row = await openAttempt(accountId, pack.slug);
@@ -186,6 +187,13 @@ export async function submitAttempt(
   if (!row.consentAt) return { ok: false, error: "consent_required" };
   const answers = filterAnswers(pack, row.answers);
   if (!isComplete(pack, answers)) return { ok: false, error: "incomplete" };
+  if (!options.isOwner) {
+    const { activeAssessmentTariff, hasAssessmentEntitlement } = await import("@/lib/finance/assessment-orders");
+    const tariff = await activeAssessmentTariff(pack.slug, "execution");
+    if (!tariff) return { ok: false, error: "execution_tariff_unavailable" };
+    const entitled = await hasAssessmentEntitlement(accountId, "analyzer", row.id, "execution");
+    if (!entitled) return { ok: false, error: "execution_payment_required" };
+  }
   let results: AttemptView["results"];
   try {
     results = scorePack(pack, answers);

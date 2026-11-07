@@ -3,6 +3,7 @@ import { requirePageAnalyzerDesk } from "@/lib/auth/guard";
 import { isStaff } from "@/lib/auth/roles";
 import { loadDeskSnapshot } from "@/lib/workspace/desk-home";
 import { AnalyzerDeskOverview } from "@/components/workspace/AnalyzerDeskOverview";
+import { getAssessmentAuthoringQuota } from "@/lib/analyzers/subscriptions";
 
 export const dynamic = "force-dynamic";
 
@@ -19,5 +20,12 @@ export default async function WorkspaceAnalyzersPage({
   const account = await requirePageAnalyzerDesk("/workspace/analyzers");
   const params = await searchParams;
   const snapshot = await loadDeskSnapshot(account, params.filter, params.page);
-  return <AnalyzerDeskOverview snapshot={snapshot} canCreate={isStaff(account.role)} />;
+  const canCreate = isStaff(account.role);
+  const authoringQuota = canCreate
+    ? await getAssessmentAuthoringQuota(account.id, account.role === "owner").catch((error) => {
+        console.error("[hadiran] analyzer authoring quota", error);
+        return null;
+      })
+    : null;
+  return <AnalyzerDeskOverview snapshot={snapshot} canCreate={canCreate} authoringQuota={authoringQuota} />;
 }

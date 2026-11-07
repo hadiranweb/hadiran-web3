@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { db } from "@/db";
-import { courses, shopListingImages, shopListings } from "@/db/schema";
+import { assessmentAuthoringPlans, courses, shopListingImages, shopListings } from "@/db/schema";
 import { eq, asc } from "drizzle-orm";
 import { requirePageOwner } from "@/lib/auth/guard";
 import { ListingEditor } from "@/components/shop/ListingEditor";
@@ -22,6 +22,19 @@ export default async function EditListingPage({ params }: Props) {
   await requirePageOwner(`/workspace/shop/listings/${id}`);
   const [item] = await db.select().from(shopListings).where(eq(shopListings.id, id));
   if (!item) notFound();
+  let authoringPlan: typeof assessmentAuthoringPlans.$inferSelect | null = null;
+  if (item.kind === "assessment_authoring_subscription") {
+    try {
+      const [plan] = await db
+        .select()
+        .from(assessmentAuthoringPlans)
+        .where(eq(assessmentAuthoringPlans.listingId, item.id))
+        .limit(1);
+      authoringPlan = plan ?? null;
+    } catch (error) {
+      console.error("[hadiran] authoring plan config", error);
+    }
+  }
   let imageUrls: string[] = [];
   try {
     const rows = await db
@@ -60,6 +73,12 @@ export default async function EditListingPage({ params }: Props) {
           specs: item.specs,
           imageUrls,
           courseId: item.courseId,
+          authoringQuota: authoringPlan?.quotaPerPeriod ?? null,
+          authoringDurationDays: authoringPlan?.durationDays ?? null,
+          authoringRenewalPolicy:
+            authoringPlan?.renewalPolicy === "immediate" || authoringPlan?.renewalPolicy === "after_current"
+              ? authoringPlan.renewalPolicy
+              : null,
           published: item.published,
         }}
       />

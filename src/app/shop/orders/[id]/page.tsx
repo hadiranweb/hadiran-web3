@@ -9,6 +9,7 @@ import { orderStateFa } from "@/lib/shop/states";
 import { BuyerOrderActions } from "@/components/shop/BuyerOrderActions";
 import { MarkdownReadonly } from "@/components/MarkdownReadonly";
 import { hasListingEntitlement } from "@/lib/shop/access";
+import { getAssessmentAuthoringQuota } from "@/lib/analyzers/subscriptions";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -30,7 +31,15 @@ export default async function ShopOrderPage({ params }: Props) {
   if (account.role !== "owner" && order.buyerId !== account.id) notFound();
   const [listing] = await db.select().from(shopListings).where(eq(shopListings.id, order.listingId));
   if (!listing) notFound();
-  const entitled = account.role === "owner" || (await hasListingEntitlement(account.id, listing.id));
+  const isAuthoringSubscription = listing.kind === "assessment_authoring_subscription";
+  const entitled = !isAuthoringSubscription && (account.role === "owner" || (await hasListingEntitlement(account.id, listing.id)));
+  const authoringQuota =
+    isAuthoringSubscription && account.role !== "owner"
+      ? await getAssessmentAuthoringQuota(account.id).catch((error) => {
+          console.error("[hadiran] shop order authoring quota", error);
+          return null;
+        })
+      : null;
 
   return (
     <main className="mx-auto max-w-3xl space-y-6 px-4 py-10">
@@ -61,7 +70,19 @@ export default async function ShopOrderPage({ params }: Props) {
 
       {account.role !== "owner" ? <BuyerOrderActions orderId={order.id} state={order.state} /> : null}
 
-      {entitled && order.state === "settled" ? (
+      {isAuthoringSubscription && order.state === "settled" ? (
+        <section className="surface space-y-3 p-4">
+          <p className="text-sm font-medium text-good">اشتراک آزمون‌ساز پس از تأیید سفارش فعال شده است.</p>
+          {authoringQuota ? (
+            <p className="text-sm text-muted">
+              سهمیهٔ قابل استفاده: {authoringQuota.remaining?.toLocaleString("fa-IR") ?? "۰"} آزمون.
+            </p>
+          ) : null}
+          <Link href="/workspace/analyzers" className="inline-block text-sm text-accent">
+            رفتن به میز آزمون‌ساز
+          </Link>
+        </section>
+      ) : entitled && order.state === "settled" ? (
         <section className="surface p-4">
           <p className="mb-2 text-sm font-medium text-good">تحویل دسترسی</p>
           <MarkdownReadonly source={listing.accessBodyFa} emptyLabel="محتوای تحویل خالی است." />

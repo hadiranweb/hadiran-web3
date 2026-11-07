@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { AssessmentPurchasePanel } from "@/components/analyzers/AssessmentPurchasePanel";
 import { itemsOf, sectionOf, type AnalyzerPack, type Item } from "@/lib/analyzers/pack";
 import {
   answeredCount,
@@ -12,6 +13,7 @@ import {
   type AttemptView,
 } from "@/lib/analyzers/runtime";
 import { clearDraft, readDraft, writeDraft } from "@/lib/ui/draft";
+import { financeMoney } from "@/lib/finance/types";
 
 const FA = "۰۱۲۳۴۵۶۷۸۹";
 const fieldClass =
@@ -37,6 +39,8 @@ function persianError(code: string) {
     discount_scope: "این کد برای این آزمون نیست.",
     save_failed: "ذخیره نشد. دوباره تلاش کنید.",
     score_failed: "نمره محاسبه نشد. تعریف آزمون را بررسی کنید.",
+    execution_payment_required: "برای ثبت این نوبت، اجرای آزمون و نتیجهٔ پایه را فعال کن.",
+    execution_tariff_unavailable: "تعرفهٔ اجرا هنوز کامل و فعال نیست؛ تا آن زمان این آزمون قابل ثبت نیست.",
   };
   return map[code] || "خطایی رخ داد.";
 }
@@ -57,6 +61,12 @@ export function AnalyzerRun({ pack }: { pack: AnalyzerPack }) {
   const [referralCode, setReferralCode] = useState("");
   const [discountCode, setDiscountCode] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [attemptId, setAttemptId] = useState<number | null>(null);
+  const [executionOffer, setExecutionOffer] = useState<{
+    available: boolean;
+    priceIrr: string | null;
+    entitled: boolean;
+  } | null>(null);
   const [answers, setAnswers] = useState<AnswerMap>({});
   const [index, setIndex] = useState(0);
   const [textDraft, setTextDraft] = useState("");
@@ -73,7 +83,13 @@ export function AnalyzerRun({ pack }: { pack: AnalyzerPack }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    const data = (await res.json()) as { attempt?: AttemptView; error?: string };
+    const data = (await res.json()) as {
+      attempt?: AttemptView;
+      executionOffer?: { available: boolean; priceIrr: string | null; entitled: boolean } | null;
+      error?: string;
+    };
+    if ("executionOffer" in data) setExecutionOffer(data.executionOffer ?? null);
+    if (data.attempt) setAttemptId(data.attempt.id);
     if (res.status === 401) {
       setError("unauthorized");
       return null;
@@ -102,9 +118,14 @@ export function AnalyzerRun({ pack }: { pack: AnalyzerPack }) {
         return;
       }
       if (!res.ok) return;
-      const data = (await res.json()) as { attempt: AttemptView | null };
+      const data = (await res.json()) as {
+        attempt: AttemptView | null;
+        executionOffer?: { available: boolean; priceIrr: string | null; entitled: boolean } | null;
+      };
+      setExecutionOffer(data.executionOffer ?? null);
       const attempt = data.attempt;
       if (!attempt) return;
+      setAttemptId(attempt.id);
       if (attempt.status === "submitted") {
         clearDraft(draftKey);
         router.replace(reportHref);
@@ -251,6 +272,15 @@ export function AnalyzerRun({ pack }: { pack: AnalyzerPack }) {
             <p key={para}>{para}</p>
           ))}
         </div>
+        {pack.slug !== "casio-ss" && executionOffer ? (
+          <div className="mt-5 rounded-[var(--radius-md)] border border-line bg-elev p-4 text-sm">
+            {executionOffer.available && executionOffer.priceIrr ? (
+              <p className="text-ink">اجرای آزمون همراه نتیجهٔ پایه: {financeMoney(executionOffer.priceIrr, "IRR")}.</p>
+            ) : (
+              <p className="text-mark">تعرفهٔ اجرا هنوز تعریف و فعال نشده؛ در وضعیت فعلی این آزمون قابل ثبت نیست.</p>
+            )}
+          </div>
+        ) : null}
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
           <label className="block text-sm">
             <span className="mb-1 block text-muted">کد معرف (اختیاری)</span>
@@ -423,7 +453,11 @@ export function AnalyzerRun({ pack }: { pack: AnalyzerPack }) {
         ) : (
           <button
             type="button"
-            disabled={busy || (item.kind === "text" ? !textDraft.trim() : !done)}
+            disabled={
+              busy ||
+              (item.kind === "text" ? !textDraft.trim() : !done) ||
+              (pack.slug !== "casio-ss" && executionOffer?.available === false)
+            }
             onClick={() => {
               if (item.kind === "text" && textDraft.trim()) {
                 void (async () => {
@@ -440,6 +474,21 @@ export function AnalyzerRun({ pack }: { pack: AnalyzerPack }) {
           </button>
         )}
       </div>
+      {pack.slug !== "casio-ss" &&
+      attemptId &&
+      executionOffer?.available &&
+      executionOffer.priceIrr &&
+      !executionOffer.entitled ? (
+        <AssessmentPurchasePanel
+          slug={pack.slug}
+          attemptId={attemptId}
+          service="execution"
+          title="اجرای آزمون همراه نتیجهٔ پایه"
+          payableIrr={executionOffer.priceIrr}
+          entitled={false}
+          onEntitled={() => setExecutionOffer((current) => (current ? { ...current, entitled: true } : current))}
+        />
+      ) : null}
     </section>
   );
 }

@@ -1,10 +1,19 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { accounts, shopEntitlements, shopListings, shopOrderEvents, shopOrders, shopPayoutDestinations } from "@/db/schema";
+import {
+  accounts,
+  assessmentAuthoringPlans,
+  shopEntitlements,
+  shopListings,
+  shopOrderEvents,
+  shopOrders,
+  shopPayoutDestinations,
+} from "@/db/schema";
 import { newCanonicalId } from "@/lib/knowledge/ids";
 import { ensureAccessSchema } from "@/lib/auth/schema-guard";
 import { quoteDiscount, redeemDiscount, type DiscountQuote } from "@/lib/commerce/discount";
 import { OPEN_ORDER_STATES, type OrderState } from "./states";
+import { provisionAssessmentAuthoringSubscription, snapshotAssessmentAuthoringPlan } from "./assessment-authoring-plan";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type Order = typeof shopOrders.$inferSelect;
@@ -98,6 +107,25 @@ export async function createOrResumeOrder(opts: {
       .for("share");
     if (!listing?.published) throw new ShopError("listing_unavailable", 404);
     if (listing.amount <= 0) throw new ShopError("invalid_amount", 400);
+    const isAuthoringSubscription = listing.kind === "assessment_authoring_subscription";
+    if (isAuthoringSubscription) {
+      const [plan] = await tx
+        .select()
+        .from(assessmentAuthoringPlans)
+        .where(and(eq(assessmentAuthoringPlans.listingId, listing.id), eq(assessmentAuthoringPlans.active, true)))
+        .limit(1)
+        .for("share");
+      if (
+        !plan ||
+        !Number.isSafeInteger(plan.quotaPerPeriod) ||
+        plan.quotaPerPeriod <= 0 ||
+        !Number.isSafeInteger(plan.durationDays) ||
+        plan.durationDays <= 0 ||
+        (plan.renewalPolicy !== "immediate" && plan.renewalPolicy !== "after_current")
+      ) {
+        throw new ShopError("subscription_plan_unavailable", 409);
+      }
+    }
     const [payout] = await tx.select().from(shopPayoutDestinations).where(eq(shopPayoutDestinations.id, 1)).limit(1);
     if (!payout?.accountHandle) throw new ShopError("payout_not_configured", 409);
     const [entitled] = await tx
@@ -105,7 +133,7 @@ export async function createOrResumeOrder(opts: {
       .from(shopEntitlements)
       .where(and(eq(shopEntitlements.accountId, who.id), eq(shopEntitlements.listingId, listing.id)))
       .limit(1);
-    if (entitled) throw new ShopError("already_entitled", 409);
+    if (entitled && !isAuthoringSubscription) throw new ShopError("already_entitled", 409);
     const [open] = await tx
       .select()
       .from(shopOrders)
@@ -153,6 +181,9 @@ export async function createOrResumeOrder(opts: {
         originalAmount: listing.amount,
       })
       .returning();
+    if (isAuthoringSubscription) {
+      await snapshotAssessmentAuthoringPlan(tx, created.id, listing.id);
+    }
     if (quote && !(await redeemDiscount({ quote, accountId: who.id, source: "shop", orderId: created.id }, tx))) {
       throw new ShopError("discount_exhausted", 400);
     }
@@ -199,6 +230,20 @@ export async function confirmReceipt(opts: { orderId: string; actorId: number })
       })
       .onConflictDoNothing()
       .returning({ id: shopEntitlements.id });
+    const [listing] = await tx
+      .select({ kind: shopListings.kind })
+      .from(shopListings)
+      .where(eq(shopListings.id, result.listingId))
+      .limit(1)
+      .for("share");
+    if (listing?.kind === "assessment_authoring_subscription") {
+      const activated = await provisionAssessmentAuthoringSubscription(tx, {
+        orderId: result.id,
+        listingId: result.listingId,
+        accountId: result.buyerId,
+      });
+      if (!activated) throw new ShopError("subscription_provision_failed", 409);
+    }
     if (order.state !== "settled") await event(tx, who, result, "receipt_confirmed", order.state);
     else if (granted.length) await event(tx, who, result, "access_repaired", order.state);
     return result;

@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/db";
-import { shopListingImages, shopListings } from "@/db/schema";
+import { assessmentAuthoringPlans, shopListingImages, shopListings } from "@/db/schema";
 import { and, asc, eq, ne } from "drizzle-orm";
 import { getCurrentAccount } from "@/lib/auth/session";
 import { hasListingEntitlement } from "@/lib/shop/access";
+import { getAssessmentAuthoringQuota } from "@/lib/analyzers/subscriptions";
 import { formatMoney } from "@/lib/shop/money";
 import { isPhysicalKind, shopKindFa } from "@/lib/shop/kinds";
 import { publicShopFilter } from "@/lib/public/policy";
@@ -40,9 +41,31 @@ export default async function ShopItemPage({ params }: Props) {
   const { slug } = await params;
   const [item] = await db.select().from(shopListings).where(eq(shopListings.slug, slug));
   if (!item || !item.published) notFound();
+  const isAuthoringSubscription = item.kind === "assessment_authoring_subscription";
   const account = await getCurrentAccount();
   const entitled =
-    account?.role === "owner" || (account ? await hasListingEntitlement(account.id, item.id) : false);
+    !isAuthoringSubscription &&
+    (account?.role === "owner" || (account ? await hasListingEntitlement(account.id, item.id) : false));
+  let authoringPlan: typeof assessmentAuthoringPlans.$inferSelect | null = null;
+  if (isAuthoringSubscription) {
+    try {
+      const [plan] = await db
+        .select()
+        .from(assessmentAuthoringPlans)
+        .where(and(eq(assessmentAuthoringPlans.listingId, item.id), eq(assessmentAuthoringPlans.active, true)))
+        .limit(1);
+      authoringPlan = plan ?? null;
+    } catch (error) {
+      console.error("[hadiran] public authoring plan", error);
+    }
+  }
+  const authoringQuota =
+    isAuthoringSubscription && account && account.role !== "owner"
+      ? await getAssessmentAuthoringQuota(account.id).catch((error) => {
+          console.error("[hadiran] public authoring quota", error);
+          return null;
+        })
+      : null;
   let images: string[] = [];
   try {
     const rows = await db
@@ -72,17 +95,23 @@ export default async function ShopItemPage({ params }: Props) {
     console.error("[hadiran] related listings", error);
   }
 
-  const deliverySteps = isPhysicalKind(item.kind)
+  const deliverySteps = isAuthoringSubscription
     ? [
         "مبلغ را روی ریل بیرونی سایت پرداخت می‌کنی و شمارهٔ پیگیری را می‌گذاری.",
-        "مالک رسید را می‌بیند و تأیید یا رد می‌کند؛ سایت خودش نمی‌گوید پول آمده.",
-        "بعد از تأیید، هماهنگی ارسال همین‌جا نوشته می‌شود.",
+        "مالک رسید را می‌بیند؛ فقط پس از تأیید، اشتراک و سهمیه فعال می‌شود.",
+        "دوره از زمان تأیید شروع می‌شود و هر آزمون تازه یک واحد از سهمیه کم می‌کند.",
       ]
-    : [
-        "مبلغ را روی ریل بیرونی سایت پرداخت می‌کنی و شمارهٔ پیگیری را می‌گذاری.",
-        "بعد از تأیید دریافت، متن دسترسی یا محتوای تحویل باز می‌شود.",
-        "همین خرید برای همین کالا یک‌بار دسترسی می‌دهد؛ خرید دوباره لازم نیست.",
-      ];
+    : isPhysicalKind(item.kind)
+      ? [
+          "مبلغ را روی ریل بیرونی سایت پرداخت می‌کنی و شمارهٔ پیگیری را می‌گذاری.",
+          "مالک رسید را می‌بیند و تأیید یا رد می‌کند؛ سایت خودش نمی‌گوید پول آمده.",
+          "بعد از تأیید، هماهنگی ارسال همین‌جا نوشته می‌شود.",
+        ]
+      : [
+          "مبلغ را روی ریل بیرونی سایت پرداخت می‌کنی و شمارهٔ پیگیری را می‌گذاری.",
+          "بعد از تأیید دریافت، متن دسترسی یا محتوای تحویل باز می‌شود.",
+          "همین خرید برای همین کالا یک‌بار دسترسی می‌دهد؛ خرید دوباره لازم نیست.",
+        ];
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
@@ -103,13 +132,33 @@ export default async function ShopItemPage({ params }: Props) {
             {formatMoney(item.amount, item.currency)}
           </p>
           {item.summaryFa ? <p className="mt-4 leading-[1.85] text-muted">{item.summaryFa}</p> : null}
+          {isAuthoringSubscription && authoringPlan ? (
+            <div className="mt-5 rounded-[var(--radius-md)] border border-line bg-elev p-4 text-sm">
+              <p className="font-medium text-ink">
+                {authoringPlan.quotaPerPeriod.toLocaleString("fa-IR")} آزمون تازه · {authoringPlan.durationDays.toLocaleString("fa-IR")} روز
+              </p>
+              <p className="mt-1 text-muted">هر ساخت تازه یک واحد مصرف می‌کند؛ ویرایش آزمون موجود سهمیهٔ تازه نمی‌گیرد.</p>
+              <p className="mt-1 text-muted">
+                {authoringPlan.renewalPolicy === "after_current"
+                  ? "در سیاست تمدید انتخاب‌شده، دورهٔ جدید پس از پایان دیرترین اشتراک فعال شروع می‌شود."
+                  : "در سیاست تمدید انتخاب‌شده، هر دوره از تأیید همان سفارش شروع می‌شود."}
+              </p>
+            </div>
+          ) : null}
+          {authoringQuota && !authoringQuota.isOwner ? (
+            <p className="mt-3 text-sm text-muted">
+              سهمیهٔ قابل استفادهٔ فعلی شما: {authoringQuota.remaining?.toLocaleString("fa-IR") ?? "۰"} آزمون.
+            </p>
+          ) : null}
           <SharePrint title={item.titleFa} />
           <ListingSpecs specs={item.specs} />
           <div className="mt-6">
             <MarkdownReadonly source={item.bodyFa} />
           </div>
           <div className="mt-8 border-t border-line pt-6">
-            {entitled ? (
+            {isAuthoringSubscription && account?.role === "owner" ? (
+              <p className="text-sm text-muted">مالک فعلی برای ساخت آزمون به خرید اشتراک نیاز ندارد.</p>
+            ) : entitled ? (
               <div className="space-y-4">
                 <p className="text-sm font-medium text-good">
                   {isPhysicalKind(item.kind) ? "سفارش تأیید شد." : "دسترسی باز است."}
@@ -158,7 +207,11 @@ export default async function ShopItemPage({ params }: Props) {
           </div>
           <div>
             <dt className="font-medium text-ink">این کالا اشتراک یا کیف پول است؟</dt>
-            <dd className="text-muted">نه. این خرید یک دسترسی برای همین کالاست، نه ماندهٔ مالی قابل خرج.</dd>
+            <dd className="text-muted">
+              {isAuthoringSubscription
+                ? "این اشتراک، دوره و سهمیهٔ ساخت آزمون دارد و کیف پول نیست؛ با پایان دوره یا اتمام سهمیه، ساخت تازه متوقف می‌شود. تمدید با تأیید سفارش تازه انجام می‌شود."
+                : "نه. این خرید یک دسترسی برای همین کالاست، نه ماندهٔ مالی قابل خرج."}
+            </dd>
           </div>
         </dl>
       </section>

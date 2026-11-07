@@ -31,6 +31,27 @@ function partyFor(account: AccountKind, parties: LedgerParties): number | null {
   return null;
 }
 
+/** Serialize a replay of the same event and protect every touched account/party balance. */
+async function lockJournalResources(tx: Tx, journal: Journal, parties: LedgerParties): Promise<void> {
+  await tx.execute(
+    sql`select pg_advisory_xact_lock(hashtext('hadiran:ledger:event'), hashtext(${journal.eventKey}))`,
+  );
+
+  const locks = new Set<string>();
+  for (const line of journal.lines) {
+    const partyId = partyFor(line.account, parties);
+    locks.add(`${line.account}:${partyId ?? "platform"}`);
+  }
+
+  // A stable global ordering prevents two multi-account postings from deadlocking.
+  const orderedKeys = [...locks].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  for (const key of orderedKeys) {
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtext('hadiran:ledger:balance'), hashtext(${key}))`,
+    );
+  }
+}
+
 function asBigInt(value: unknown): bigint {
   if (typeof value === "bigint") return value;
   if (typeof value === "number" && Number.isInteger(value)) return BigInt(value);
@@ -84,6 +105,7 @@ export async function postJournal(
   for (const line of journal.lines) {
     if (line.amountIRR > PG_BIGINT_MAX) throw new LedgerError("amount_overflow", 400);
   }
+  await lockJournalResources(tx, journal, parties);
   const signature = journalFingerprint(journal);
   const [existing] = await tx.select().from(ledgerEntries).where(eq(ledgerEntries.eventKey, journal.eventKey)).limit(1);
   if (existing) {

@@ -10,13 +10,15 @@ export function AssessmentPurchasePanel({
   title,
   payableIrr,
   entitled,
+  onEntitled,
 }: {
   slug: string;
   attemptId: number;
-  service: "interpretation" | "document";
+  service: "execution" | "interpretation" | "document";
   title: string;
   payableIrr: string;
   entitled: boolean;
+  onEntitled?: () => void;
 }) {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -37,8 +39,12 @@ export function AssessmentPurchasePanel({
       const data = (await res.json()) as { error?: string; id?: string; state?: string; payableIrr?: string };
       if (!res.ok) throw new Error(data.error || "create_failed");
       setOrderId(data.id ?? null);
-      if (data.state === "delivered" || data.state === "captured") {
+      if (data.state === "delivered" || (service !== "execution" && data.state === "captured")) {
         setStatus("فعال شد.");
+        setNeedReference(false);
+        if (service === "execution") onEntitled?.();
+      } else if (service === "execution" && data.state === "captured") {
+        setStatus("پرداخت تأیید شد؛ اگر دسترسی فعال نشد صفحه را تازه‌سازی کن.");
         setNeedReference(false);
       } else {
         setNeedReference(true);
@@ -84,7 +90,11 @@ export function AssessmentPurchasePanel({
   return (
     <section className="mt-6 rounded-[var(--radius-md)] border border-line bg-elev p-4 print:hidden">
       <h2 className="text-sm font-medium text-ink">{title}</h2>
-      <p className="mt-1 text-xs text-muted">خلاصهٔ رایگان همین صفحه می‌ماند. این خدمت برای همین نوبت است، نه کالای دائمی.</p>
+      <p className="mt-1 text-xs text-muted">
+        {service === "execution"
+          ? "این خرید یک اجرای همین نوبت را با نتیجهٔ پایه پوشش می‌دهد؛ همان اجرا دوباره قیمت‌گذاری نمی‌شود."
+          : "این افزونه مستقل و فقط برای همین نوبت است؛ اجرا، تفسیر و سند سه عرضهٔ جدا هستند."}
+      </p>
       <p className="mt-2 text-sm text-ink">{financeMoney(payableIrr, "IRR")}</p>
       <label className="mt-3 block text-xs text-muted">
         کد سازنده (اختیاری)

@@ -6,6 +6,7 @@ import { requireOwner } from "@/lib/auth/guard";
 import { newCanonicalId } from "@/lib/knowledge/ids";
 import { parseListingBody } from "@/lib/shop/parse-listing";
 import { applyUsdPricing, replaceListingImages } from "@/lib/shop/listing-write";
+import { syncAssessmentAuthoringPlan } from "@/lib/shop/assessment-authoring-plan";
 
 export const dynamic = "force-dynamic";
 
@@ -27,15 +28,27 @@ export async function POST(request: Request) {
   const [dup] = await db.select({ id: shopListings.id }).from(shopListings).where(eq(shopListings.slug, parsed.slug));
   if (dup) return NextResponse.json({ error: "این اسلاگ قبلاً استفاده شده است." }, { status: 409 });
   const priced = await applyUsdPricing(parsed);
-  const { images, ...row } = priced;
-  const [created] = await db
-    .insert(shopListings)
-    .values({
-      id: newCanonicalId("LISTING"),
-      ...row,
-      coverImageUrl: images[0]?.imageUrl ?? null,
-    })
-    .returning();
+  const { images, authoringQuota, authoringDurationDays, authoringRenewalPolicy, ...row } = priced;
+  const created = await db.transaction(async (tx) => {
+    const [listing] = await tx
+      .insert(shopListings)
+      .values({
+        id: newCanonicalId("LISTING"),
+        ...row,
+        coverImageUrl: images[0]?.imageUrl ?? null,
+      })
+      .returning();
+    if (listing.kind === "assessment_authoring_subscription") {
+      await syncAssessmentAuthoringPlan(tx, {
+        listingId: listing.id,
+        kind: listing.kind,
+        quotaPerPeriod: authoringQuota,
+        durationDays: authoringDurationDays,
+        renewalPolicy: authoringRenewalPolicy,
+      });
+    }
+    return listing;
+  });
   await replaceListingImages(created.id, images);
   return NextResponse.json({ ok: true, id: created.id, slug: created.slug });
 }

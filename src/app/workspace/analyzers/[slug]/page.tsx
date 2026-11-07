@@ -6,7 +6,7 @@ import { isOwner } from "@/lib/auth/roles";
 import { analyzerAccess } from "@/lib/analyzers/access";
 import { AnalyzerEditor } from "@/components/analyzers/AnalyzerEditor";
 import { AssessmentTariffForm } from "@/components/analyzers/AssessmentTariffForm";
-import { ASSESSMENT_SERVICES } from "@/lib/commerce/assessment-policy";
+import { assessmentTariffServices } from "@/lib/commerce/assessment-policy";
 import { listAssessmentTariffs } from "@/lib/finance/assessment-orders";
 import { irrToTomanInput } from "@/lib/finance/journal";
 import { readAuthoredPack } from "@/lib/analyzers/authored";
@@ -69,7 +69,7 @@ export default async function EditAnalyzerPage({ params }: Props) {
         slug={pack.slug}
         canPrice={access.edit}
         canCommission={isOwner(account.role)}
-        initial={ASSESSMENT_SERVICES.map((service) => {
+        initial={assessmentTariffServices(pack.slug).map((service) => {
           const matches = tariffs.filter((item) => item.service === service);
           const row = matches.find((item) => item.active) ?? matches[0];
           return {

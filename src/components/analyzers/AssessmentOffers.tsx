@@ -1,5 +1,5 @@
 import { attemptKindOf } from "@/lib/analyzers/document-templates";
-import { ASSESSMENT_SERVICES } from "@/lib/commerce/assessment-policy";
+import { ASSESSMENT_ADDON_SERVICES } from "@/lib/commerce/assessment-policy";
 import { activeAssessmentTariff, hasAssessmentEntitlement } from "@/lib/finance/assessment-orders";
 import { AssessmentPurchasePanel } from "./AssessmentPurchasePanel";
 
@@ -19,7 +19,7 @@ export async function AssessmentOffers({
 }) {
   const kind = attemptKindOf(slug);
   const cards = [];
-  for (const service of ASSESSMENT_SERVICES) {
+  for (const service of ASSESSMENT_ADDON_SERVICES) {
     const tariff = await activeAssessmentTariff(slug, service);
     if (!tariff) continue;
     const entitled = await hasAssessmentEntitlement(accountId, kind, attemptId, service);

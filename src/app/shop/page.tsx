@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "فروشگاه",
   description:
-    "محصول، مُهر، باکس آموزشی و دورهٔ هادیران. پرداخت بیرون از سایت است؛ دسترسی یا ارسال بعد از تأیید دریافت.",
+    "محصول، مُهر، باکس آموزشی، دوره و اشتراک آزمون‌ساز هادیران. پرداخت بیرون از سایت است؛ دسترسی بعد از تأیید دریافت.",
   alternates: { canonical: "/shop" },
 };
 
@@ -58,6 +58,11 @@ async function ShopPage({ searchParams }: Props) {
       active: kindFilter === "digital_entitlement",
     },
     { href: shopHref({ q, kind: "course_access", sort: keepSort }), label: "دوره", active: kindFilter === "course_access" },
+    {
+      href: shopHref({ q, kind: "assessment_authoring_subscription", sort: keepSort }),
+      label: "اشتراک آزمون‌ساز",
+      active: kindFilter === "assessment_authoring_subscription",
+    },
   ];
 
   return (
@@ -65,7 +70,7 @@ async function ShopPage({ searchParams }: Props) {
       hero={
         <PageHeader
           title="فروشگاه"
-          lede="کالاهای فیزیکی (محصول، مُهر، باکس آموزشی) و مجازی (دوره). پرداخت روی ریل بیرونی است؛ سایت پول را نگه نمی‌دارد."
+          lede="کالاهای فیزیکی، دوره و اشتراک آزمون‌ساز. پرداخت روی ریل بیرونی است؛ سایت پول را نگه نمی‌دارد و دسترسی پس از تأیید سفارش فعال می‌شود."
         >
           <nav className="mt-6 flex flex-wrap gap-2 text-sm">
             {filters.map((filter) => (

@@ -1045,6 +1045,76 @@ export const shopEntitlements = pgTable(
   (t) => [unique().on(t.accountId, t.listingId)]
 );
 
+export const assessmentAuthoringPlans = pgTable("assessment_authoring_plans", {
+  listingId: text("listing_id")
+    .primaryKey()
+    .references(() => shopListings.id, { onDelete: "restrict" }),
+  quotaPerPeriod: integer("quota_per_period").notNull(),
+  durationDays: integer("duration_days").notNull(),
+  renewalPolicy: varchar("renewal_policy", { length: 24 }).notNull(),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const assessmentAuthoringPlanOrders = pgTable("assessment_authoring_plan_orders", {
+  orderId: text("order_id")
+    .primaryKey()
+    .references(() => shopOrders.id, { onDelete: "cascade" }),
+  listingId: text("listing_id")
+    .notNull()
+    .references(() => assessmentAuthoringPlans.listingId, { onDelete: "restrict" }),
+  quotaSnapshot: integer("quota_snapshot").notNull(),
+  durationDaysSnapshot: integer("duration_days_snapshot").notNull(),
+  renewalPolicySnapshot: varchar("renewal_policy_snapshot", { length: 24 }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const assessmentAuthoringSubscriptions = pgTable(
+  "assessment_authoring_subscriptions",
+  {
+    id: serial("id").primaryKey(),
+    accountId: integer("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    listingId: text("listing_id")
+      .notNull()
+      .references(() => assessmentAuthoringPlans.listingId, { onDelete: "restrict" }),
+    orderId: text("order_id")
+      .notNull()
+      .unique()
+      .references(() => shopOrders.id, { onDelete: "restrict" }),
+    quotaTotal: integer("quota_total").notNull(),
+    quotaUsed: integer("quota_used").notNull().default(0),
+    startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+    endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [index("assessment_authoring_subscriptions_account_window_idx").on(t.accountId, t.startsAt, t.endsAt)],
+);
+
+export const assessmentAuthoringUsage = pgTable(
+  "assessment_authoring_usage",
+  {
+    id: serial("id").primaryKey(),
+    subscriptionId: integer("subscription_id")
+      .notNull()
+      .references(() => assessmentAuthoringSubscriptions.id, { onDelete: "restrict" }),
+    accountId: integer("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    packSlug: varchar("pack_slug", { length: 64 })
+      .notNull()
+      .references(() => analyzerPacks.slug, { onDelete: "restrict" }),
+    eventKey: varchar("event_key", { length: 200 }).notNull().unique(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    unique().on(t.subscriptionId, t.packSlug),
+    index("assessment_authoring_usage_account_created_idx").on(t.accountId, t.createdAt),
+  ],
+);
+
 export const shopOrderEvents = pgTable("shop_order_events", {
   id: serial("id").primaryKey(),
   orderId: text("order_id")

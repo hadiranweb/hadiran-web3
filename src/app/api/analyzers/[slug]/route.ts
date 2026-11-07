@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAccount } from "@/lib/auth/guard";
 import { consentAttempt, readAttempt, retakeAttempt, saveAnswer, submitAttempt } from "@/lib/analyzers/attempts";
 import { loadPack } from "@/lib/analyzers/registry";
+import { assessmentExecutionOffer } from "@/lib/finance/assessment-orders";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,13 @@ async function resolveRunnablePack(slug: string, account: { id: number; role: st
   return access.edit ? pack : null;
 }
 
+async function withExecutionOffer(accountId: number, slug: string, attempt: Awaited<ReturnType<typeof readAttempt>>) {
+  return {
+    attempt,
+    executionOffer: await assessmentExecutionOffer({ slug, accountId, attemptId: attempt?.id ?? null }),
+  };
+}
+
 export async function GET(_request: Request, { params }: Ctx) {
   const auth = await requireAccount();
   if (auth.error) return auth.error;
@@ -25,7 +33,7 @@ export async function GET(_request: Request, { params }: Ctx) {
   const pack = await resolveRunnablePack(slug, auth.account);
   if (!pack) return NextResponse.json({ error: "not_found" }, { status: 404 });
   const attempt = await readAttempt(auth.account.id, pack);
-  return NextResponse.json({ attempt, packVersion: pack.version });
+  return NextResponse.json({ ...(await withExecutionOffer(auth.account.id, slug, attempt)), packVersion: pack.version });
 }
 
 export async function POST(request: Request, { params }: Ctx) {
@@ -44,7 +52,7 @@ export async function POST(request: Request, { params }: Ctx) {
 
   if (body.action === "retake") {
     const attempt = await retakeAttempt(auth.account.id, pack);
-    return NextResponse.json({ attempt });
+    return NextResponse.json(await withExecutionOffer(auth.account.id, slug, attempt));
   }
 
   if (body.action === "consent") {
@@ -55,7 +63,7 @@ export async function POST(request: Request, { params }: Ctx) {
     if (attempt && "error" in attempt) {
       return NextResponse.json({ error: attempt.error }, { status: 400 });
     }
-    return NextResponse.json({ attempt });
+    return NextResponse.json(await withExecutionOffer(auth.account.id, slug, attempt));
   }
 
   if (body.action === "answer") {
@@ -71,7 +79,7 @@ export async function POST(request: Request, { params }: Ctx) {
   }
 
   if (body.action === "submit") {
-    const result = await submitAttempt(auth.account.id, pack);
+    const result = await submitAttempt(auth.account.id, pack, { isOwner: auth.account.role === "owner" });
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }

@@ -21,6 +21,9 @@ export type ParsedListing = {
   specs: ShopSpec[];
   images: { imageUrl: string; thumbUrl: string | null }[];
   courseId: number | null;
+  authoringQuota: number | null;
+  authoringDurationDays: number | null;
+  authoringRenewalPolicy: "immediate" | "after_current" | null;
   published: boolean;
 };
 
@@ -36,6 +39,16 @@ function parseSpecs(raw: unknown): ShopSpec[] {
     rows.push({ key, value });
   }
   return rows;
+}
+
+function positiveInteger(raw: unknown, max: number): number | null {
+  const value =
+    typeof raw === "number"
+      ? raw
+      : typeof raw === "string" && /^\d+$/.test(raw.trim())
+        ? Number(raw.trim())
+        : Number.NaN;
+  return Number.isSafeInteger(value) && value > 0 && value <= max ? value : null;
 }
 
 function parseImages(raw: unknown): { imageUrl: string; thumbUrl: string | null }[] {
@@ -83,6 +96,20 @@ export function parseListingBody(body: Record<string, unknown>, existingSlug?: s
   const amount = Number(amountIrr);
   const kindRaw = typeof body.kind === "string" ? body.kind : "digital_entitlement";
   const kind: ShopKind = isShopKind(kindRaw) ? kindRaw : "digital_entitlement";
+  const authoringQuota = kind === "assessment_authoring_subscription" ? positiveInteger(body.authoringQuota, 100000) : null;
+  const authoringDurationDays =
+    kind === "assessment_authoring_subscription" ? positiveInteger(body.authoringDurationDays, 3650) : null;
+  const authoringRenewalPolicy =
+    kind === "assessment_authoring_subscription" &&
+    (body.authoringRenewalPolicy === "immediate" || body.authoringRenewalPolicy === "after_current")
+      ? body.authoringRenewalPolicy
+      : null;
+  if (
+    kind === "assessment_authoring_subscription" &&
+    (authoringQuota === null || authoringDurationDays === null || authoringRenewalPolicy === null)
+  ) {
+    return null;
+  }
   const courseIdRaw = body.courseId;
   const courseId =
     typeof courseIdRaw === "number"
@@ -120,6 +147,9 @@ export function parseListingBody(body: Record<string, unknown>, existingSlug?: s
     specs: parseSpecs(body.specs),
     images: parseImages(body.images ?? body.imageUrls),
     courseId: courseId && Number.isFinite(courseId) ? courseId : null,
+    authoringQuota,
+    authoringDurationDays,
+    authoringRenewalPolicy,
     published: Boolean(body.published),
   };
 }

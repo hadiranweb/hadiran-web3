@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { analyzerPublicPath } from "@/lib/analyzers/paths";
@@ -11,12 +12,14 @@ export function AnalyzerCreateForm() {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [needsSubscription, setNeedsSubscription] = useState(false);
   const [slug, setSlug] = useState("");
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
     setError(null);
+    setNeedsSubscription(false);
     const form = new FormData(event.currentTarget);
     const res = await fetch("/api/workspace/analyzers", {
       method: "POST",
@@ -29,7 +32,15 @@ export function AnalyzerCreateForm() {
     const data = (await res.json()) as { error?: string; slug?: string };
     setBusy(false);
     if (!res.ok || !data.slug) {
-      setError(data.error ?? "ساخته نشد.");
+      const quotaError = data.error === "subscription_required" || data.error === "quota_exhausted";
+      setNeedsSubscription(quotaError);
+      setError(
+        data.error === "subscription_required"
+          ? "برای ساخت آزمون، اشتراک آزمون‌ساز لازم است."
+          : data.error === "quota_exhausted"
+            ? "سهمیهٔ فعال تمام شده است."
+            : data.error ?? "ساخته نشد.",
+      );
       return;
     }
     router.push(`/workspace/analyzers/${data.slug}`);
@@ -61,6 +72,11 @@ export function AnalyzerCreateForm() {
         ) : null}
       </label>
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {needsSubscription ? (
+        <Link href="/shop?kind=assessment_authoring_subscription" className="inline-flex text-sm font-medium text-indigo-700 underline">
+          دیدن اشتراک‌های آزمون‌ساز
+        </Link>
+      ) : null}
       <button
         type="submit"
         disabled={busy}

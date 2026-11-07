@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireAnalyzerDesk, requireStaff } from "@/lib/auth/guard";
 import { listAccessiblePacks } from "@/lib/analyzers/access";
-import { insertAuthoredPack, readAuthoredPack } from "@/lib/analyzers/authored";
+import { readAuthoredPack } from "@/lib/analyzers/authored";
+import { AssessmentAuthoringQuotaError, createAuthoredPackWithQuota } from "@/lib/analyzers/subscriptions";
 import { blankPack, isPackSlug, sanitizePack } from "@/lib/analyzers/sanitize";
 
 export const dynamic = "force-dynamic";
@@ -46,6 +47,18 @@ export async function POST(request: Request) {
   }
   const created = sanitizePack(blankPack(slug, nameFa), slug);
   if (!created.ok) return NextResponse.json({ error: created.error }, { status: 400 });
-  await insertAuthoredPack(created.pack, auth.account.id);
+  try {
+    await createAuthoredPackWithQuota({
+      pack: created.pack,
+      accountId: auth.account.id,
+      isOwner: auth.account.role === "owner",
+    });
+  } catch (error) {
+    if (error instanceof AssessmentAuthoringQuotaError) {
+      const status = error.code === "subscription_required" ? 402 : 409;
+      return NextResponse.json({ error: error.code }, { status });
+    }
+    throw error;
+  }
   return NextResponse.json({ ok: true, slug: created.pack.slug });
 }

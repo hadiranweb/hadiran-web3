@@ -61,7 +61,9 @@ export function AnalyzerPublicScreen({
         <dl className="mt-6 space-y-3 rounded-[var(--radius-md)] border border-line bg-elev p-4 text-sm leading-7">
           <div>
             <dt className="font-medium text-ink">همین حالا چه می‌گیری؟</dt>
-            <dd className="text-muted">خلاصهٔ همین نوبت، رایگان و بی‌نیاز از پرداخت. پیش‌نویس‌ها عمومی نمی‌شوند.</dd>
+            <dd className="text-muted">
+              نتیجهٔ پایه جزئی از اجرای همین نوبت است و جداگانه دوباره شارژ نمی‌شود. ثبت آزمون فقط با تعرفهٔ فعال اجرا ممکن است؛ تعرفهٔ تعریف‌نشده رایگان فرض نمی‌شود. پیش‌نویس‌ها عمومی نمی‌شوند.
+            </dd>
           </div>
           <div>
             <dt className="font-medium text-ink">چه چیزی خدمت جداست؟</dt>
