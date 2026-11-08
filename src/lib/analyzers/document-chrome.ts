@@ -1,3 +1,4 @@
+import { documentLayoutKey } from "./document-templates";
 import {
   BOTTLENECK_AS_IS_LABEL_FA,
   KEYWORD_ACCENT_COLORS,
@@ -117,6 +118,13 @@ export function documentTemplateContext(doc: InterpretationDocument, chrome: Doc
     };
   });
 
+  // Keep the research summary printable as layer counts grow. Continuation pages
+  // contain table rows only; chart/context appear once on the first summary page.
+  const researchSummaryPages = Array.from({ length: Math.max(1, Math.ceil(layers.length / 5)) }, (_, index) => ({
+    first: index === 0,
+    summaryLayers: layers.slice(index * 5, (index + 1) * 5),
+  }));
+
   const radarPoints = layers.map((layer) => ({
     id: layer.id,
     labelFa: layer.titleFa,
@@ -191,6 +199,10 @@ export function documentTemplateContext(doc: InterpretationDocument, chrome: Doc
     bottleneckId: doc.bottleneckId ?? "",
     bottleneckFa: doc.bottleneckFa ?? "",
     bottleneckScoreFa: doc.bottleneckScoreFa ?? "",
+    bottleneckScoreMaxFa: faNum(bottleneckLayer?.scoreMax ?? 20),
+    totalPagesFa: faNum(doc.layers.length + researchSummaryPages.length + (doc.patterns.length ? 3 : 2)),
+    researchSummaryPages,
+    closingPageFa: faNum(doc.layers.length + 3),
     closingFa: doc.closingFa,
     hasBusiness: Boolean(doc.businessNameFa),
     hasTotal: Boolean(doc.totalFa),
@@ -257,6 +269,7 @@ export function documentVariableCatalog(): TemplateVariable[] {
     { groupFa: "گزارش", token: "{{maturityFa}}", hintFa: "برچسب بلوغ" },
     { groupFa: "گزارش", token: "{{bottleneckFa}}", hintFa: "عنوان گلوگاه" },
     { groupFa: "گزارش", token: "{{bottleneckScoreFa}}", hintFa: "نمرهٔ گلوگاه" },
+    { groupFa: "گزارش", token: "{{bottleneckScoreMaxFa}}", hintFa: "سقف نمرهٔ گلوگاه" },
     { groupFa: "گزارش", token: "{{closingFa}}", hintFa: "یادداشت پایانی" },
     { groupFa: "گزارش", token: "{{version}}", hintFa: "نسخهٔ ابزار" },
     { groupFa: "گزارش", token: "{{publicCode}}", hintFa: "شناسهٔ نمایشی" },
@@ -272,6 +285,7 @@ export function documentVariableCatalog(): TemplateVariable[] {
     { groupFa: "لایه‌ها", token: "{{titleFa}}", hintFa: "نام لایه (داخل حلقه)" },
     { groupFa: "لایه‌ها", token: "{{layer_name}}", hintFa: "layer_name" },
     { groupFa: "لایه‌ها", token: "{{scoreFa}}", hintFa: "نمره" },
+    { groupFa: "لایه‌ها", token: "{{scoreMaxFa}}", hintFa: "سقف نمرهٔ لایه (داخل حلقه)" },
     { groupFa: "لایه‌ها", token: "{{statusFa}}", hintFa: "وضعیت" },
     { groupFa: "لایه‌ها", token: "{{asIsFa}}", hintFa: "وضعیت موجود" },
     { groupFa: "لایه‌ها", token: "{{toBeFa}}", hintFa: "وضعیت مطلوب" },
@@ -304,6 +318,8 @@ export function documentVariableCatalog(): TemplateVariable[] {
     { groupFa: "برگهٔ A3", token: "{{a3.targetCondition30DayFa}}", hintFa: "هدف ۳۰روزهٔ A3" },
     { groupFa: "برگهٔ A3", token: "{{a3.pdsaPlanFa}} / {{a3.pdsaDoFa}} / {{a3.pdsaStudyFa}} / {{a3.pdsaActFa}}", hintFa: "کارت آزمون PDSA" },
     { groupFa: "کلیدواژه", token: "{{bottleneckAsIsFa}}", hintFa: "وضعیت موجودِ مرجع گلوگاه" },
+    { groupFa: "صفحه", token: "{{#researchSummaryPages}} … {{/researchSummaryPages}}", hintFa: "برگ‌های خلاصهٔ پژوهش؛ ردیف‌ها در {{#summaryLayers}} و نمودار/زمینه در {{#first}}" },
+    { groupFa: "صفحه", token: "{{totalPagesFa}}", hintFa: "تعداد برگ‌های برنامه‌ریزی‌شدهٔ قالب پژوهش" },
     { groupFa: "صفحه", token: '<section class="doc-page">', hintFa: "شروع یک برگ A4" },
     { groupFa: "صفحه", token: "</section>", hintFa: "پایان برگ" },
     { groupFa: "صفحه", token: '<div class="doc-break"></div>', hintFa: "قطع صفحه در میانه" },
@@ -319,7 +335,7 @@ export function renderChromeDocument(chrome: DocumentChrome, doc: Interpretation
   const ctx = documentTemplateContext(doc, chrome);
   const html = stripUnsafeHtml(renderMustache(chrome.html, ctx));
   const css = renderMustache(chrome.css, ctx);
-  const layout = "doc-hadiran";
+  const layout = `doc-${documentLayoutKey(doc.templateId)}`;
   return {
     html,
     css,

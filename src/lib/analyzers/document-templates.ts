@@ -1,22 +1,31 @@
 import type { AnalyzerPack } from "@/lib/analyzers/pack";
 
+/** Layouts are presentation choices, never separate assessment runtimes. */
 export const SYSTEM_DOCUMENT_TEMPLATES = [
-  { id: "hadiran", titleFa: "هادیران", layoutKey: "hadiran" },
-  { id: "system-diagnosis", titleFa: "عارضه‌یابی سیستم کسب‌وکار", layoutKey: "hadiran" },
+  { id: "hadiran", titleFa: "هادیران", layoutKey: "hadiran", brandNameFa: "هادیران", requiresLayers: false },
+  { id: "casio-ss", titleFa: "کاسیو · ماتریسی", layoutKey: "casio", brandNameFa: "کاسیو", requiresLayers: true },
+  { id: "casio-research", titleFa: "کاسیو · پژوهش", layoutKey: "casio-research", brandNameFa: "کاسیو", requiresLayers: true },
+  { id: "system-diagnosis", titleFa: "عارضه‌یابی سیستم کسب‌وکار", layoutKey: "hadiran", brandNameFa: "هادیران", requiresLayers: true },
 ] as const;
 
 export type DocumentTemplateId = (typeof SYSTEM_DOCUMENT_TEMPLATES)[number]["id"];
+export type SystemDocumentTemplate = (typeof SYSTEM_DOCUMENT_TEMPLATES)[number];
 
+/** Keep both historical IDs distinct: a research layout is not the matrix layout. */
 export function canonicalizeTemplateId(value: string): string {
   return value;
 }
 
-export function documentLayoutKey(_templateId: string): "hadiran" {
-  return "hadiran";
-}
-
 export function isDocumentTemplateId(value: string): value is DocumentTemplateId {
   return SYSTEM_DOCUMENT_TEMPLATES.some((row) => row.id === value);
+}
+
+export function documentTemplateDefinition(value: string): SystemDocumentTemplate | undefined {
+  return SYSTEM_DOCUMENT_TEMPLATES.find((row) => row.id === canonicalizeTemplateId(value));
+}
+
+export function documentLayoutKey(templateId: string): SystemDocumentTemplate["layoutKey"] {
+  return documentTemplateDefinition(templateId)?.layoutKey ?? "hadiran";
 }
 
 export function packHasLayers(pack: AnalyzerPack): boolean {
@@ -24,27 +33,28 @@ export function packHasLayers(pack: AnalyzerPack): boolean {
 }
 
 export function templatesForPack(pack: AnalyzerPack) {
+  const layered = packHasLayers(pack);
   return SYSTEM_DOCUMENT_TEMPLATES.filter((template) => {
-    if (template.id === "hadiran") return true;
     if (template.id === "system-diagnosis") return pack.slug === "system-diagnosis";
-    return false;
+    return !template.requiresLayers || layered;
   });
 }
 
 export function templateAllowedForPack(pack: AnalyzerPack, templateId: string): boolean {
-  return templatesForPack(pack).some((template) => template.id === templateId);
+  return templatesForPack(pack).some((template) => template.id === canonicalizeTemplateId(templateId));
 }
 
 export function resolveDocumentTemplateId(pack: AnalyzerPack, override?: string | null): DocumentTemplateId {
   const allowed = templatesForPack(pack);
   const pick = (value: string | null | undefined): DocumentTemplateId | null => {
     if (!value) return null;
-    return isDocumentTemplateId(value) && allowed.some((template) => template.id === value) ? value : null;
+    const id = canonicalizeTemplateId(value);
+    return isDocumentTemplateId(id) && allowed.some((template) => template.id === id) ? id : null;
   };
   return pick(override) ?? pick(pack.report?.documentTemplateId) ?? allowed[0]?.id ?? "hadiran";
 }
 
-/** تمام packهای اجراشده از مسیر analyzer_attempts استفاده می‌کنند. */
+/** Every template uses the shared analyzer_attempts/report path, including Casio designs. */
 export function attemptKindOf(_slug: string): "analyzer" {
   return "analyzer";
 }
@@ -54,7 +64,7 @@ export function documentHref(id: number) {
 }
 
 export function templateTitleFa(id: string) {
-  return SYSTEM_DOCUMENT_TEMPLATES.find((template) => template.id === id)?.titleFa ?? id;
+  return documentTemplateDefinition(id)?.titleFa ?? id;
 }
 
 export type DocumentListItem = {

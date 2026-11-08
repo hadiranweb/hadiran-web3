@@ -1,74 +1,11 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { analyzerDocumentTemplateOverrides, analyzerDocumentTemplates } from "@/db/schema";
-import {
-  HADIRAN_TEMPLATE_CSS,
-  HADIRAN_TEMPLATE_HTML,
-  SYSTEM_DIAGNOSIS_TEMPLATE_CSS,
-  SYSTEM_DIAGNOSIS_TEMPLATE_HTML,
-} from "@/lib/analyzers/document-defaults";
-import {
-  parseChrome,
-  type DocumentChrome,
-} from "@/lib/analyzers/document-chrome";
-import { canonicalizeTemplateId } from "@/lib/analyzers/document-templates";
+import type { DocumentChrome } from "./document-chrome";
+import { mergeChrome } from "./document-template-defaults";
+export { defaultChrome, mergeChrome } from "./document-template-defaults";
+import { canonicalizeTemplateId, documentTemplateDefinition, SYSTEM_DOCUMENT_TEMPLATES } from "./document-templates";
 import { ensureInterpretationDocumentsSchema } from "@/lib/auth/schema-guard";
-
-function readPublicSvg(rel: string): string {
-  try {
-    return readFileSync(join(process.cwd(), "public", rel), "utf8").replace(/<\?xml[^?]*\?>\s*/i, "");
-  } catch {
-    return "";
-  }
-}
-
-export function defaultChrome(templateId: string): DocumentChrome {
-  const id = canonicalizeTemplateId(templateId);
-  if (id === "system-diagnosis") {
-    return {
-      html: SYSTEM_DIAGNOSIS_TEMPLATE_HTML,
-      css: HADIRAN_TEMPLATE_CSS + SYSTEM_DIAGNOSIS_TEMPLATE_CSS,
-      logos: {
-        light: readPublicSvg("brand/hadiran-mark.svg"),
-        dark: readPublicSvg("brand/hadiran-mark.svg"),
-        seal: readPublicSvg("brand/hadiran-mark.svg"),
-      },
-      pageSize: "A4",
-      pageMargin: "0",
-    };
-  }
-  return {
-    html: HADIRAN_TEMPLATE_HTML,
-    css: HADIRAN_TEMPLATE_CSS,
-    logos: {
-      light: readPublicSvg("brand/hadiran-mark.svg"),
-      dark: readPublicSvg("brand/hadiran-mark.svg"),
-      seal: readPublicSvg("brand/hadiran-mark.svg"),
-    },
-    pageSize: "A4",
-    pageMargin: "0",
-  };
-}
-
-export function mergeChrome(templateId: string, raw: unknown, baseRaw?: unknown): DocumentChrome {
-  const fallback = baseRaw !== undefined ? mergeChrome(templateId, baseRaw) : defaultChrome(templateId);
-  const parsed = parseChrome(raw);
-  const html = parsed.html.trim() ? parsed.html : fallback.html;
-  const css = parsed.css.trim() ? parsed.css : fallback.css;
-  return {
-    html,
-    css,
-    logos: {
-      light: parsed.logos.light.trim() ? parsed.logos.light : fallback.logos.light,
-      dark: parsed.logos.dark.trim() ? parsed.logos.dark : fallback.logos.dark,
-      seal: parsed.logos.seal.trim() ? parsed.logos.seal : fallback.logos.seal,
-    },
-    pageSize: parsed.pageSize || fallback.pageSize,
-    pageMargin: parsed.pageMargin || fallback.pageMargin,
-  };
-}
 
 export function clipDocumentChrome(chrome: DocumentChrome): DocumentChrome {
   return {
@@ -98,7 +35,7 @@ export type StoredDocumentTemplate = {
   chrome: DocumentChrome;
 };
 
-const ALLOWED_TEMPLATE_IDS = new Set(["hadiran", "system-diagnosis"]);
+const ALLOWED_TEMPLATE_IDS = new Set<string>(SYSTEM_DOCUMENT_TEMPLATES.map((template) => template.id));
 
 function toStored(
   row: typeof analyzerDocumentTemplates.$inferSelect,
@@ -123,7 +60,22 @@ export async function listDocumentTemplates(accountId: number): Promise<StoredDo
     .from(analyzerDocumentTemplateOverrides)
     .where(eq(analyzerDocumentTemplateOverrides.accountId, accountId));
   const overlayByTemplate = new Map(overrides.map((row) => [row.templateId, row.chrome]));
-  return rows.filter((row) => ALLOWED_TEMPLATE_IDS.has(row.id)).map((row) => toStored(row, overlayByTemplate.get(row.id)));
+  const rowById = new Map(rows.map((row) => [row.id, row]));
+  // Listing defaults does not create DB rows. Existing base/author overrides always win.
+  return SYSTEM_DOCUMENT_TEMPLATES.map((definition) => {
+    const row = rowById.get(definition.id);
+    const overlay = overlayByTemplate.get(definition.id);
+    if (row) return toStored(row, overlay);
+    return {
+      id: definition.id,
+      titleFa: definition.titleFa,
+      layoutKey: definition.layoutKey,
+      brandNameFa: definition.brandNameFa,
+      system: true,
+      source: overlay !== undefined ? "override" as const : "base" as const,
+      chrome: mergeChrome(definition.id, overlay),
+    };
+  });
 }
 
 export async function readDocumentChrome(templateId: string, accountId?: number): Promise<DocumentChrome> {
@@ -162,6 +114,20 @@ export async function readDocumentChrome(templateId: string, accountId?: number)
   return overlay !== undefined ? mergeChrome(templateId, overlay) : mergeChrome(templateId, undefined);
 }
 
+/** Materialize a catalog row only on an explicit save/convert operation, never a list/read. */
+export async function ensureDocumentTemplateRecord(templateId: string): Promise<void> {
+  const definition = documentTemplateDefinition(templateId);
+  if (!definition) throw new Error("bad_template");
+  await ensureInterpretationDocumentsSchema();
+  await db.insert(analyzerDocumentTemplates).values({
+    id: definition.id,
+    titleFa: definition.titleFa,
+    layoutKey: definition.layoutKey,
+    brandNameFa: definition.brandNameFa,
+    system: true,
+  }).onConflictDoNothing();
+}
+
 export async function saveDocumentTemplateChrome(input: {
   id: string;
   chrome: DocumentChrome;
@@ -170,6 +136,7 @@ export async function saveDocumentTemplateChrome(input: {
 }): Promise<StoredDocumentTemplate | null> {
   await ensureInterpretationDocumentsSchema();
   if (!ALLOWED_TEMPLATE_IDS.has(input.id)) return null;
+  await ensureDocumentTemplateRecord(input.id);
   const next = clipDocumentChrome(input.chrome);
   if (input.applyBase) {
     await db

@@ -24,7 +24,7 @@ import {
 } from "@/lib/analyzers/document-templates";
 import type { AnalyzerPack } from "@/lib/analyzers/pack";
 import type { WorkspaceAttemptRow } from "@/lib/analyzers/workspace-attempt-types";
-import { clipDocumentChrome, readDocumentChrome } from "@/lib/analyzers/document-templates-store";
+import { clipDocumentChrome, ensureDocumentTemplateRecord, readDocumentChrome } from "@/lib/analyzers/document-templates-store";
 import { ensureInterpretationDocumentsSchema } from "@/lib/auth/schema-guard";
 
 type StoredKeyword = { id: string; titleFa: string; children: { id: string; titleFa: string }[] };
@@ -347,6 +347,7 @@ export async function convertAttemptDocument(input: {
   converterAccountId: number;
 }): Promise<ConvertedDocumentRef> {
   await ensureInterpretationDocumentsSchema();
+  if (!templateAllowedForPack(input.pack, input.templateId)) throw new Error("bad_template");
   const templateId = resolveDocumentTemplateId(input.pack, input.templateId);
   if (!templateAllowedForPack(input.pack, templateId)) {
     throw new Error("bad_template");
@@ -357,6 +358,8 @@ export async function convertAttemptDocument(input: {
   const accountId = await attemptOwnerId(input.attemptId);
   if (!accountId) throw new Error("missing_account");
   const doc = buildInterpretationDocument(input.pack, row, templateId);
+  // Only template metadata is materialized; no new schema or legacy assessment is created.
+  await ensureDocumentTemplateRecord(templateId);
   const chrome = clipDocumentChrome(await readDocumentChrome(templateId, input.converterAccountId));
   const id = await upsertSnapshot({
     pack: input.pack,
