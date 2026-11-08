@@ -2,6 +2,7 @@ import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
+import { shouldBlockDestructiveRebuild } from "../src/db/migration-policy.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const migrationsDir = path.join(root, "src", "db", "migrations");
@@ -13,6 +14,7 @@ const unlockSql = "SELECT pg_advisory_unlock(hashtext('hadiran'), hashtext('sche
 
 const databaseUrl = process.env.DATABASE_URL;
 const allowDestructiveReset = process.argv.includes("--allow-destructive-reset");
+const confirmDestructiveReset = process.argv.includes("--confirm-0037-destructive-reset");
 if (!databaseUrl) {
   console.error("DATABASE_URL is required before applying migrations.");
   process.exit(1);
@@ -30,6 +32,11 @@ async function ensureMigrationTable() {
       applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
+}
+
+async function migrationTableExists() {
+  const result = await client.query("SELECT to_regclass($1) IS NOT NULL AS present", [migrationTable]);
+  return result.rows[0]?.present === true;
 }
 
 async function isApplied(id) {
@@ -112,9 +119,27 @@ async function main() {
       }
     }
 
-    await ensureMigrationTable();
+    const ledgerExists = await migrationTableExists();
+    const isProduction = process.env.NODE_ENV === "production";
+    if (!ledgerExists) {
+      if (rebuildMigration && shouldBlockDestructiveRebuild({
+        isProduction,
+        markerApplied: false,
+        explicitlyConfirmed: confirmDestructiveReset,
+      })) {
+        throw new Error("Migration ledger is missing; refusing automatic 0037 rebuild. Verify the backup and ledger first.");
+      }
+      await ensureMigrationTable();
+    }
 
     if (rebuildMigration && !(await isApplied(rebuildMigrationId))) {
+      if (shouldBlockDestructiveRebuild({
+        isProduction,
+        markerApplied: false,
+        explicitlyConfirmed: confirmDestructiveReset,
+      })) {
+        throw new Error("Pending 0037; destructive rebuild is blocked without explicit non-production confirmation.");
+      }
       if (!allowDestructiveReset) {
         throw new Error(
           `Pending ${rebuildMigrationId}; refusing destructive reset without --allow-destructive-reset`,

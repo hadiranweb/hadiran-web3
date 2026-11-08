@@ -1,15 +1,14 @@
 #!/usr/bin/env bash
 # Locked deploy path for hadiran-web3.
 # Only this script. Never Liara CLI, never Actions Re-run, never --no-cache.
-# CD is GitHub job "deploy" after a push to main without [skip deploy].
+# Normal pushes deploy through GitHub Actions; [skip deploy] pushes run CI only.
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$root"
 
 if git log -1 --pretty=%B | grep -qF '[skip deploy]'; then
-  echo "HEAD has [skip deploy]. Abort. Deploy push must not skip." >&2
-  exit 1
+  echo "HEAD has [skip deploy]. Required CI gates will run; GitHub Actions will skip Liara deployment."
 fi
 
 token_file=""
