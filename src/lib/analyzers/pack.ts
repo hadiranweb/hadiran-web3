@@ -91,50 +91,6 @@ export type Edge = {
   transform: EdgeTransform;
 };
 
-/** A named, version-local scoring/output value. */
-export type ParameterValueKind = "numeric" | "category" | "reference" | "boolean" | "text";
-
-export type ScoringParameter = {
-  id: string;
-  labelFa: string;
-  valueKind?: ParameterValueKind;
-  minValue?: number;
-  maxValue?: number;
-  unit?: string;
-  config?: Record<string, unknown>;
-};
-
-export type ResponseRuleMatchKind = "option" | "numeric_range" | "exact_value" | "fallback";
-
-/** Match condition for one answer to one question; the effects remain separate rows. */
-export type ResponseRule = {
-  id: string;
-  questionId: string;
-  matchKind: ResponseRuleMatchKind;
-  optionValue?: string;
-  exactValue?: string;
-  rangeMin?: number;
-  rangeMax?: number;
-  minInclusive?: boolean;
-  maxInclusive?: boolean;
-  labelFa?: string;
-  config?: Record<string, unknown>;
-};
-
-export type ResponseEffectOperation = "identity" | "reverse" | "set_value" | "add" | "multiply" | "weighted_value";
-
-/** One independent scoring effect of a response rule. No executable expression is accepted. */
-export type ResponseEffect = {
-  id: string;
-  questionId: string;
-  ruleId?: string;
-  parameterId: string;
-  operation: ResponseEffectOperation;
-  value?: number | string | boolean;
-  coefficient?: number;
-  config?: Record<string, unknown>;
-};
-
 export type FormulaOp =
   | "reverse"
   | "mean"
@@ -187,8 +143,6 @@ export type AnalyzerScale = {
 
 export type AnalyzerPack = {
   slug: string;
-  /** Internal relational snapshot id; omitted by authoring input sanitization. */
-  packVersionId?: number;
   version: string;
   status: AnalyzerPackStatus;
   nameFa: string;
@@ -199,10 +153,6 @@ export type AnalyzerPack = {
   findings: Finding[];
   keywords: Keyword[];
   edges: Edge[];
-  /** Optional in legacy packs; the relational mapper derives compatible parameters where possible. */
-  parameters?: ScoringParameter[];
-  responseRules?: ResponseRule[];
-  responseEffects?: ResponseEffect[];
   formulas: Formula[];
   report?: PackReport;
   botDisplay?: PackBotDisplay;

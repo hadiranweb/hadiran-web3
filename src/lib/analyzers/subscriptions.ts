@@ -4,7 +4,6 @@ import { analyzerPacks, assessmentAuthoringSubscriptions, assessmentAuthoringUsa
 import { ensureAnalyzerAuthoringSchema } from "@/lib/auth/schema-guard";
 import type { AnalyzerPack } from "@/lib/analyzers/pack";
 import { selectAuthoringQuotaWindow, summarizeAuthoringQuota } from "@/lib/analyzers/authoring-quota-policy";
-import { hasRelationalAuthoringSchema, insertAuthoredPackInTransaction } from "@/lib/analyzers/relational-store";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -35,7 +34,6 @@ export async function createAuthoredPackWithQuota(input: {
   isOwner: boolean;
 }): Promise<AnalyzerPack> {
   await ensureAnalyzerAuthoringSchema();
-  const relationalReady = await hasRelationalAuthoringSchema();
   return db.transaction(async (tx) => {
     const now = new Date();
     let subscription: (typeof assessmentAuthoringSubscriptions.$inferSelect) | null = null;
@@ -46,18 +44,13 @@ export async function createAuthoredPackWithQuota(input: {
       subscription = selection.window;
     }
 
-    const storedPack = relationalReady
-      ? await insertAuthoredPackInTransaction(tx, input.pack, input.accountId)
-      : input.pack;
-    if (!relationalReady) {
-      await tx.insert(analyzerPacks).values({
-        slug: storedPack.slug,
-        status: storedPack.status,
-        pack: storedPack,
-        createdBy: input.accountId,
-        updatedAt: now,
-      });
-    }
+    await tx.insert(analyzerPacks).values({
+      slug: input.pack.slug,
+      status: input.pack.status,
+      pack: input.pack,
+      createdBy: input.accountId,
+      updatedAt: now,
+    });
 
     if (subscription) {
       const [updated] = await tx
@@ -81,7 +74,7 @@ export async function createAuthoredPackWithQuota(input: {
         createdAt: now,
       });
     }
-    return storedPack;
+    return input.pack;
   });
 }
 

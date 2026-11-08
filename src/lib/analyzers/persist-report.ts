@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import {
   accounts,
@@ -22,16 +22,10 @@ import {
   templateTitleFa,
   type DocumentListItem,
 } from "@/lib/analyzers/document-templates";
-import { findItem, type AnalyzerPack } from "@/lib/analyzers/pack";
+import type { AnalyzerPack } from "@/lib/analyzers/pack";
 import type { WorkspaceAttemptRow } from "@/lib/analyzers/workspace-attempt-types";
 import { clipDocumentChrome, readDocumentChrome } from "@/lib/analyzers/document-templates-store";
-import { ensureAnalyzerAuthoringSchema, ensureInterpretationDocumentsSchema } from "@/lib/auth/schema-guard";
-import { hasRelationalAuthoringSchema, readAuthoredPackVersion } from "@/lib/analyzers/relational-store";
-import {
-  createReportConfigSnapshot,
-  parseInterpretationDocumentSnapshot,
-  serializeInterpretationDocument,
-} from "@/lib/analyzers/report-snapshot";
+import { ensureInterpretationDocumentsSchema } from "@/lib/auth/schema-guard";
 
 type StoredKeyword = { id: string; titleFa: string; children: { id: string; titleFa: string }[] };
 
@@ -41,67 +35,6 @@ export type ConvertedDocumentRef = {
   templateId: string;
   href: string;
 };
-
-type ReportBase = Pick<typeof analyzerReports.$inferSelect,
-  | "id" | "slug" | "accountId" | "attemptId" | "attemptKind" | "templateId"
-  | "schemaVersion" | "instrumentVersion" | "coverTitle" | "totalScore" | "totalScoreMax"
-  | "maturityLabel" | "bottleneckId" | "bottleneckName" | "bottleneckScore"
-  | "personNameSnapshot" | "businessNameSnapshot" | "reportDate" | "closingFa" | "context"
-  | "patterns" | "chromeSnapshot" | "createdAt"
->;
-
-const REPORT_BASE_COLUMNS = {
-  id: analyzerReports.id,
-  slug: analyzerReports.slug,
-  accountId: analyzerReports.accountId,
-  attemptId: analyzerReports.attemptId,
-  attemptKind: analyzerReports.attemptKind,
-  templateId: analyzerReports.templateId,
-  schemaVersion: analyzerReports.schemaVersion,
-  instrumentVersion: analyzerReports.instrumentVersion,
-  coverTitle: analyzerReports.coverTitle,
-  totalScore: analyzerReports.totalScore,
-  totalScoreMax: analyzerReports.totalScoreMax,
-  maturityLabel: analyzerReports.maturityLabel,
-  bottleneckId: analyzerReports.bottleneckId,
-  bottleneckName: analyzerReports.bottleneckName,
-  bottleneckScore: analyzerReports.bottleneckScore,
-  personNameSnapshot: analyzerReports.personNameSnapshot,
-  businessNameSnapshot: analyzerReports.businessNameSnapshot,
-  reportDate: analyzerReports.reportDate,
-  closingFa: analyzerReports.closingFa,
-  context: analyzerReports.context,
-  patterns: analyzerReports.patterns,
-  chromeSnapshot: analyzerReports.chromeSnapshot,
-  createdAt: analyzerReports.createdAt,
-};
-
-type ReportSnapshotColumnState = { packVersionId: boolean; reportConfigSnapshot: boolean; documentSnapshot: boolean };
-let reportSnapshotColumnCache: ReportSnapshotColumnState = {
-  packVersionId: false,
-  reportConfigSnapshot: false,
-  documentSnapshot: false,
-};
-let reportSnapshotColumnCheckedAt = 0;
-
-async function reportSnapshotColumns(): Promise<ReportSnapshotColumnState> {
-  if (Date.now() - reportSnapshotColumnCheckedAt < 60_000) return reportSnapshotColumnCache;
-  const result = await db.execute(sql`
-    SELECT
-      EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'analyzer_reports' AND column_name = 'pack_version_id') AS pack_version_id,
-      EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'analyzer_reports' AND column_name = 'report_config_snapshot') AS report_config_snapshot,
-      EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'analyzer_reports' AND column_name = 'document_snapshot') AS document_snapshot
-  `);
-  const rows = (result as unknown as { rows?: Record<string, unknown>[] }).rows ?? [];
-  const row = rows[0] ?? {};
-  reportSnapshotColumnCache = {
-    packVersionId: reportSnapshotColumnCache.packVersionId || row.pack_version_id === true,
-    reportConfigSnapshot: reportSnapshotColumnCache.reportConfigSnapshot || row.report_config_snapshot === true,
-    documentSnapshot: reportSnapshotColumnCache.documentSnapshot || row.document_snapshot === true,
-  };
-  reportSnapshotColumnCheckedAt = Date.now();
-  return reportSnapshotColumnCache;
-}
 
 function actionTitles(text: string): string[] {
   return text
@@ -162,7 +95,7 @@ export async function personNameOf(accountId: number): Promise<string> {
 }
 
 function documentFromStored(
-  report: ReportBase,
+  report: typeof analyzerReports.$inferSelect,
   layers: (typeof analyzerReportLayers.$inferSelect)[],
   actions: (typeof analyzerReportActions.$inferSelect)[],
 ): InterpretationDocument {
@@ -215,22 +148,7 @@ function documentFromStored(
   };
 }
 
-async function hydrate(report: ReportBase): Promise<InterpretationDocument> {
-  const columns = await reportSnapshotColumns();
-  if (columns.documentSnapshot) {
-    const [stored] = await db
-      .select({ snapshot: analyzerReports.documentSnapshot })
-      .from(analyzerReports)
-      .where(eq(analyzerReports.id, report.id))
-      .limit(1);
-    const snapshot = parseInterpretationDocumentSnapshot(stored?.snapshot);
-    if (snapshot) {
-      return {
-        ...snapshot,
-        chromeSnapshot: report.chromeSnapshot ?? snapshot.chromeSnapshot ?? null,
-      };
-    }
-  }
+async function hydrate(report: typeof analyzerReports.$inferSelect): Promise<InterpretationDocument> {
   const layers = await db
     .select()
     .from(analyzerReportLayers)
@@ -250,7 +168,7 @@ export async function readStoredInterpretation(
 ): Promise<InterpretationDocument | null> {
   await ensureInterpretationDocumentsSchema();
   const [report] = await db
-    .select(REPORT_BASE_COLUMNS)
+    .select()
     .from(analyzerReports)
     .where(and(eq(analyzerReports.attemptKind, attemptKind), eq(analyzerReports.attemptId, attemptId)))
     .limit(1);
@@ -269,7 +187,7 @@ export async function readConvertedDocument(id: number): Promise<{
 } | null> {
   if (!Number.isInteger(id) || id <= 0) return null;
   await ensureInterpretationDocumentsSchema();
-  const [report] = await db.select(REPORT_BASE_COLUMNS).from(analyzerReports).where(eq(analyzerReports.id, id)).limit(1);
+  const [report] = await db.select().from(analyzerReports).where(eq(analyzerReports.id, id)).limit(1);
   if (!report) return null;
   return {
     id: report.id,
@@ -286,17 +204,7 @@ export async function listConvertedDocuments(slugs: string[]): Promise<DocumentL
   await ensureInterpretationDocumentsSchema();
   if (!slugs.length) return [];
   const rows = await db
-    .select({
-      id: analyzerReports.id,
-      slug: analyzerReports.slug,
-      coverTitle: analyzerReports.coverTitle,
-      attemptId: analyzerReports.attemptId,
-      templateId: analyzerReports.templateId,
-      personNameSnapshot: analyzerReports.personNameSnapshot,
-      businessNameSnapshot: analyzerReports.businessNameSnapshot,
-      createdAt: analyzerReports.createdAt,
-      reportDate: analyzerReports.reportDate,
-    })
+    .select()
     .from(analyzerReports)
     .where(inArray(analyzerReports.slug, slugs))
     .orderBy(desc(analyzerReports.createdAt))
@@ -337,50 +245,13 @@ export async function documentIdByAttempt(
   return map;
 }
 
-async function attemptDefinitionForDocument(input: {
-  slug: string;
-  attemptId: number;
-  fallbackPack: AnalyzerPack;
-}): Promise<{ accountId: number; pack: AnalyzerPack; packVersionId: number | null }> {
-  await ensureAnalyzerAuthoringSchema();
-  const [attempt] = await db
-    .select({ accountId: analyzerAttempts.accountId, slug: analyzerAttempts.slug, instrumentVersion: analyzerAttempts.instrumentVersion, status: analyzerAttempts.status })
+async function attemptOwnerId(attemptId: number): Promise<number | null> {
+  const [row] = await db
+    .select({ accountId: analyzerAttempts.accountId })
     .from(analyzerAttempts)
-    .where(and(eq(analyzerAttempts.id, input.attemptId), eq(analyzerAttempts.slug, input.slug)))
+    .where(eq(analyzerAttempts.id, attemptId))
     .limit(1);
-  if (!attempt) throw new Error("attempt_not_found");
-  if (attempt.status !== "submitted") throw new Error("not_submitted");
-
-  let packVersionId: number | null = null;
-  let pack = input.fallbackPack;
-  if (await hasRelationalAuthoringSchema()) {
-    const [binding] = await db
-      .select({ packVersionId: analyzerAttempts.packVersionId })
-      .from(analyzerAttempts)
-      .where(eq(analyzerAttempts.id, input.attemptId))
-      .limit(1);
-    packVersionId = binding?.packVersionId ?? null;
-    if (packVersionId != null) {
-      const exact = await readAuthoredPackVersion(packVersionId);
-      if (!exact) throw new Error("attempt_version_unavailable");
-      pack = exact;
-    }
-  }
-
-  if (pack.slug !== input.slug || pack.version !== attempt.instrumentVersion) {
-    throw new Error("attempt_version_unavailable");
-  }
-  return { accountId: attempt.accountId, pack, packVersionId };
-}
-
-function businessNameForPack(pack: AnalyzerPack, answers: Record<string, number | string>): string | null {
-  const id = pack.report?.businessNameItemId ?? "BIZ.1";
-  const raw = answers[id];
-  const item = findItem(pack, id);
-  if (item?.kind === "choice" && typeof raw === "string") {
-    return item.options.find((option) => option.value === raw)?.label ?? raw;
-  }
-  return typeof raw === "string" && raw.trim() ? raw.trim() : null;
+  return row?.accountId ?? null;
 }
 
 async function writeChildren(reportId: number, doc: InterpretationDocument) {
@@ -426,11 +297,7 @@ async function upsertSnapshot(input: {
   templateId: string;
   doc: InterpretationDocument;
   chromeSnapshot: Record<string, unknown>;
-  packVersionId: number | null;
-  reportConfigSnapshot: Record<string, unknown>;
-  documentSnapshot: Record<string, unknown>;
 }): Promise<number> {
-  const columns = await reportSnapshotColumns();
   const values = {
     slug: input.pack.slug,
     accountId: input.accountId,
@@ -439,9 +306,6 @@ async function upsertSnapshot(input: {
     templateId: input.templateId,
     schemaVersion: "1.0",
     instrumentVersion: input.doc.version,
-    ...(columns.packVersionId ? { packVersionId: input.packVersionId } : {}),
-    ...(columns.reportConfigSnapshot ? { reportConfigSnapshot: input.reportConfigSnapshot } : {}),
-    ...(columns.documentSnapshot ? { documentSnapshot: input.documentSnapshot } : {}),
     coverTitle: input.doc.packNameFa.slice(0, 256),
     totalScore: input.doc.totalScore,
     totalScoreMax: input.doc.totalScoreMax,
@@ -483,35 +347,28 @@ export async function convertAttemptDocument(input: {
   converterAccountId: number;
 }): Promise<ConvertedDocumentRef> {
   await ensureInterpretationDocumentsSchema();
+  const templateId = resolveDocumentTemplateId(input.pack, input.templateId);
+  if (!templateAllowedForPack(input.pack, templateId)) {
+    throw new Error("bad_template");
+  }
   const row = input.row;
   if (row.status !== "submitted") throw new Error("not_submitted");
-  if (row.attemptId !== input.attemptId) throw new Error("attempt_row_mismatch");
-  const attemptDefinition = await attemptDefinitionForDocument({
-    slug: input.pack.slug,
-    attemptId: input.attemptId,
-    fallbackPack: input.pack,
-  });
-  const pack = attemptDefinition.pack;
-  if (row.instrumentVersion !== pack.version) throw new Error("attempt_row_version_mismatch");
-  if (!templateAllowedForPack(pack, input.templateId)) throw new Error("bad_template");
-  const templateId = resolveDocumentTemplateId(pack, input.templateId);
-  const documentRow = { ...row, businessName: businessNameForPack(pack, row.rawAnswers) };
-  const doc = buildInterpretationDocument(pack, documentRow, templateId);
+  const attemptKind = "analyzer" as const;
+  const accountId = await attemptOwnerId(input.attemptId);
+  if (!accountId) throw new Error("missing_account");
+  const doc = buildInterpretationDocument(input.pack, row, templateId);
   const chrome = clipDocumentChrome(await readDocumentChrome(templateId, input.converterAccountId));
   const id = await upsertSnapshot({
-    pack,
-    accountId: attemptDefinition.accountId,
+    pack: input.pack,
+    accountId,
     attemptId: input.attemptId,
-    attemptKind: "analyzer",
+    attemptKind,
     templateId,
     doc,
     chromeSnapshot: chrome as unknown as Record<string, unknown>,
-    packVersionId: attemptDefinition.packVersionId,
-    reportConfigSnapshot: createReportConfigSnapshot(pack, templateId, attemptDefinition.packVersionId),
-    documentSnapshot: serializeInterpretationDocument(doc),
   });
   const { tryDeliverCapturedDocument } = await import("@/lib/finance/assessment-orders");
-  await tryDeliverCapturedDocument({ attemptKind: "analyzer", attemptId: input.attemptId, accountId: attemptDefinition.accountId });
+  await tryDeliverCapturedDocument({ attemptKind, attemptId: input.attemptId, accountId });
   return { id, attemptId: input.attemptId, templateId, href: documentHref(id) };
 }
 

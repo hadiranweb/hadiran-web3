@@ -2,7 +2,6 @@ import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { accountPublicCodes, accounts, analyzerAttempts, analyzerReports } from "@/db/schema";
 import { resolveLivePack } from "@/lib/analyzers/authored";
-import { loadPackForAttemptId } from "@/lib/analyzers/registry";
 import { gateOf } from "@/lib/analyzers/gate";
 import { findItem, itemsOf, type AnalyzerPack } from "@/lib/analyzers/pack";
 import { attemptKindOf } from "@/lib/analyzers/document-templates";
@@ -28,12 +27,11 @@ function nameOf(row: { givenName: string | null; familyName: string | null; disp
   return "بدون نام";
 }
 
-function formatValue(value: number | string | boolean): string {
+function formatValue(value: number | string): string {
   if (typeof value === "number") {
     const rounded = Math.round(value * 10) / 10;
     return String(rounded);
   }
-  if (typeof value === "boolean") return value ? "بله" : "خیر";
   return value;
 }
 
@@ -52,14 +50,9 @@ function answerRows(pack: AnalyzerPack, answers: Record<string, number | string>
   return out;
 }
 
-function scoreRows(
-  pack: AnalyzerPack,
-  results: {
-    scores?: Record<string, number | string>;
-    parameters?: Record<string, number | string | boolean>;
-  } | null,
-): WorkspaceAttemptScore[] {
-  const scores = results?.scores ?? {};
+function scoreRows(pack: AnalyzerPack, results: { scores?: Record<string, number | string> } | null): WorkspaceAttemptScore[] {
+  const scores = results?.scores;
+  if (!scores) return [];
   const out: WorkspaceAttemptScore[] = [];
   for (const [id, value] of Object.entries(scores)) {
     if (id.endsWith(":gate-band")) continue;
@@ -87,12 +80,6 @@ function scoreRows(
     if (id === "diagnosis-total") titleFa = "نمرهٔ کل";
     out.push({ id, titleFa, valueFa: formatValue(value) });
   }
-  for (const [id, value] of Object.entries(results?.parameters ?? {})) {
-    if (Object.prototype.hasOwnProperty.call(scores, id)) continue;
-    const parameter = pack.parameters?.find((row) => row.id === id);
-    const section = pack.sections.find((row) => row.id === id);
-    out.push({ id, titleFa: parameter?.labelFa ?? section?.titleFa ?? id, valueFa: formatValue(value) });
-  }
   return out;
 }
 
@@ -112,12 +99,7 @@ type Joined = {
   instrumentVersion: string;
   status: string;
   answers: Record<string, number | string> | null;
-  results: {
-    version?: string;
-    effective?: Record<string, number>;
-    scores?: Record<string, number | string>;
-    parameters?: Record<string, number | string | boolean>;
-  } | null;
+  results: { version?: string; effective?: Record<string, number>; scores?: Record<string, number | string> } | null;
   submittedAt: Date | null;
   updatedAt: Date | null;
   givenName: string | null;
@@ -130,7 +112,6 @@ type Joined = {
 };
 
 function toRow(pack: AnalyzerPack, row: Joined, referrerCode: string | null): WorkspaceAttemptRow {
-  const packMatchesAttempt = row.instrumentVersion === pack.version;
   return {
     attemptId: row.attemptId,
     publicCode: row.publicCode,
@@ -140,20 +121,19 @@ function toRow(pack: AnalyzerPack, row: Joined, referrerCode: string | null): Wo
     instrumentVersion: row.instrumentVersion,
     submittedAt: row.submittedAt ? row.submittedAt.toISOString() : null,
     updatedAt: row.updatedAt ? row.updatedAt.toISOString() : null,
-    businessName: packMatchesAttempt ? businessNameOf(pack, row.answers) : null,
+    businessName: businessNameOf(pack, row.answers),
     referrerPublicCode: referrerCode,
     discountCode: row.discountCode ?? null,
     documentId: null,
-    gate: packMatchesAttempt ? gateOf(pack, row.results) : null,
-    scores: packMatchesAttempt ? scoreRows(pack, row.results) : [],
-    answers: packMatchesAttempt ? answerRows(pack, row.answers) : [],
+    gate: gateOf(pack, row.results),
+    scores: scoreRows(pack, row.results),
+    answers: answerRows(pack, row.answers),
     rawAnswers: row.answers ?? {},
     rawResults: row.results
       ? {
           version: row.instrumentVersion,
           effective: row.results.effective ?? {},
           scores: row.results.scores ?? {},
-          parameters: row.results.parameters ?? {},
         }
       : null,
   };
@@ -200,14 +180,10 @@ async function withDocumentIds(slug: string, rows: WorkspaceAttemptRow[]): Promi
   }
 }
 
-export async function readWorkspaceAttempt(
-  slug: string,
-  attemptId: number,
-  packOverride?: AnalyzerPack,
-): Promise<WorkspaceAttemptRow | null> {
+export async function readWorkspaceAttempt(slug: string, attemptId: number): Promise<WorkspaceAttemptRow | null> {
   if (!Number.isInteger(attemptId) || attemptId <= 0) return null;
-  const pack = packOverride ?? await loadPackForAttemptId(slug, attemptId);
-  if (!pack || pack.slug !== slug) return null;
+  const pack = await resolveLivePack(slug);
+  if (!pack) return null;
   await ensureAccountProfileSchema();
 
   await ensureAnalyzerAuthoringSchema();
@@ -234,7 +210,7 @@ export async function readWorkspaceAttempt(
     .where(and(eq(analyzerAttempts.id, attemptId), eq(analyzerAttempts.slug, slug)))
     .limit(1);
   const [row] = await withReferrerCodes(pack, rows);
-  return row?.instrumentVersion === pack.version ? row : null;
+  return row ?? null;
 }
 
 export async function listWorkspaceAttempts(slug: string): Promise<WorkspaceAttemptRow[]> {

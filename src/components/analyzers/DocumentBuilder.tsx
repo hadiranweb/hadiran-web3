@@ -71,17 +71,10 @@ export function DocumentBuilder({
       const data = (await res.json()) as {
         items?: { id: number; attemptId: number; templateId: string; href: string }[];
         error?: string;
-        errors?: { attemptId: number; error: string }[];
       };
       if (!res.ok) {
-        setError(data.error === "bad_template" ? "قالب انتخاب‌شده با نسخهٔ بعضی نوبت‌ها سازگار نیست." : "تبدیل انجام نشد.");
+        setError(data.error === "bad_template" ? "این قالب برای این تفسیر نیست." : "تبدیل انجام نشد.");
         return;
-      }
-      if (data.errors?.length) {
-        const unavailable = data.errors.filter((item) => item.error === "attempt_version_unavailable").length;
-        setError(unavailable
-          ? `نسخهٔ دقیق ${unavailable} نوبت برای ساخت سند در دسترس نبود.`
-          : `تبدیل ${data.errors.length} نوبت انجام نشد.`);
       }
       const list = await fetch("/api/workspace/documents", { cache: "no-store" });
       const next = (await list.json()) as { items?: DocumentListItem[] };

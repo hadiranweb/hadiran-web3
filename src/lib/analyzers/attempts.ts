@@ -2,7 +2,6 @@ import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { analyzerAttempts } from "@/db/schema";
 import { ensureAnalyzerAuthoringSchema } from "@/lib/auth/schema-guard";
-import { hasRelationalAuthoringSchema, packVersionIdForAttempt } from "@/lib/analyzers/relational-store";
 import type { AnalyzerPack } from "@/lib/analyzers/pack";
 import { findItem } from "@/lib/analyzers/pack";
 import { scorePack } from "@/lib/analyzers/score";
@@ -36,9 +35,7 @@ function view(row: {
     submittedAt: row.submittedAt ? row.submittedAt.toISOString() : null,
     referrerPublicCode: row.referrerPublicCode ?? null,
     discountCode: row.discountCode ?? null,
-    results: row.results
-      ? { version: row.results.version, effective: row.results.effective, scores: row.results.scores }
-      : null,
+    results: row.results ?? null,
   };
 }
 
@@ -75,19 +72,16 @@ async function latestSubmitted(accountId: number, slug: string) {
 
 async function createOpen(accountId: number, pack: AnalyzerPack) {
   try {
-    const relationalReady = await hasRelationalAuthoringSchema();
-    const [row] = await db.transaction(async (tx) => {
-      const packVersionId = relationalReady ? await packVersionIdForAttempt(tx, pack) : null;
-      const values = {
+    const [row] = await db
+      .insert(analyzerAttempts)
+      .values({
         accountId,
         slug: pack.slug,
         instrumentVersion: pack.version,
         answers: {},
-        status: "in_progress" as const,
-        ...(relationalReady ? { packVersionId } : {}),
-      };
-      return tx.insert(analyzerAttempts).values(values).returning();
-    });
+        status: "in_progress",
+      })
+      .returning();
     return row;
   } catch {
     const existing = await openAttempt(accountId, pack.slug);
@@ -132,7 +126,7 @@ export async function consentAttempt(
   if (!row.consentAt) {
     const [updated] = await db
       .update(analyzerAttempts)
-      .set({ consentAt: new Date(), updatedAt: new Date() })
+      .set({ consentAt: new Date(), updatedAt: new Date(), instrumentVersion: pack.version })
       .where(eq(analyzerAttempts.id, row.id))
       .returning();
     row = updated;
@@ -172,7 +166,7 @@ export async function saveAnswer(
   const answers = { ...filterAnswers(pack, row.answers), [id]: normalized };
   const [updated] = await db
     .update(analyzerAttempts)
-    .set({ answers, updatedAt: new Date() })
+    .set({ answers, updatedAt: new Date(), instrumentVersion: pack.version })
     .where(eq(analyzerAttempts.id, row.id))
     .returning();
   return { ok: true, attempt: view(updated, pack) };
@@ -214,6 +208,7 @@ export async function submitAttempt(
       updatedAt: new Date(),
       answers,
       results,
+      instrumentVersion: pack.version,
     })
     .where(eq(analyzerAttempts.id, row.id))
     .returning();

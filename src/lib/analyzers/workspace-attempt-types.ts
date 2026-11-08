@@ -25,6 +25,5 @@ export type WorkspaceAttemptRow = {
     version: string;
     effective: Record<string, number>;
     scores: Record<string, number | string>;
-    parameters?: Record<string, number | string | boolean>;
   } | null;
 };

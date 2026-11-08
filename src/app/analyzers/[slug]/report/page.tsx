@@ -8,7 +8,7 @@ import { UserSummaryView } from "@/components/analyzers/UserSummary";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PageShell } from "@/components/ui/PageShell";
 import { readAttempt } from "@/lib/analyzers/attempts";
-import { loadPack, loadPackForAttempt } from "@/lib/analyzers/registry";
+import { loadPack } from "@/lib/analyzers/registry";
 import { renderUserSummary } from "@/lib/analyzers/summary-template";
 import { requirePageAccount } from "@/lib/auth/guard";
 
@@ -24,12 +24,9 @@ type Props = { params: Promise<{ slug: string }> };
 export default async function AnalyzerReportPage({ params }: Props) {
   const { slug } = await params;
   const account = await requirePageAccount(`/analyzers/${slug}/report`);
-  const resolved = await loadPackForAttempt(slug, account.id, "submitted");
-  if (resolved.attemptFound && !resolved.pack) notFound();
-  const pack = resolved.pack ?? await loadPack(slug);
+  const pack = await loadPack(slug);
   if (!pack) notFound();
-  const resumableVersion = resolved.attemptFound && pack.packVersionId != null;
-  if (pack.status !== "open" && account.role !== "owner" && !resumableVersion) notFound();
+  if (pack.status !== "open" && account.role !== "owner") notFound();
 
   const attempt = await readAttempt(account.id, pack);
   if (!attempt || attempt.status !== "submitted") {

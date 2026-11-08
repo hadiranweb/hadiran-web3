@@ -1,12 +1,8 @@
-import { and, desc, eq } from "drizzle-orm";
-import { db } from "@/db";
-import { analyzerAttempts } from "@/db/schema";
 import { mindsetGatePack } from "@/lib/analyzers/mindset-gate/pack";
 import { systemDiagnosisPack } from "@/lib/analyzers/system-diagnosis/pack";
 import { listAuthoredPacks, resolveLivePack } from "@/lib/analyzers/authored";
 import { assertPack, type AnalyzerPack } from "@/lib/analyzers/pack";
 import { sanitizePack } from "@/lib/analyzers/sanitize";
-import { hasRelationalAuthoringSchema, readAuthoredPackVersion } from "@/lib/analyzers/relational-store";
 
 /**
  * پک‌های کد فقط «بذر اولیه»‌اند (برای DB خالی و Fallback بدون دیتابیس).
@@ -50,82 +46,6 @@ export async function loadPack(slug: string): Promise<AnalyzerPack | undefined> 
     // fall through to code
   }
   return getCodePack(slug);
-}
-
-/** Resolve an existing attempt against its immutable definition rather than the current release. */
-export async function loadPackForAttemptId(slug: string, attemptId: number): Promise<AnalyzerPack | undefined> {
-  if (!Number.isInteger(attemptId) || attemptId <= 0) return undefined;
-  const relationalReady = await hasRelationalAuthoringSchema();
-  if (!relationalReady) {
-    const [legacyAttempt] = await db
-      .select({ instrumentVersion: analyzerAttempts.instrumentVersion })
-      .from(analyzerAttempts)
-      .where(and(eq(analyzerAttempts.id, attemptId), eq(analyzerAttempts.slug, slug)))
-      .limit(1);
-    if (!legacyAttempt) return undefined;
-    const current = await loadPack(slug);
-    return current?.version === legacyAttempt.instrumentVersion ? current : undefined;
-  }
-
-  const [attempt] = await db
-    .select({ packVersionId: analyzerAttempts.packVersionId, instrumentVersion: analyzerAttempts.instrumentVersion })
-    .from(analyzerAttempts)
-    .where(and(eq(analyzerAttempts.id, attemptId), eq(analyzerAttempts.slug, slug)))
-    .limit(1);
-  if (!attempt) return undefined;
-
-  if (attempt.packVersionId != null) {
-    const exact = await readAuthoredPackVersion(attempt.packVersionId);
-    return exact?.slug === slug && exact.version === attempt.instrumentVersion ? exact : undefined;
-  }
-
-  const current = await loadPack(slug);
-  return current?.version === attempt.instrumentVersion ? current : undefined;
-}
-
-export async function loadPackForAttempt(
-  slug: string,
-  accountId: number,
-  status: "in_progress" | "submitted",
-): Promise<{ pack: AnalyzerPack | undefined; attemptFound: boolean }> {
-  try {
-    const relationalReady = await hasRelationalAuthoringSchema();
-    let attempt: { id: number; instrumentVersion: string; packVersionId?: number | null } | undefined;
-    if (relationalReady) {
-      const [row] = await db
-        .select({ id: analyzerAttempts.id, packVersionId: analyzerAttempts.packVersionId, instrumentVersion: analyzerAttempts.instrumentVersion })
-        .from(analyzerAttempts)
-        .where(and(
-          eq(analyzerAttempts.accountId, accountId),
-          eq(analyzerAttempts.slug, slug),
-          eq(analyzerAttempts.status, status),
-        ))
-        .orderBy(desc(analyzerAttempts.createdAt), desc(analyzerAttempts.id))
-        .limit(1);
-      attempt = row;
-    } else {
-      const [row] = await db
-        .select({ id: analyzerAttempts.id, instrumentVersion: analyzerAttempts.instrumentVersion })
-        .from(analyzerAttempts)
-        .where(and(
-          eq(analyzerAttempts.accountId, accountId),
-          eq(analyzerAttempts.slug, slug),
-          eq(analyzerAttempts.status, status),
-        ))
-        .orderBy(desc(analyzerAttempts.createdAt), desc(analyzerAttempts.id))
-        .limit(1);
-      attempt = row;
-    }
-    if (!attempt) return { pack: await loadPack(slug), attemptFound: false };
-    if (relationalReady && attempt.packVersionId != null) {
-      const exact = await readAuthoredPackVersion(attempt.packVersionId);
-      if (exact?.slug === slug && exact.version === attempt.instrumentVersion) return { pack: exact, attemptFound: true };
-    }
-    const current = await loadPack(slug);
-    return { pack: current?.version === attempt.instrumentVersion ? current : undefined, attemptFound: true };
-  } catch {
-    return { pack: await loadPack(slug), attemptFound: false };
-  }
 }
 
 /** Packهای کد به‌عنوان بذر. فهرست زنده: loadPacks. */
