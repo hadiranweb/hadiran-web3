@@ -8,6 +8,7 @@ import {
   assessmentOrders,
   assessmentTariffs,
   discountCodes,
+  discountRedemptions,
 } from "@/db/schema";
 import {
   assessmentProductId,
@@ -18,10 +19,12 @@ import {
 } from "@/lib/commerce/assessment-policy";
 import { redeemDiscount } from "@/lib/commerce/discount";
 import { attemptKindOf } from "@/lib/analyzers/document-templates";
+import { executionPaymentModeOf, type ExecutionPaymentMode } from "@/lib/analyzers/pack";
 import { ensureAssessmentLedgerSchema } from "@/lib/auth/schema-guard";
 import { newCanonicalId } from "@/lib/knowledge/ids";
 import {
   buildCaptureJournal,
+  buildCreatorSponsorshipJournal,
   buildDeliveryJournal,
   buildPayoutJournal,
   refundCaptureJournal,
@@ -33,10 +36,31 @@ type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type OrderRow = typeof assessmentOrders.$inferSelect;
 type TariffRow = typeof assessmentTariffs.$inferSelect;
 
+export type AssessmentDiscountNotice = {
+  requestedPercent: number;
+  allowedPercent: number;
+  overCapPercent: number;
+  overCapIrr: string;
+};
+
+export function assessmentDiscountNotice(order: OrderRow): AssessmentDiscountNotice | null {
+  if (!order.discountCode || order.discountPercent == null || order.discountCapPercent == null) return null;
+  const overCapPercent = Math.max(0, order.discountPercent - order.discountCapPercent);
+  const overCapIrr = order.discountOverCapIrr ?? order.discountIrr;
+  if (overCapPercent <= 0 || overCapIrr <= BigInt(0)) return null;
+  return {
+    requestedPercent: order.discountPercent,
+    allowedPercent: order.discountCapPercent,
+    overCapPercent,
+    overCapIrr: String(overCapIrr),
+  };
+}
+
 export class AssessmentError extends Error {
   constructor(
     message: string,
     public status: number,
+    public details?: Record<string, string>,
   ) {
     super(message);
   }
@@ -114,16 +138,19 @@ export async function assessmentExecutionOffer(input: {
   slug: string;
   accountId: number;
   attemptId: number | null;
-}): Promise<{ available: boolean; priceIrr: string | null; entitled: boolean } | null> {
-  const tariff = await activeAssessmentTariff(input.slug, "execution");
-  if (!tariff) return { available: false, priceIrr: null, entitled: false };
+  paymentMode: ExecutionPaymentMode;
+}): Promise<{ available: boolean; priceIrr: string | null; entitled: boolean; paymentMode: ExecutionPaymentMode }> {
+  const [tariff, entitled] = await Promise.all([
+    activeAssessmentTariff(input.slug, "execution"),
+    input.attemptId == null
+      ? Promise.resolve(false)
+      : hasAssessmentEntitlement(input.accountId, "analyzer", input.attemptId, "execution"),
+  ]);
   return {
-    available: true,
-    priceIrr: String(tariff.priceIrr),
-    entitled:
-      input.attemptId == null
-        ? false
-        : await hasAssessmentEntitlement(input.accountId, "analyzer", input.attemptId, "execution"),
+    available: Boolean(tariff) || entitled,
+    priceIrr: tariff ? String(tariff.priceIrr) : null,
+    entitled,
+    paymentMode: input.paymentMode,
   };
 }
 
@@ -145,11 +172,12 @@ async function quoteFromTariff(tariff: TariffRow, discountIRR: bigint) {
       priceIRR: tariff.priceIrr,
       discountIRR,
       commissionBasisPoints: tariff.commissionBps,
+      creatorDiscountCapPercent: tariff.creatorDiscountCapPercent,
       rounding: asRounding(tariff.rounding),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "invalid_tariff";
-    throw new AssessmentError(message === "invalid_commission" ? "tariff_undefined" : message, 409);
+    throw new AssessmentError(["invalid_commission", "invalid_discount_cap"].includes(message) ? "tariff_undefined" : message, 409);
   }
 }
 
@@ -188,6 +216,7 @@ export async function upsertAssessmentTariff(input: {
   priceIRR?: bigint;
   commissionBps?: number | null;
   rounding?: "floor" | "ceil" | null;
+  creatorDiscountCapPercent?: number;
   activate?: boolean;
 }) {
   if (!isAssessmentService(input.service)) throw new AssessmentError("invalid_service", 400);
@@ -206,7 +235,9 @@ export async function upsertAssessmentTariff(input: {
     const isOwner = who.role === "owner";
     if (!isCreator && !isOwner) throw new AssessmentError("forbidden", 403);
     if (input.priceIRR != null && !isCreator && !isOwner) throw new AssessmentError("forbidden", 403);
-    if ((input.commissionBps !== undefined || input.activate) && !isOwner) throw new AssessmentError("forbidden", 403);
+    if ((input.commissionBps !== undefined || input.creatorDiscountCapPercent !== undefined || input.activate) && !isOwner) {
+      throw new AssessmentError("forbidden", 403);
+    }
 
     const [current] = await tx
       .select()
@@ -224,16 +255,27 @@ export async function upsertAssessmentTariff(input: {
     if (typeof priceIRR !== "bigint" || priceIRR <= BigInt(0)) throw new AssessmentError("invalid_price", 400);
     const commissionBps = input.commissionBps === undefined ? current?.commissionBps ?? null : input.commissionBps;
     const rounding = input.rounding === undefined ? current?.rounding ?? null : input.rounding;
+    const creatorDiscountCapPercent =
+      input.creatorDiscountCapPercent === undefined ? current?.creatorDiscountCapPercent ?? 0 : input.creatorDiscountCapPercent;
     if (commissionBps != null && (!Number.isInteger(commissionBps) || commissionBps < 0 || commissionBps > 10000)) {
       throw new AssessmentError("invalid_commission", 400);
     }
     if (rounding != null && rounding !== "floor" && rounding !== "ceil") throw new AssessmentError("invalid_rounding", 400);
+    if (
+      !Number.isInteger(creatorDiscountCapPercent) ||
+      creatorDiscountCapPercent < 0 ||
+      creatorDiscountCapPercent > 100 ||
+      (commissionBps != null && creatorDiscountCapPercent > Math.floor((10000 - commissionBps) / 100))
+    ) {
+      throw new AssessmentError("invalid_discount_cap", 400);
+    }
     if (commissionBps != null) {
       try {
         quoteAssessmentSale({
           priceIRR,
           discountIRR: BigInt(0),
           commissionBasisPoints: commissionBps,
+          creatorDiscountCapPercent,
           rounding: asRounding(rounding),
         });
       } catch (error) {
@@ -264,6 +306,7 @@ export async function upsertAssessmentTariff(input: {
         priceIrr: priceIRR,
         commissionBps,
         rounding,
+        creatorDiscountCapPercent,
         version,
         active: activate,
       })
@@ -281,13 +324,25 @@ async function quoteDiscountIRR(
     service: AssessmentService;
     creatorId: number;
   },
-): Promise<{ discountIRR: bigint; discountId: number | null; discountCode: string | null }> {
-  if (input.code == null || input.code === "") return { discountIRR: BigInt(0), discountId: null, discountCode: null };
+): Promise<{ discountIRR: bigint; discountPercent: number; discountId: number | null; discountCode: string | null }> {
+  if (input.code == null || input.code === "") {
+    return { discountIRR: BigInt(0), discountPercent: 0, discountId: null, discountCode: null };
+  }
   if (typeof input.code !== "string") throw new AssessmentError("invalid_discount", 400);
   const code = input.code.trim().toUpperCase();
+  if (!/^[A-Z0-9_-]{3,32}$/.test(code) || /^\d{8}$/.test(code)) throw new AssessmentError("invalid_discount", 400);
   const [row] = await tx.select().from(discountCodes).where(eq(discountCodes.code, code)).limit(1).for("update");
-  if (!row || !row.active) throw new AssessmentError("unknown_discount", 400);
+  const now = new Date();
+  if (!row || !row.active || (row.startsAt && row.startsAt > now) || (row.endsAt && row.endsAt < now)) {
+    throw new AssessmentError("unknown_discount", 400);
+  }
   if (row.maxUses != null && row.usedCount >= row.maxUses) throw new AssessmentError("discount_exhausted", 400);
+  if (
+    (row.scope !== "any" && row.scope !== "analyzer") ||
+    (row.scope === "analyzer" && row.analyzerSlug && row.analyzerSlug !== input.slug)
+  ) {
+    throw new AssessmentError("discount_scope", 400);
+  }
   if (!row.productId || row.issuerAccountId == null) throw new AssessmentError("coupon_product_mismatch", 400);
   try {
     assertCreatorCoupon({
@@ -302,7 +357,7 @@ async function quoteDiscountIRR(
   if (row.kind !== "percent") throw new AssessmentError("unsupported_discount", 400);
   const pct = Math.min(100, Math.max(0, row.value));
   const discountIRR = (input.priceIRR * BigInt(pct)) / BigInt(100);
-  return { discountIRR, discountId: row.id, discountCode: row.code };
+  return { discountIRR, discountPercent: pct, discountId: row.id, discountCode: row.code };
 }
 
 export async function createAssessmentOrder(input: {
@@ -326,7 +381,7 @@ export async function createAssessmentOrder(input: {
     const who = await actor(tx, input.buyerId);
     if (who.role === "owner") throw new AssessmentError("owner_cannot_buy", 403);
     const [attempt] = await tx
-      .select({ status: analyzerAttempts.status })
+      .select({ status: analyzerAttempts.status, executionPaymentMode: analyzerAttempts.executionPaymentMode })
       .from(analyzerAttempts)
       .where(
         and(
@@ -338,11 +393,16 @@ export async function createAssessmentOrder(input: {
       .limit(1)
       .for("share");
     if (!attempt) throw new AssessmentError("invalid_attempt", 404);
-    if (service === "execution" ? attempt.status !== "in_progress" : attempt.status !== "submitted") {
+    const paymentMode = executionPaymentModeOf(attempt.executionPaymentMode);
+    if (
+      service === "execution"
+        ? paymentMode === "before_start"
+          ? attempt.status !== "in_progress"
+          : !["in_progress", "submitted"].includes(attempt.status)
+        : attempt.status !== "submitted"
+    ) {
       throw new AssessmentError("assessment_not_ready", 409);
     }
-    const tariff = await activeAssessmentTariff(input.slug, service, tx);
-    if (!tariff) throw new AssessmentError("tariff_undefined", 409);
     const [entitled] = await tx
       .select({ id: assessmentEntitlements.id })
       .from(assessmentEntitlements)
@@ -370,6 +430,8 @@ export async function createAssessmentOrder(input: {
       )
       .limit(1);
     if (open) return open;
+    const tariff = await activeAssessmentTariff(input.slug, service, tx);
+    if (!tariff) throw new AssessmentError("tariff_undefined", 409);
 
     const discount = await quoteDiscountIRR(tx, {
       code: input.discountCode,
@@ -394,9 +456,12 @@ export async function createAssessmentOrder(input: {
         tariffVersion: tariff.version,
         priceIrr: quote.priceIRR,
         discountIrr: quote.discountIRR,
+        discountPercent: discount.discountPercent,
+        discountCapPercent: quote.discountCapPercent,
+        discountOverCapIrr: quote.creatorDiscountDebitIRR,
         payableIrr: quote.payableIRR,
         platformFeeIrr: quote.platformFeeIRR,
-        authorCreditIrr: quote.authorCreditBeforeDiscountIRR,
+        authorCreditIrr: quote.authorCreditIRR,
         authorNetIrr: quote.authorNetIRR,
         commissionBps: quote.commissionBasisPoints,
         rounding: quote.rounding === "exact" ? null : quote.rounding,
@@ -404,6 +469,8 @@ export async function createAssessmentOrder(input: {
         state: zeroPay ? "captured" : "awaiting_payment_reference",
         discountCode: discount.discountCode,
         discountId: discount.discountId,
+        fundingSource: "buyer",
+        sponsorshipAmountIrr: BigInt(0),
         capturedAt: zeroPay ? new Date() : null,
       })
       .returning();
@@ -433,6 +500,242 @@ export async function createAssessmentOrder(input: {
   }).then((created) => autoDeliverIfReady(created));
 }
 
+export async function quoteDocumentSponsorship(input: {
+  slug: string;
+  attemptId: number;
+  actorId: number;
+  executor?: Pick<typeof db, "select">;
+}): Promise<{ required: false } | { required: true; tariffId: string; amountIrr: string }> {
+  const executor = input.executor ?? db;
+  if (executor === db) await requireLedgerSchema();
+  const attemptKind = attemptKindOf(input.slug);
+  const [attempt] = await executor
+    .select({ accountId: analyzerAttempts.accountId, status: analyzerAttempts.status })
+    .from(analyzerAttempts)
+    .where(and(eq(analyzerAttempts.id, input.attemptId), eq(analyzerAttempts.slug, input.slug)))
+    .limit(1);
+  if (!attempt) throw new AssessmentError("invalid_attempt", 404);
+  if (attempt.status !== "submitted") throw new AssessmentError("assessment_not_ready", 409);
+  const [entitlement] = await executor
+    .select({ id: assessmentEntitlements.id })
+    .from(assessmentEntitlements)
+    .where(
+      and(
+        eq(assessmentEntitlements.accountId, attempt.accountId),
+        eq(assessmentEntitlements.attemptKind, attemptKind),
+        eq(assessmentEntitlements.attemptId, input.attemptId),
+        eq(assessmentEntitlements.service, "document"),
+      ),
+    )
+    .limit(1);
+  if (entitlement) return { required: false };
+  const [paidOrder] = await executor
+    .select({ id: assessmentOrders.id })
+    .from(assessmentOrders)
+    .where(
+      and(
+        eq(assessmentOrders.buyerId, attempt.accountId),
+        eq(assessmentOrders.attemptKind, attemptKind),
+        eq(assessmentOrders.attemptId, input.attemptId),
+        eq(assessmentOrders.service, "document"),
+        inArray(assessmentOrders.state, ["captured", "delivered"]),
+      ),
+    )
+    .limit(1);
+  if (paidOrder) return { required: false };
+  const tariff = await activeAssessmentTariff(input.slug, "document", executor);
+  if (!tariff) throw new AssessmentError("tariff_undefined", 409);
+  if (input.actorId !== tariff.creatorId) throw new AssessmentError("sponsorship_forbidden", 403);
+  return { required: true, tariffId: tariff.id, amountIrr: String(tariff.priceIrr) };
+}
+
+export async function sponsorDocumentForAssessmentInTransaction(
+  tx: Tx,
+  input: {
+    slug: string;
+    attemptId: number;
+    actorId: number;
+    confirmedTariffId: string;
+  },
+): Promise<{ sponsored: boolean; orderId: string | null }> {
+  const attemptKind = attemptKindOf(input.slug);
+  const [candidate] = await tx
+    .select({ accountId: analyzerAttempts.accountId })
+    .from(analyzerAttempts)
+    .where(and(eq(analyzerAttempts.id, input.attemptId), eq(analyzerAttempts.slug, input.slug)))
+    .limit(1);
+  if (!candidate) throw new AssessmentError("invalid_attempt", 404);
+  await tx.execute(
+    sql`select pg_advisory_xact_lock(hashtext('hadiran:assessment'), hashtext(${`${candidate.accountId}:${attemptKind}:${input.attemptId}:document`}))`,
+  );
+
+  const who = await actor(tx, input.actorId);
+  const [attempt] = await tx
+    .select({ accountId: analyzerAttempts.accountId, status: analyzerAttempts.status })
+    .from(analyzerAttempts)
+    .where(and(eq(analyzerAttempts.id, input.attemptId), eq(analyzerAttempts.slug, input.slug)))
+    .limit(1)
+    .for("share");
+  if (!attempt || attempt.accountId !== candidate.accountId) throw new AssessmentError("invalid_attempt", 404);
+  if (attempt.status !== "submitted") throw new AssessmentError("assessment_not_ready", 409);
+
+  const [entitlement] = await tx
+    .select({ orderId: assessmentEntitlements.orderId })
+    .from(assessmentEntitlements)
+    .where(
+      and(
+        eq(assessmentEntitlements.accountId, attempt.accountId),
+        eq(assessmentEntitlements.attemptKind, attemptKind),
+        eq(assessmentEntitlements.attemptId, input.attemptId),
+        eq(assessmentEntitlements.service, "document"),
+      ),
+    )
+    .limit(1);
+  if (entitlement) {
+    const [existing] = await tx
+      .select({ fundingSource: assessmentOrders.fundingSource })
+      .from(assessmentOrders)
+      .where(eq(assessmentOrders.id, entitlement.orderId))
+      .limit(1);
+    return { sponsored: existing?.fundingSource === "creator_sponsorship", orderId: entitlement.orderId };
+  }
+
+  const existingOrders = await tx
+    .select()
+    .from(assessmentOrders)
+    .where(
+      and(
+        eq(assessmentOrders.buyerId, attempt.accountId),
+        eq(assessmentOrders.attemptKind, attemptKind),
+        eq(assessmentOrders.attemptId, input.attemptId),
+        eq(assessmentOrders.service, "document"),
+        inArray(assessmentOrders.state, [
+          "awaiting_payment_reference",
+          "awaiting_confirmation",
+          "captured",
+          "delivered",
+          "declined",
+        ]),
+      ),
+    )
+    .orderBy(desc(assessmentOrders.createdAt))
+    .for("update");
+  const paidOrder = existingOrders.find((order) => order.state === "captured" || order.state === "delivered");
+  if (paidOrder) return { sponsored: false, orderId: paidOrder.id };
+
+  const tariff = await activeAssessmentTariff(input.slug, "document", tx);
+  if (!tariff) throw new AssessmentError("tariff_undefined", 409);
+  if (tariff.id !== input.confirmedTariffId) {
+    throw new AssessmentError("sponsorship_quote_changed", 409, {
+      tariffId: tariff.id,
+      amountIrr: String(tariff.priceIrr),
+    });
+  }
+  const [pack] = await tx
+    .select({ createdBy: analyzerPacks.createdBy })
+    .from(analyzerPacks)
+    .where(eq(analyzerPacks.slug, input.slug))
+    .limit(1)
+    .for("share");
+  if (!pack || (pack.createdBy != null && pack.createdBy !== tariff.creatorId) || who.id !== tariff.creatorId) {
+    throw new AssessmentError("sponsorship_forbidden", 403);
+  }
+
+  const pending = existingOrders.filter((order) =>
+    ["awaiting_payment_reference", "awaiting_confirmation", "declined"].includes(order.state),
+  );
+  for (const order of pending) {
+    await tx
+      .update(assessmentOrders)
+      .set({ state: "superseded", updatedAt: new Date() })
+      .where(and(eq(assessmentOrders.id, order.id), eq(assessmentOrders.state, order.state)));
+    if (order.discountId) {
+      const released = await tx
+        .delete(discountRedemptions)
+        .where(eq(discountRedemptions.orderId, order.id))
+        .returning({ id: discountRedemptions.id });
+      if (released.length) {
+        await tx.execute(sql`
+          update discount_codes
+          set used_count = greatest(used_count - ${released.length}, 0), updated_at = now()
+          where id = ${order.discountId}
+        `);
+      }
+    }
+  }
+
+  const orderId = newCanonicalId("AST");
+  const [sponsorship] = await tx
+    .insert(assessmentOrders)
+    .values({
+      id: orderId,
+      buyerId: attempt.accountId,
+      creatorId: tariff.creatorId,
+      analyzerSlug: input.slug,
+      attemptKind,
+      attemptId: input.attemptId,
+      service: "document",
+      tariffId: tariff.id,
+      tariffVersion: tariff.version,
+      priceIrr: tariff.priceIrr,
+      discountIrr: BigInt(0),
+      discountPercent: 0,
+      discountCapPercent: tariff.creatorDiscountCapPercent,
+      discountOverCapIrr: BigInt(0),
+      payableIrr: BigInt(0),
+      platformFeeIrr: BigInt(0),
+      authorCreditIrr: BigInt(0),
+      authorNetIrr: BigInt(0),
+      commissionBps: tariff.commissionBps ?? 0,
+      rounding: tariff.rounding,
+      currency: "IRR",
+      state: "sponsored",
+      fundingSource: "creator_sponsorship",
+      sponsorId: who.id,
+      sponsorshipAmountIrr: tariff.priceIrr,
+      deliveredAt: new Date(),
+    })
+    .returning();
+  if (!sponsorship) throw new AssessmentError("sponsorship_failed", 500);
+
+  try {
+    await postJournal(
+      tx,
+      buildCreatorSponsorshipJournal(orderId, tariff.priceIrr),
+      { creatorId: who.id, buyerId: attempt.accountId },
+      "assessment_sponsorship",
+    );
+  } catch (error) {
+    if (error instanceof LedgerError && error.message === "negative_creator_available") {
+      throw new AssessmentError("creator_credit_insufficient", 409);
+    }
+    if (error instanceof LedgerError) throw new AssessmentError(error.message, error.status);
+    throw error;
+  }
+
+  await tx
+    .insert(assessmentEntitlements)
+    .values({
+      accountId: attempt.accountId,
+      attemptKind,
+      attemptId: input.attemptId,
+      service: "document",
+      orderId,
+    })
+    .onConflictDoNothing();
+  return { sponsored: true, orderId };
+}
+
+export async function sponsorDocumentForAssessment(input: {
+  slug: string;
+  attemptId: number;
+  actorId: number;
+  confirmedTariffId: string;
+}): Promise<{ sponsored: boolean; orderId: string | null }> {
+  await requireLedgerSchema();
+  return db.transaction((tx) => sponsorDocumentForAssessmentInTransaction(tx, input));
+}
+
 async function autoDeliverIfReady(order: OrderRow) {
   if (order.state !== "captured") return order;
   try {
@@ -453,18 +756,26 @@ async function autoDeliverIfReady(order: OrderRow) {
 async function capturePosted(tx: Tx, order: OrderRow) {
   await tx.execute(sql`select pg_advisory_xact_lock(hashtext('hadiran:ledger'), hashtext(${`creator:${order.creatorId}`}))`);
   const available = await creatorAvailable(tx, order.creatorId);
+  const creatorDiscountDebitIRR = order.discountOverCapIrr ?? order.discountIrr;
+  if (creatorDiscountDebitIRR < BigInt(0) || creatorDiscountDebitIRR > order.discountIrr) {
+    throw new AssessmentError("invalid_order_quote", 500);
+  }
+  const creatorDiscountAllowanceIRR = order.discountIrr - creatorDiscountDebitIRR;
   const quote = {
     currency: "IRR" as const,
     priceIRR: order.priceIrr,
     discountIRR: order.discountIrr,
+    discountCapPercent: order.discountCapPercent ?? 0,
+    creatorDiscountAllowanceIRR,
+    creatorDiscountDebitIRR,
     commissionBasisPoints: order.commissionBps,
     feeNumerator: order.priceIrr * BigInt(order.commissionBps),
     feeDenominator: BigInt(10000),
     rounding: (asRounding(order.rounding) ?? "exact") as "floor" | "ceil" | "exact",
     payableIRR: order.payableIrr,
     platformFeeIRR: order.platformFeeIrr,
-    authorCreditBeforeDiscountIRR: order.authorCreditIrr,
-    creatorDiscountDebitIRR: order.discountIrr,
+    authorCreditBeforeDiscountIRR: order.authorCreditIrr + creatorDiscountAllowanceIRR,
+    authorCreditIRR: order.authorCreditIrr,
     authorNetIRR: order.authorNetIrr,
   };
   const journal = buildCaptureJournal({

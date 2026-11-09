@@ -1,7 +1,7 @@
 /** Pure shadow-ledger model. No database, authorization, bank or wallet mutation. */
 import { quoteAssessmentSale, type AssessmentQuote } from "@/lib/commerce/assessment-policy";
 
-export const JOURNAL_MODEL_VERSION = "shadow-1";
+export const JOURNAL_MODEL_VERSION = "shadow-2";
 export const ACCOUNT_NORMAL = {
   bank: "debit",
   creator_receivable: "debit",
@@ -15,7 +15,7 @@ export const ACCOUNT_NORMAL = {
 export type AccountKind = keyof typeof ACCOUNT_NORMAL;
 export type Side = "debit" | "credit";
 export type JournalLine = Readonly<{ account: AccountKind; side: Side; amountIRR: bigint }>;
-export type JournalKind = "opening" | "capture" | "delivery" | "payout" | "refund";
+export type JournalKind = "opening" | "capture" | "delivery" | "payout" | "refund" | "sponsorship";
 export type Journal = Readonly<{
   kind: JournalKind;
   eventKey: string;
@@ -71,7 +71,7 @@ export function assertJournal(journal: Journal) {
     journal.eventKey.length > 200 ||
     journal.sourceRef.length > 120 ||
     journal.lines.length < 2 ||
-    !["opening", "capture", "delivery", "payout", "refund"].includes(journal.kind) ||
+    !["opening", "capture", "delivery", "payout", "refund", "sponsorship"].includes(journal.kind) ||
     journal.eventKey !== `${journal.sourceRef}:${journal.kind}`
   ) {
     throw new Error("invalid_journal");
@@ -152,6 +152,7 @@ export type SaleScenario = {
   priceIRR: bigint;
   discountIRR: bigint;
   commissionBasisPoints: number;
+  creatorDiscountCapPercent?: number;
   rounding?: "floor" | "ceil";
   buyerWalletIRR: bigint;
   creatorNetOpeningIRR: bigint;
@@ -169,14 +170,23 @@ export function buildCaptureJournal(input: {
   if (typeof input.creatorAvailableIRR !== "bigint" || input.creatorAvailableIRR < zero) {
     throw new Error("invalid_simulation_amount");
   }
-  const discountFromAvailable = minimum(input.creatorAvailableIRR, input.quote.discountIRR);
-  const discountToReceivable = input.quote.discountIRR - discountFromAvailable;
+  const discountFromAvailable = minimum(input.creatorAvailableIRR, input.quote.creatorDiscountDebitIRR);
+  const discountToReceivable = input.quote.creatorDiscountDebitIRR - discountFromAvailable;
   return entry(input.sourceRef, "capture", input.description ?? "خرید فرضی؛ درآمد هنوز در انتظار تحویل است", [
     line(input.cashAccount, "debit", input.quote.payableIRR),
     line("creator_available", "debit", discountFromAvailable),
     line("creator_receivable", "debit", discountToReceivable),
-    line("creator_pending", "credit", input.quote.authorCreditBeforeDiscountIRR),
+    line("creator_pending", "credit", input.quote.authorCreditIRR),
     line("platform_deferred", "credit", input.quote.platformFeeIRR),
+  ]);
+}
+
+/** Charge a creator's already-available balance for a document they sponsor; never create an overdraft. */
+export function buildCreatorSponsorshipJournal(sourceRef: string, amountIRR: bigint): Journal {
+  if (typeof amountIRR !== "bigint" || amountIRR <= zero) throw new Error("invalid_simulation_amount");
+  return entry(sourceRef, "sponsorship", "سند آزمون با حمایت مالی آزمون‌ساز", [
+    line("creator_available", "debit", amountIRR),
+    line("platform_revenue", "credit", amountIRR),
   ]);
 }
 
@@ -247,8 +257,8 @@ export function simulateAssessmentSale(input: SaleScenario, sourceRef = "simulat
     creatorAvailableIRR: creatorAvailable,
     cashAccount: "buyer_wallet",
   });
-  const discountFromAvailable = minimum(creatorAvailable, quote.discountIRR);
-  const discountToReceivable = quote.discountIRR - discountFromAvailable;
+  const discountFromAvailable = minimum(creatorAvailable, quote.creatorDiscountDebitIRR);
+  const discountToReceivable = quote.creatorDiscountDebitIRR - discountFromAvailable;
   append("capture", capture);
   const repayment = minimum(book.balances.creator_receivable, book.balances.creator_pending);
   append("delivery", buildDeliveryJournal(sourceRef, book.balances));

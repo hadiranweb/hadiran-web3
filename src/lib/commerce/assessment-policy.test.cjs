@@ -22,12 +22,20 @@ function assertCreatorCoupon(binding) {
 
 function quoteAssessmentSale(input) {
   const { priceIRR, discountIRR, commissionBasisPoints, rounding } = input;
+  const creatorDiscountCapPercent = input.creatorDiscountCapPercent ?? 0;
   if (typeof priceIRR !== "bigint" || priceIRR <= ZERO) throw new Error("invalid_price");
   if (typeof discountIRR !== "bigint" || discountIRR < ZERO || discountIRR > priceIRR) {
     throw new Error("invalid_discount");
   }
   if (!Number.isInteger(commissionBasisPoints) || commissionBasisPoints < 0 || commissionBasisPoints > 10000) {
     throw new Error("invalid_commission");
+  }
+  if (
+    !Number.isInteger(creatorDiscountCapPercent) ||
+    creatorDiscountCapPercent < 0 ||
+    creatorDiscountCapPercent > Math.floor((10000 - commissionBasisPoints) / 100)
+  ) {
+    throw new Error("invalid_discount_cap");
   }
   if (rounding !== undefined && rounding !== "floor" && rounding !== "ceil") {
     throw new Error("invalid_rounding");
@@ -37,11 +45,18 @@ function quoteAssessmentSale(input) {
   if (remainder !== ZERO && rounding === undefined) throw new Error("commission_rounding_required");
   const platformFeeIRR = feeNumerator / FEE_DENOMINATOR + (rounding === "ceil" && remainder !== ZERO ? ONE : ZERO);
   const authorCreditBeforeDiscountIRR = priceIRR - platformFeeIRR;
+  const allowedIRR = priceIRR * BigInt(creatorDiscountCapPercent) / 100n;
+  const creatorDiscountAllowanceIRR = allowedIRR < discountIRR ? allowedIRR : discountIRR;
+  const creatorDiscountDebitIRR = discountIRR - creatorDiscountAllowanceIRR;
+  const authorCreditIRR = authorCreditBeforeDiscountIRR - creatorDiscountAllowanceIRR;
   return {
     payableIRR: priceIRR - discountIRR,
     platformFeeIRR,
     authorCreditBeforeDiscountIRR,
-    authorNetIRR: authorCreditBeforeDiscountIRR - discountIRR,
+    creatorDiscountAllowanceIRR,
+    creatorDiscountDebitIRR,
+    authorCreditIRR,
+    authorNetIRR: authorCreditIRR - creatorDiscountDebitIRR,
   };
 }
 
@@ -54,6 +69,28 @@ test("100% coupon: buyer pays 0, fee from list price, creator may owe", () => {
   assert.equal(quote.payableIRR, 0n);
   assert.equal(quote.platformFeeIRR, 20000n);
   assert.equal(quote.authorNetIRR, -20000n);
+});
+
+test("only the discount above the approved cap is debited from creator available/receivable", () => {
+  const quote = quoteAssessmentSale({
+    priceIRR: 100000n,
+    discountIRR: 25000n,
+    commissionBasisPoints: 2000,
+    creatorDiscountCapPercent: 10,
+  });
+  assert.equal(quote.creatorDiscountAllowanceIRR, 10000n);
+  assert.equal(quote.creatorDiscountDebitIRR, 15000n);
+  assert.equal(quote.authorCreditIRR, 70000n);
+  assert.equal(quote.authorNetIRR, 55000n);
+  assert.throws(
+    () => quoteAssessmentSale({
+      priceIRR: 100000n,
+      discountIRR: 0n,
+      commissionBasisPoints: 2000,
+      creatorDiscountCapPercent: 81,
+    }),
+    /invalid_discount_cap/,
+  );
 });
 
 test("undefined rounding on remainder is an error, not implicit floor", () => {

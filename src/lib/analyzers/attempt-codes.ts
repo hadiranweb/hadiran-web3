@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { analyzerAttempts } from "@/db/schema";
-import { quoteDiscount, redeemDiscount } from "@/lib/commerce/discount";
+import { quoteDiscount } from "@/lib/commerce/discount";
 import { publicCodeByAccountId } from "@/lib/auth/public-code";
 import { resolveReferralCode } from "@/lib/auth/referral";
 import { ensureAccessSchema } from "@/lib/auth/schema-guard";
@@ -37,13 +37,7 @@ export async function applyAttemptCodes(input: {
     });
     if (!quoted.ok) return { ok: false, error: quoted.error };
     if (!("skipped" in quoted)) {
-      const redeemed = await redeemDiscount({
-        quote: quoted.quote,
-        accountId: input.accountId,
-        source: "analyzer",
-        analyzerSlug: input.slug,
-      });
-      if (!redeemed) return { ok: false, error: "discount_exhausted" };
+      // Consent-time application only stores the candidate code; usage is counted when a paid assessment order is created.
       discount = quoted.quote.code;
     }
   }

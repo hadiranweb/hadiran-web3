@@ -43,6 +43,11 @@ export default async function WorkspaceShopPage() {
     order: typeof assessmentOrders.$inferSelect;
     buyerPhone: string;
   }[] = [];
+  let sponsoredAssessment: {
+    order: typeof assessmentOrders.$inferSelect;
+    sponsorName: string;
+    buyerName: string;
+  }[] = [];
   try {
     listings = await db.select().from(shopListings).orderBy(desc(shopListings.updatedAt));
     pending = await db
@@ -83,6 +88,40 @@ export default async function WorkspaceShopPage() {
     } catch (error) {
       console.error("[hadiran] workspace shop assessment", error);
       assessmentPending = [];
+    }
+    try {
+      const sponsoredRows = await db
+        .select()
+        .from(assessmentOrders)
+        .where(eq(assessmentOrders.fundingSource, "creator_sponsorship"))
+        .orderBy(desc(assessmentOrders.createdAt))
+        .limit(30);
+      const accountIds = [...new Set(sponsoredRows.flatMap((order) => [order.sponsorId, order.buyerId]).filter((id): id is number => id != null))];
+      const partyRows = accountIds.length
+        ? await db
+            .select({
+              id: accounts.id,
+              givenName: accounts.givenName,
+              familyName: accounts.familyName,
+              displayName: accounts.displayName,
+            })
+            .from(accounts)
+            .where(inArray(accounts.id, accountIds))
+        : [];
+      const partyName = new Map(
+        partyRows.map((party) => [
+          party.id,
+          [party.givenName, party.familyName].filter((part): part is string => Boolean(part?.trim())).join(" ").trim() || party.displayName?.trim() || "عضو",
+        ]),
+      );
+      sponsoredAssessment = sponsoredRows.map((order) => ({
+        order,
+        sponsorName: order.sponsorId ? partyName.get(order.sponsorId) ?? "آزمون‌ساز" : "آزمون‌ساز",
+        buyerName: partyName.get(order.buyerId) ?? "عضو",
+      }));
+    } catch (error) {
+      console.error("[hadiran] workspace shop sponsored assessment", error);
+      sponsoredAssessment = [];
     }
     const [row] = await db.select().from(shopPayoutDestinations).where(eq(shopPayoutDestinations.id, 1));
     payout = row ?? null;
@@ -167,6 +206,31 @@ export default async function WorkspaceShopPage() {
                 </p>
                 <p className="text-xs text-slate-500">ثبت {financeDateFa(order.createdAt)}</p>
                 <AssessmentOrderActions orderId={order.id} state={order.state} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section>
+        <h2 className="mb-3 text-lg font-bold text-slate-900">سندهای تأمین‌شده توسط آزمون‌ساز</h2>
+        <p className="mb-3 text-sm leading-6 text-slate-500">
+          هزینهٔ این سندها از اعتبار آزاد آزمون‌ساز کسر شده؛ سفارش آزمون‌دهنده لغو/جایگزین و دسترسی همان نوبت فعال است.
+        </p>
+        {sponsoredAssessment.length === 0 ? (
+          <p className="text-sm text-slate-500">هنوز سندی با حمایت مالی آزمون‌ساز ثبت نشده.</p>
+        ) : (
+          <ul className="space-y-3">
+            {sponsoredAssessment.map(({ order, sponsorName, buyerName }) => (
+              <li key={order.id} className="space-y-2 rounded-2xl border border-slate-200 bg-white p-4">
+                <p className="font-medium text-slate-900">{order.analyzerSlug} · سند</p>
+                <p className="text-xs text-slate-500" dir="ltr">{order.id}</p>
+                <p className="text-sm text-slate-600">
+                  آزمون‌ساز: {sponsorName} · آزمون‌دهنده: {buyerName} · نوبت {order.attemptId}
+                </p>
+                <p className="text-sm text-slate-700">
+                  کسر مالی ثبت‌شده: {financeMoney(String(order.sponsorshipAmountIrr), order.currency)} · {financeDateFa(order.deliveredAt ?? order.createdAt)}
+                </p>
               </li>
             ))}
           </ul>

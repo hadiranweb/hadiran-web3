@@ -2,7 +2,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { analyzerAttempts } from "@/db/schema";
 import { ensureAnalyzerAuthoringSchema } from "@/lib/auth/schema-guard";
-import type { AnalyzerPack } from "@/lib/analyzers/pack";
+import { executionPaymentModeOf, type AnalyzerPack } from "@/lib/analyzers/pack";
 import { findItem } from "@/lib/analyzers/pack";
 import { scorePack } from "@/lib/analyzers/score";
 import {
@@ -18,6 +18,7 @@ export type { AttemptView };
 function view(row: {
   id: number;
   instrumentVersion: string;
+  executionPaymentMode: string;
   status: string;
   consentAt: Date | null;
   answers: AnswerMap | null;
@@ -29,6 +30,7 @@ function view(row: {
   return {
     id: row.id,
     instrumentVersion: row.instrumentVersion,
+    executionPaymentMode: executionPaymentModeOf(row.executionPaymentMode),
     status: row.status === "submitted" ? "submitted" : "in_progress",
     consentAt: row.consentAt ? row.consentAt.toISOString() : null,
     answers: filterAnswers(pack, row.answers),
@@ -78,6 +80,7 @@ async function createOpen(accountId: number, pack: AnalyzerPack) {
         accountId,
         slug: pack.slug,
         instrumentVersion: pack.version,
+        executionPaymentMode: executionPaymentModeOf(pack.executionPaymentMode),
         answers: {},
         status: "in_progress",
       })
@@ -115,13 +118,17 @@ export async function consentAttempt(
   accountId: number,
   pack: AnalyzerPack,
   codes?: { referralCode?: unknown; discountCode?: unknown },
+  options: { isOwner?: boolean } = {},
 ): Promise<AttemptView | { error: string }> {
   await ensureAnalyzerAuthoringSchema();
   const submitted = await latestSubmitted(accountId, pack.slug);
-  if (submitted && !(await openAttempt(accountId, pack.slug))) {
-    return view(submitted, pack);
-  }
   let row = await openAttempt(accountId, pack.slug);
+  if (submitted && !row) return view(submitted, pack);
+  const paymentMode = executionPaymentModeOf(row?.executionPaymentMode ?? pack.executionPaymentMode);
+  if (!options.isOwner && paymentMode === "before_start") {
+    const { activeAssessmentTariff } = await import("@/lib/finance/assessment-orders");
+    if (!(await activeAssessmentTariff(pack.slug, "execution"))) return { error: "execution_tariff_unavailable" };
+  }
   if (!row) row = await createOpen(accountId, pack);
   if (!row.consentAt) {
     const [updated] = await db
@@ -148,6 +155,7 @@ export async function saveAnswer(
   pack: AnalyzerPack,
   id: string,
   value: unknown,
+  options: { isOwner?: boolean } = {},
 ): Promise<{ ok: true; attempt: AttemptView } | { ok: false; error: string }> {
   await ensureAnalyzerAuthoringSchema();
   const item = findItem(pack, id);
@@ -162,6 +170,15 @@ export async function saveAnswer(
     row = await createOpen(accountId, pack);
   }
   if (!row.consentAt) return { ok: false, error: "consent_required" };
+  if (!options.isOwner && executionPaymentModeOf(row.executionPaymentMode) === "before_start") {
+    const { activeAssessmentTariff, hasAssessmentEntitlement } = await import("@/lib/finance/assessment-orders");
+    if (!(await hasAssessmentEntitlement(accountId, "analyzer", row.id, "execution"))) {
+      if (!(await activeAssessmentTariff(pack.slug, "execution"))) {
+        return { ok: false, error: "execution_tariff_unavailable" };
+      }
+      return { ok: false, error: "execution_payment_required" };
+    }
+  }
 
   const answers = { ...filterAnswers(pack, row.answers), [id]: normalized };
   const [updated] = await db
@@ -187,11 +204,12 @@ export async function submitAttempt(
   if (!row.consentAt) return { ok: false, error: "consent_required" };
   const answers = filterAnswers(pack, row.answers);
   if (!isComplete(pack, answers)) return { ok: false, error: "incomplete" };
-  if (!options.isOwner) {
+  if (!options.isOwner && executionPaymentModeOf(row.executionPaymentMode) === "before_start") {
     const { activeAssessmentTariff, hasAssessmentEntitlement } = await import("@/lib/finance/assessment-orders");
-    const tariff = await activeAssessmentTariff(pack.slug, "execution");
-    if (!tariff) return { ok: false, error: "execution_tariff_unavailable" };
     const entitled = await hasAssessmentEntitlement(accountId, "analyzer", row.id, "execution");
+    if (!entitled && !(await activeAssessmentTariff(pack.slug, "execution"))) {
+      return { ok: false, error: "execution_tariff_unavailable" };
+    }
     if (!entitled) return { ok: false, error: "execution_payment_required" };
   }
   let results: AttemptView["results"];

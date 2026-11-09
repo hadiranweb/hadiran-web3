@@ -42,8 +42,13 @@ export async function POST(request: Request) {
   const attemptIds = Array.isArray(row.attemptIds)
     ? row.attemptIds.filter((id): id is number => typeof id === "number" && Number.isInteger(id) && id > 0)
     : [];
+  const sponsorUnpaid = row.sponsorUnpaid === true;
+  const sponsorTariffId = typeof row.sponsorTariffId === "string" ? row.sponsorTariffId : undefined;
   if (!slug || !templateId || !attemptIds.length) {
     return NextResponse.json({ error: "missing_fields" }, { status: 400 });
+  }
+  if (sponsorUnpaid && attemptIds.length !== 1) {
+    return NextResponse.json({ error: "sponsorship_single_attempt_only" }, { status: 400 });
   }
   const pack = await readAuthoredPack(slug);
   if (!pack) return NextResponse.json({ error: "not_found" }, { status: 404 });
@@ -54,7 +59,7 @@ export async function POST(request: Request) {
   }
 
   const items = [];
-  const errors: { attemptId: number; error: string }[] = [];
+  const errors: { attemptId: number; error: string; tariffId?: string; amountIrr?: string }[] = [];
   const seen = new Set<number>();
   for (const attemptId of attemptIds.slice(0, 50)) {
     if (seen.has(attemptId)) continue;
@@ -72,11 +77,22 @@ export async function POST(request: Request) {
           templateId,
           row: attempt,
           converterAccountId: auth.account.id,
+          sponsorUnpaid,
+          sponsorTariffId,
         }),
       );
     } catch (error) {
       const code = error instanceof Error ? error.message : "convert_failed";
-      errors.push({ attemptId, error: code });
+      const details =
+        error && typeof error === "object" && "details" in error
+          ? (error as { details?: Record<string, string> }).details
+          : undefined;
+      errors.push({
+        attemptId,
+        error: code,
+        ...(details?.tariffId ? { tariffId: details.tariffId } : {}),
+        ...(details?.amountIrr ? { amountIrr: details.amountIrr } : {}),
+      });
     }
   }
   return NextResponse.json({ items, errors });

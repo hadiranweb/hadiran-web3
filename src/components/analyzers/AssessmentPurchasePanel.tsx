@@ -3,6 +3,22 @@
 import { useState } from "react";
 import { financeMoney } from "@/lib/finance/types";
 
+function purchaseErrorFa(code: string): string {
+  const messages: Record<string, string> = {
+    already_entitled: "این نوبت را قبلاً گرفته‌ای.",
+    tariff_undefined: "تعرفه تعریف نشده؛ فروشی نیست.",
+    invalid_discount: "کد تخفیف نامعتبر است.",
+    unknown_discount: "کد تخفیف نامعتبر یا منقضی است.",
+    discount_exhausted: "ظرفیت این کد تخفیف تمام شده است.",
+    discount_scope: "این کد برای همین آزمون نیست.",
+    coupon_product_mismatch: "این کد برای همین آزمون صادر نشده است.",
+    coupon_issuer_mismatch: "این کد از سوی سازندهٔ این آزمون صادر نشده است.",
+    unsupported_discount: "این نوع کد برای تعرفهٔ آزمون پشتیبانی نمی‌شود.",
+    assessment_not_ready: "این نوبت هنوز برای خرید آماده نیست.",
+  };
+  return messages[code] ?? "سفارش ساخته نشد.";
+}
+
 export function AssessmentPurchasePanel({
   slug,
   attemptId,
@@ -10,6 +26,7 @@ export function AssessmentPurchasePanel({
   title,
   payableIrr,
   entitled,
+  initialDiscountCode,
   onEntitled,
 }: {
   slug: string;
@@ -18,11 +35,19 @@ export function AssessmentPurchasePanel({
   title: string;
   payableIrr: string;
   entitled: boolean;
+  initialDiscountCode?: string | null;
   onEntitled?: () => void;
 }) {
-  const [code, setCode] = useState("");
+  const [code, setCode] = useState(initialDiscountCode ?? "");
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState(entitled ? "دسترسی این نوبت فعال است." : "");
+  const [discountNotice, setDiscountNotice] = useState<{
+    requestedPercent: number;
+    allowedPercent: number;
+    overCapPercent: number;
+    overCapIrr: string;
+  } | null>(null);
+  const [currentPayableIrr, setCurrentPayableIrr] = useState(payableIrr);
   const [orderId, setOrderId] = useState<string | null>(null);
   const [needReference, setNeedReference] = useState(false);
   const [reference, setReference] = useState("");
@@ -36,15 +61,32 @@ export function AssessmentPurchasePanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ slug, attemptId, service, discountCode: code || undefined }),
       });
-      const data = (await res.json()) as { error?: string; id?: string; state?: string; payableIrr?: string };
+      const data = (await res.json()) as {
+        error?: string;
+        id?: string;
+        state?: string;
+        payableIrr?: string;
+        discountNotice?: {
+          requestedPercent: number;
+          allowedPercent: number;
+          overCapPercent: number;
+          overCapIrr: string;
+        } | null;
+      };
       if (!res.ok) throw new Error(data.error || "create_failed");
       setOrderId(data.id ?? null);
-      if (data.state === "delivered" || (service !== "execution" && data.state === "captured")) {
-        setStatus("فعال شد.");
+      setDiscountNotice(data.discountNotice ?? null);
+      if (data.payableIrr) setCurrentPayableIrr(data.payableIrr);
+      if (data.state === "delivered") {
+        setStatus("دسترسی این نوبت فعال شد.");
         setNeedReference(false);
         if (service === "execution") onEntitled?.();
-      } else if (service === "execution" && data.state === "captured") {
-        setStatus("پرداخت تأیید شد؛ اگر دسترسی فعال نشد صفحه را تازه‌سازی کن.");
+      } else if (data.state === "captured") {
+        setStatus(
+          service === "document"
+            ? "پرداخت ثبت شد؛ دسترسی سند پس از ساخت سند توسط آزمون‌ساز فعال می‌شود."
+            : "پرداخت تأیید شد؛ اگر دسترسی فعال نشد صفحه را تازه‌سازی کن.",
+        );
         setNeedReference(false);
       } else {
         setNeedReference(true);
@@ -52,13 +94,7 @@ export function AssessmentPurchasePanel({
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "";
-      setStatus(
-        message === "already_entitled"
-          ? "این نوبت را قبلاً گرفته‌ای."
-          : message === "tariff_undefined"
-            ? "تعرفه تعریف نشده؛ فروشی نیست."
-            : "سفارش ساخته نشد.",
-      );
+      setStatus(purchaseErrorFa(message));
     } finally {
       setBusy(false);
     }
@@ -95,7 +131,12 @@ export function AssessmentPurchasePanel({
           ? "این خرید یک اجرای همین نوبت را با نتیجهٔ پایه پوشش می‌دهد؛ همان اجرا دوباره قیمت‌گذاری نمی‌شود."
           : "این افزونه مستقل و فقط برای همین نوبت است؛ اجرا، تفسیر و سند سه عرضهٔ جدا هستند."}
       </p>
-      <p className="mt-2 text-sm text-ink">{financeMoney(payableIrr, "IRR")}</p>
+      <p className="mt-2 text-sm text-ink">{financeMoney(currentPayableIrr, "IRR")}</p>
+      {discountNotice ? (
+        <p className="mt-2 rounded-[var(--radius-sm)] border border-amber-300 bg-amber-50 px-3 py-2 text-xs leading-6 text-amber-900" role="status">
+          این کد {discountNotice.requestedPercent}٪ است و سقف آزمون‌ساز {discountNotice.allowedPercent}٪ است؛ مازاد {discountNotice.overCapPercent}٪ ({financeMoney(discountNotice.overCapIrr, "IRR")}) در صورت تکمیل موفق پرداخت به حساب مالی آزمون‌ساز منظور می‌شود (ابتدا از اعتبار آزاد و در صورت کسری به‌صورت طلب).
+        </p>
+      ) : null}
       <label className="mt-3 block text-xs text-muted">
         کد سازنده (اختیاری)
         <input

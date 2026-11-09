@@ -13,10 +13,17 @@ export async function livePack(slug: string): Promise<AnalyzerPack | null> {
   return resolveLivePack(slug);
 }
 
+async function hideUnpaidExecutionResult(accountId: number, attempt: AttemptView | null): Promise<AttemptView | null> {
+  if (!attempt || attempt.status !== "submitted") return attempt;
+  const { hasAssessmentEntitlement } = await import("@/lib/finance/assessment-orders");
+  const entitled = await hasAssessmentEntitlement(accountId, "analyzer", attempt.id, "execution");
+  return entitled ? attempt : { ...attempt, results: null };
+}
+
 export async function liveReadAttempt(accountId: number, slug: string): Promise<AttemptView | null> {
   const pack = await resolveLivePack(slug);
   if (!pack) return null;
-  return readAttempt(accountId, pack);
+  return hideUnpaidExecutionResult(accountId, await readAttempt(accountId, pack));
 }
 
 export async function liveRetakeAttempt(accountId: number, slug: string): Promise<AttemptView | null> {
@@ -52,5 +59,7 @@ export async function liveSubmitAttempt(
 ): Promise<{ ok: true; attempt: AttemptView } | { ok: false; error: string }> {
   const pack = await resolveLivePack(slug);
   if (!pack) return { ok: false, error: "missing_pack" };
-  return submitAttempt(accountId, pack);
+  const result = await submitAttempt(accountId, pack);
+  if (!result.ok) return result;
+  return { ok: true, attempt: (await hideUnpaidExecutionResult(accountId, result.attempt)) ?? result.attempt };
 }

@@ -16,6 +16,7 @@ export async function POST(request: Request, context: Ctx) {
     service?: unknown;
     priceToman?: unknown;
     commissionPercent?: unknown;
+    discountCapPercent?: unknown;
     rounding?: unknown;
     activate?: unknown;
   };
@@ -34,6 +35,10 @@ export async function POST(request: Request, context: Ctx) {
       body.commissionPercent == null || body.commissionPercent === ""
         ? undefined
         : parseCommissionPercent(String(body.commissionPercent));
+    const discountCapPercent =
+      body.discountCapPercent == null || body.discountCapPercent === ""
+        ? undefined
+        : Number(body.discountCapPercent);
     const rounding = body.rounding === "floor" || body.rounding === "ceil" ? body.rounding : body.rounding === "" ? null : undefined;
     const row = await upsertAssessmentTariff({
       actorId: auth.account.id,
@@ -42,6 +47,7 @@ export async function POST(request: Request, context: Ctx) {
       service: body.service,
       priceIRR,
       commissionBps,
+      creatorDiscountCapPercent: discountCapPercent,
       rounding,
       activate: body.activate === true,
     });
@@ -51,6 +57,7 @@ export async function POST(request: Request, context: Ctx) {
       version: row.version,
       active: row.active,
       service: row.service,
+      creatorDiscountCapPercent: row.creatorDiscountCapPercent,
     });
   } catch (error) {
     if (error instanceof AssessmentError) {

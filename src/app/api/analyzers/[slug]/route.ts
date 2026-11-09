@@ -19,11 +19,23 @@ async function resolveRunnablePack(slug: string, account: { id: number; role: st
   return access.edit ? pack : null;
 }
 
-async function withExecutionOffer(accountId: number, slug: string, attempt: Awaited<ReturnType<typeof readAttempt>>) {
-  return {
-    attempt,
-    executionOffer: await assessmentExecutionOffer({ slug, accountId, attemptId: attempt?.id ?? null }),
-  };
+async function withExecutionOffer(
+  account: { id: number; role: string },
+  pack: NonNullable<Awaited<ReturnType<typeof loadPack>>>,
+  attempt: Awaited<ReturnType<typeof readAttempt>>,
+) {
+  const paymentMode = attempt?.executionPaymentMode ?? pack.executionPaymentMode ?? "before_result";
+  const executionOffer = await assessmentExecutionOffer({
+    slug: pack.slug,
+    accountId: account.id,
+    attemptId: attempt?.id ?? null,
+    paymentMode,
+  });
+  const safeAttempt =
+    attempt && account.role !== "owner" && attempt.status === "submitted" && !executionOffer.entitled
+      ? { ...attempt, results: null }
+      : attempt;
+  return { attempt: safeAttempt, executionOffer };
 }
 
 export async function GET(_request: Request, { params }: Ctx) {
@@ -33,7 +45,7 @@ export async function GET(_request: Request, { params }: Ctx) {
   const pack = await resolveRunnablePack(slug, auth.account);
   if (!pack) return NextResponse.json({ error: "not_found" }, { status: 404 });
   const attempt = await readAttempt(auth.account.id, pack);
-  return NextResponse.json({ ...(await withExecutionOffer(auth.account.id, slug, attempt)), packVersion: pack.version });
+  return NextResponse.json({ ...(await withExecutionOffer(auth.account, pack, attempt)), packVersion: pack.version });
 }
 
 export async function POST(request: Request, { params }: Ctx) {
@@ -52,25 +64,27 @@ export async function POST(request: Request, { params }: Ctx) {
 
   if (body.action === "retake") {
     const attempt = await retakeAttempt(auth.account.id, pack);
-    return NextResponse.json(await withExecutionOffer(auth.account.id, slug, attempt));
+    return NextResponse.json(await withExecutionOffer(auth.account, pack, attempt));
   }
 
   if (body.action === "consent") {
-    const attempt = await consentAttempt(auth.account.id, pack, {
-      referralCode: body.referralCode,
-      discountCode: body.discountCode,
-    });
+    const attempt = await consentAttempt(
+      auth.account.id,
+      pack,
+      { referralCode: body.referralCode, discountCode: body.discountCode },
+      { isOwner: auth.account.role === "owner" },
+    );
     if (attempt && "error" in attempt) {
       return NextResponse.json({ error: attempt.error }, { status: 400 });
     }
-    return NextResponse.json(await withExecutionOffer(auth.account.id, slug, attempt));
+    return NextResponse.json(await withExecutionOffer(auth.account, pack, attempt));
   }
 
   if (body.action === "answer") {
     if (typeof body.id !== "string") {
       return NextResponse.json({ error: "invalid_body" }, { status: 400 });
     }
-    const result = await saveAnswer(auth.account.id, pack, body.id, body.value);
+    const result = await saveAnswer(auth.account.id, pack, body.id, body.value, { isOwner: auth.account.role === "owner" });
     if (!result.ok) {
       const status = result.error === "already_submitted" ? 409 : 400;
       return NextResponse.json({ error: result.error }, { status });
@@ -83,7 +97,7 @@ export async function POST(request: Request, { params }: Ctx) {
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
-    return NextResponse.json({ attempt: result.attempt });
+    return NextResponse.json(await withExecutionOffer(auth.account, pack, result.attempt));
   }
 
   return NextResponse.json({ error: "invalid_action" }, { status: 400 });

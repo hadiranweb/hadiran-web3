@@ -1,6 +1,11 @@
 /** تعریف نسخه‌دار آزمون. منبع اجرا pack ذخیره‌شده است؛ کد فقط بذر اولیه است. */
 
 export type AnalyzerPackStatus = "draft" | "open" | "archived";
+export type ExecutionPaymentMode = "before_start" | "before_result";
+
+export function executionPaymentModeOf(value: unknown): ExecutionPaymentMode {
+  return value === "before_start" ? "before_start" : "before_result";
+}
 
 export type ScaleAnchors = { 0: string; 5: string; 10: string };
 
@@ -145,6 +150,8 @@ export type AnalyzerPack = {
   slug: string;
   version: string;
   status: AnalyzerPackStatus;
+  /** Per-new-attempt snapshot: pay before answering or before revealing the result. */
+  executionPaymentMode?: ExecutionPaymentMode;
   nameFa: string;
   summaryFa: string;
   scale: AnalyzerScale;
