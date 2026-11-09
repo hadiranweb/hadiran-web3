@@ -3,6 +3,7 @@
 import {
   assertPack,
   edgesFromScoredSections,
+  executionPaymentModeOf,
   itemsOf,
   type AnalyzerPack,
   type AnalyzerPackStatus,
@@ -420,6 +421,7 @@ export function blankPack(slug: string, nameFa: string): AnalyzerPack {
     slug,
     version: "0.1.0",
     status: "draft",
+    executionPaymentMode: "before_result",
     nameFa,
     summaryFa: "",
     scale: { kind: "range-0-10", min: 0, max: 10 },
@@ -510,6 +512,7 @@ export function sanitizePack(raw: unknown, slug: string): SanitizeResult {
     slug,
     version,
     status,
+    executionPaymentMode: executionPaymentModeOf(row.executionPaymentMode),
     nameFa,
     summaryFa,
     scale: { kind: "range-0-10", min: 0, max: 10 },

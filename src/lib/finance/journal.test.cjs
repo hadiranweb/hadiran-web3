@@ -69,8 +69,10 @@ function empty() {
 }
 
 function captureJournal(sourceRef, quote, creatorAvailableIRR) {
-  const fromAvailable = creatorAvailableIRR < quote.discountIRR ? creatorAvailableIRR : quote.discountIRR;
-  const toReceivable = quote.discountIRR - fromAvailable;
+  const creatorDiscountDebitIRR = quote.creatorDiscountDebitIRR ?? quote.discountIRR;
+  const authorCreditIRR = quote.authorCreditIRR ?? quote.authorCredit;
+  const fromAvailable = creatorAvailableIRR < creatorDiscountDebitIRR ? creatorAvailableIRR : creatorDiscountDebitIRR;
+  const toReceivable = creatorDiscountDebitIRR - fromAvailable;
   return {
     kind: "capture",
     eventKey: `${sourceRef}:capture`,
@@ -79,7 +81,7 @@ function captureJournal(sourceRef, quote, creatorAvailableIRR) {
       { account: "bank", side: "debit", amountIRR: quote.payableIRR },
       { account: "creator_available", side: "debit", amountIRR: fromAvailable },
       { account: "creator_receivable", side: "debit", amountIRR: toReceivable },
-      { account: "creator_pending", side: "credit", amountIRR: quote.authorCredit },
+      { account: "creator_pending", side: "credit", amountIRR: authorCreditIRR },
       { account: "platform_deferred", side: "credit", amountIRR: quote.platformFeeIRR },
     ].filter((row) => row.amountIRR !== ZERO),
   };
@@ -157,6 +159,49 @@ test("idempotent replay matches; conflict does not", () => {
       }),
     /idempotency_conflict/,
   );
+});
+
+test("discount allowance reduces pending earnings; only over-cap amount hits creator balances", () => {
+  const book = empty();
+  book.balances.creator_available = 100n;
+  const journal = captureJournal(
+    "AST-CAP",
+    {
+      payableIRR: 750n,
+      discountIRR: 250n,
+      creatorDiscountDebitIRR: 150n,
+      authorCreditIRR: 700n,
+      platformFeeIRR: 200n,
+    },
+    100n,
+  );
+  assert.equal(journalTotals(journal).balanced, true);
+  const next = applyShadowJournal(book, journal);
+  assert.equal(next.balances.creator_available, 0n);
+  assert.equal(next.balances.creator_receivable, 50n);
+  assert.equal(next.balances.creator_pending, 700n);
+});
+
+test("creator-sponsored service is an idempotent debit and cannot overdraw available credit", () => {
+  const journal = {
+    kind: "sponsorship",
+    eventKey: "AST-SPONSOR:sponsorship",
+    sourceRef: "AST-SPONSOR",
+    lines: [
+      { account: "creator_available", side: "debit", amountIRR: 80n },
+      { account: "platform_revenue", side: "credit", amountIRR: 80n },
+    ],
+  };
+  const book = empty();
+  book.balances.creator_available = 100n;
+  const next = applyShadowJournal(book, journal);
+  assert.equal(next.balances.creator_available, 20n);
+  assert.equal(next.balances.platform_revenue, 80n);
+  assert.equal(applyShadowJournal(next, journal), next);
+
+  const poor = empty();
+  poor.balances.creator_available = 10n;
+  assert.throws(() => applyShadowJournal(poor, journal), /negative_creator_available/);
 });
 
 test("toman input is exact tenths of a rial, not Number", () => {

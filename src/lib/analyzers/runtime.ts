@@ -1,10 +1,11 @@
-import { findItem, itemsOf, type AnalyzerPack, type Item } from "@/lib/analyzers/pack";
+import { findItem, itemsOf, type AnalyzerPack, type ExecutionPaymentMode, type Item } from "@/lib/analyzers/pack";
 
 export type AnswerMap = Record<string, number | string>;
 
 export type AttemptView = {
   id: number;
   instrumentVersion: string;
+  executionPaymentMode: ExecutionPaymentMode;
   status: "in_progress" | "submitted";
   consentAt: string | null;
   answers: AnswerMap;

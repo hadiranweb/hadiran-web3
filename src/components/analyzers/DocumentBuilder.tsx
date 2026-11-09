@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { DocumentListItem } from "@/lib/analyzers/document-templates";
 import type { WorkspaceAttemptRow } from "@/lib/analyzers/workspace-attempt-types";
+import { financeMoney } from "@/lib/finance/types";
 
 type PackOption = {
   slug: string;
@@ -32,11 +33,15 @@ export function DocumentBuilder({
   const [documents, setDocuments] = useState(initialDocuments);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
+  const [sponsorshipQuote, setSponsorshipQuote] = useState<{ attemptId: number; tariffId: string; amountIrr: string } | null>(null);
   const [loadedSlug, setLoadedSlug] = useState("");
 
   async function loadAttempts(nextSlug: string) {
     setBusy(true);
     setError(null);
+    setStatus(null);
+    setSponsorshipQuote(null);
     setAttempts(null);
     setSelected([]);
     try {
@@ -58,34 +63,88 @@ export function DocumentBuilder({
     }
   }
 
-  async function convert() {
-    if (!pack || !selected.length) return;
+  async function convert(confirmSponsorship = false) {
+    const sponsorAttemptId = confirmSponsorship ? sponsorshipQuote?.attemptId : null;
+    const targetAttemptIds = sponsorAttemptId ? [sponsorAttemptId] : selected;
+    if (!pack || !targetAttemptIds.length) return;
     setBusy(true);
     setError(null);
+    setStatus(null);
     try {
       const res = await fetch("/api/workspace/documents", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ slug: pack.slug, templateId, attemptIds: selected }),
+        body: JSON.stringify({
+          slug: pack.slug,
+          templateId,
+          attemptIds: targetAttemptIds,
+          sponsorUnpaid: confirmSponsorship,
+          sponsorTariffId: confirmSponsorship ? sponsorshipQuote?.tariffId : undefined,
+        }),
       });
       const data = (await res.json()) as {
-        items?: { id: number; attemptId: number; templateId: string; href: string }[];
+        items?: { id: number; attemptId: number; templateId: string; href: string; sponsored?: boolean }[];
+        errors?: { attemptId: number; error: string; tariffId?: string; amountIrr?: string }[];
         error?: string;
       };
       if (!res.ok) {
         setError(data.error === "bad_template" ? "این قالب برای این تفسیر نیست." : "تبدیل انجام نشد.");
         return;
       }
-      const list = await fetch("/api/workspace/documents", { cache: "no-store" });
-      const next = (await list.json()) as { items?: DocumentListItem[] };
-      setDocuments(next.items ?? documents);
-      setAttempts((current) =>
-        current
-          ? current.map((row) => {
-              const hit = data.items?.find((item) => item.attemptId === row.attemptId);
-              return hit ? { ...row, documentId: hit.id } : row;
-            })
-          : current,
+      if (data.items?.length) {
+        const list = await fetch("/api/workspace/documents", { cache: "no-store" });
+        if (list.ok) {
+          const next = (await list.json()) as { items?: DocumentListItem[] };
+          setDocuments(next.items ?? documents);
+        }
+        setAttempts((current) =>
+          current
+            ? current.map((row) => {
+                const hit = data.items?.find((item) => item.attemptId === row.attemptId);
+                return hit ? { ...row, documentId: hit.id } : row;
+              })
+            : current,
+        );
+      }
+
+      const sponsorError = data.errors?.find(
+        (item) => item.error === "sponsorship_confirmation_required" || item.error === "sponsorship_quote_changed",
+      );
+      if (sponsorError) {
+        if (sponsorError.tariffId && sponsorError.amountIrr) {
+          setSponsorshipQuote({
+            attemptId: sponsorError.attemptId,
+            tariffId: sponsorError.tariffId,
+            amountIrr: sponsorError.amountIrr,
+          });
+          setError(
+            sponsorError.error === "sponsorship_quote_changed"
+              ? "تعرفه تغییر کرده است؛ مبلغ تازه را بررسی و دوباره تأیید کنید."
+              : "برای سند پرداخت‌نشده، تأیید جداگانهٔ آزمون‌ساز لازم است.",
+          );
+          return;
+        }
+      }
+      if (data.errors?.length) {
+        const messages: Record<string, string> = {
+          creator_credit_insufficient: "اعتبار آزاد آزمون‌ساز کافی نیست؛ ذخیرهٔ سند و ثبت مالی لغو شدند.",
+          sponsorship_forbidden: "فقط آزمون‌ساز می‌تواند هزینهٔ سند پرداخت‌نشده را بپذیرد.",
+          tariff_undefined: "تعرفهٔ سند تعریف نشده است.",
+          assessment_not_ready: "این نوبت هنوز ثبت نشده است.",
+          not_submitted: "این نوبت هنوز ثبت نشده است.",
+          bad_template: "این قالب برای این تفسیر نیست.",
+        };
+        const first = data.errors[0];
+        setError(messages[first.error] ?? "تبدیل بعضی از سندها انجام نشد.");
+        return;
+      }
+
+      setSponsorshipQuote(null);
+      setSelected((current) => current.filter((id) => !targetAttemptIds.includes(id)));
+      setStatus(
+        confirmSponsorship
+          ? "تأمین مالی و ساخت سند در یک تراکنش انجام شد؛ دسترسی همین نوبت فعال است."
+          : "سندهای مجاز آماده شدند.",
       );
     } catch {
       setError("تبدیل انجام نشد.");
@@ -115,6 +174,8 @@ export function DocumentBuilder({
               setTemplateId(found?.defaultTemplateId ?? "hadiran");
               setAttempts(null);
               setSelected([]);
+              setSponsorshipQuote(null);
+              setStatus(null);
               setLoadedSlug("");
             }}
           >
@@ -196,20 +257,50 @@ export function DocumentBuilder({
                   </li>
                 ))}
               </ul>
-              <button
-                type="button"
-                disabled={busy || !selected.length}
-                onClick={() => void convert()}
-                className="rounded-xl bg-indigo-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-              >
-                {busy ? "در حال تبدیل…" : `تبدیل ${selected.length.toLocaleString("fa-IR")} نوبت`}
-              </button>
+              {!sponsorshipQuote ? (
+                <button
+                  type="button"
+                  disabled={busy || !selected.length}
+                  onClick={() => void convert(false)}
+                  className="rounded-xl bg-indigo-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+                >
+                  {busy ? "در حال تبدیل…" : `تبدیل ${selected.length.toLocaleString("fa-IR")} نوبت`}
+                </button>
+              ) : (
+                <div className="space-y-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950" role="alert">
+                  <p className="leading-7">
+                    هزینهٔ سند {submitted.find((row) => row.attemptId === sponsorshipQuote.attemptId)?.nameFa ?? `نوبت ${sponsorshipQuote.attemptId}`} پرداخت نشده است. با تأیید صریح، {financeMoney(sponsorshipQuote.amountIrr, "IRR")} از اعتبار آزاد آزمون‌ساز کسر می‌شود. ذخیرهٔ سند و ثبت مالی اتمیک‌اند؛ در صورت کمبود اعتبار هیچ‌کدام ثبت نمی‌شوند.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => void convert(true)}
+                      className="rounded-xl bg-amber-900 px-4 py-2 text-white disabled:opacity-60"
+                    >
+                      {busy ? "در حال ثبت…" : `تأیید کسر ${financeMoney(sponsorshipQuote.amountIrr, "IRR")} و ساخت سند`}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => {
+                        setSponsorshipQuote(null);
+                        setError(null);
+                      }}
+                      className="rounded-xl border border-amber-700 px-4 py-2 disabled:opacity-60"
+                    >
+                      انصراف
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <p className="text-sm text-slate-500">نوبت ثبت‌شده‌ای برای این تفسیر نیست.</p>
           )
         ) : null}
-        {error ? <p className="text-sm text-red-700">{error}</p> : null}
+        {error ? <p className="text-sm text-red-700" role="alert">{error}</p> : null}
+        {status ? <p className="text-sm text-green-700" role="status">{status}</p> : null}
       </section>
 
       <section className="space-y-3">

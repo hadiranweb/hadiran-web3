@@ -6,6 +6,7 @@ type Tariff = {
   service: "execution" | "interpretation" | "document";
   priceToman: string;
   commissionPercent: string;
+  discountCapPercent: string;
   rounding: "" | "floor" | "ceil";
   active: boolean;
   version: number | null;
@@ -43,6 +44,7 @@ export function AssessmentTariffForm({
           service: row.service,
           priceToman: canPrice ? row.priceToman : undefined,
           commissionPercent: canCommission ? row.commissionPercent : undefined,
+          discountCapPercent: canCommission ? row.discountCapPercent : undefined,
           rounding: canCommission ? row.rounding : undefined,
           activate,
         }),
@@ -58,7 +60,14 @@ export function AssessmentTariffForm({
       );
       setStatus(activate ? "تعرفه فعال شد." : "تعرفه ذخیره شد.");
     } catch (error) {
-      setStatus(error instanceof Error && error.message === "tariff_undefined" ? "کارمزد یا گردکردن ناقص است؛ صفر فرض نشد." : "ذخیره نشد.");
+      const code = error instanceof Error ? error.message : "";
+      setStatus(
+        code === "tariff_undefined"
+          ? "کارمزد یا گردکردن ناقص است؛ صفر فرض نشد."
+          : code === "invalid_discount_cap"
+            ? "سقف تخفیف نباید از سهم سازنده پس از کسر کارمزد بیشتر باشد."
+            : "ذخیره نشد.",
+      );
     } finally {
       setBusy(null);
     }
@@ -68,8 +77,8 @@ export function AssessmentTariffForm({
     <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4">
       <h2 className="text-base font-bold text-slate-900">تعرفهٔ این آزمون</h2>
       <p className="text-sm leading-7 text-slate-600">
-        یک تعرفهٔ اجرا، نتیجهٔ پایهٔ همان نوبت را هم شامل می‌شود؛ همان اجرا دوباره شارژ نمی‌شود. تفسیر و سند عرضه‌های مستقل‌اند.
-        مبلغ با IRR ذخیره و به تومان نمایش داده می‌شود. تعرفهٔ ناقص فعال نمی‌شود و قیمت صفر فرض نمی‌شود.
+        تعرفهٔ اجرا، نتیجهٔ پایهٔ همان نوبت را پوشش می‌دهد؛ همان اجرا دوباره شارژ نمی‌شود. تفسیر و سند مستقل‌اند.
+        سقف تخفیف، مازاد کد را از اعتبار آزاد آزمون‌ساز کسر می‌کند و فقط با پرداخت موفق ثبت مالی می‌شود. مبلغ با IRR ذخیره و به تومان نمایش داده می‌شود؛ تعرفهٔ ناقص رایگان فرض نمی‌شود.
       </p>
       {rows.map((row) => (
         <fieldset key={row.service} className="space-y-3 rounded-xl border border-slate-100 p-3" disabled={Boolean(busy)}>
@@ -106,6 +115,25 @@ export function AssessmentTariffForm({
                 />
               </label>
               <label className="block text-sm">
+                سقف تخفیف مجاز آزمون‌ساز (درصد صحیح)
+                <input
+                  dir="ltr"
+                  inputMode="numeric"
+                  value={row.discountCapPercent}
+                  onChange={(event) =>
+                    setRows((current) =>
+                      current.map((item) =>
+                        item.service === row.service ? { ...item, discountCapPercent: event.target.value } : item,
+                      ),
+                    )
+                  }
+                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+                />
+                <span className="mt-1 block text-xs leading-6 text-slate-500">
+                  تا این سقف، تخفیف از درآمد در انتظار آزمون‌ساز کم می‌شود؛ فقط مازاد به اعتبار آزاد او منظور می‌شود. اعتبار منفی نمی‌شود.
+                </span>
+              </label>
+              <label className="block text-sm">
                 گردکردن کسر ریال کارمزد
                 <select
                   value={row.rounding}
@@ -127,7 +155,10 @@ export function AssessmentTariffForm({
               </label>
             </>
           ) : (
-            <p className="text-xs text-slate-500">کارمزد را فقط مالک سکو می‌گذارد.</p>
+            <div className="space-y-1 text-xs text-slate-500">
+              <p>کارمزد و سقف تخفیف را فقط مالک سکو تعیین می‌کند.</p>
+              <p>سقف تخفیف فعلی سازنده: {row.discountCapPercent}٪؛ فقط مازاد در حساب مالی او منظور می‌شود.</p>
+            </div>
           )}
           <div className="flex flex-wrap gap-2">
             <button

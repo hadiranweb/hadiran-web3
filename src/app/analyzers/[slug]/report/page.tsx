@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { AssessmentOffers } from "@/components/analyzers/AssessmentOffers";
+import { AssessmentResultPaywall } from "@/components/analyzers/AssessmentResultPaywall";
 import { MemberDocument } from "@/components/analyzers/MemberDocument";
 import { RetakeButton } from "@/components/analyzers/RetakeButton";
 import { UserSummaryView } from "@/components/analyzers/UserSummary";
@@ -11,6 +12,7 @@ import { readAttempt } from "@/lib/analyzers/attempts";
 import { loadPack } from "@/lib/analyzers/registry";
 import { renderUserSummary } from "@/lib/analyzers/summary-template";
 import { requirePageAccount } from "@/lib/auth/guard";
+import { activeAssessmentTariff, hasAssessmentEntitlement } from "@/lib/finance/assessment-orders";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +35,11 @@ export default async function AnalyzerReportPage({ params }: Props) {
     redirect(`/analyzers/${slug}`);
   }
 
-  const summary = renderUserSummary(pack, attempt.answers, attempt.results);
+  const isOwner = account.role === "owner";
+  const executionEntitled =
+    isOwner || (await hasAssessmentEntitlement(account.id, "analyzer", attempt.id, "execution"));
+  const executionTariff = executionEntitled ? null : await activeAssessmentTariff(pack.slug, "execution");
+  const summary = executionEntitled ? renderUserSummary(pack, attempt.answers, attempt.results) : null;
 
   return (
     <PageShell width="wide" className="print:max-w-none print:px-0 print:py-0">
@@ -45,7 +51,17 @@ export default async function AnalyzerReportPage({ params }: Props) {
           <span className="text-muted"> / {pack.nameFa}</span>
         </p>
         <PageHeader kicker="گزارش" title={pack.nameFa} lede="خلاصهٔ این نوبت. سند چندصفحه اگر آزمون‌ساز تبدیل کرده باشد اینجاست." />
-        <UserSummaryView text={summary} />
+        {summary != null ? (
+          <UserSummaryView text={summary} />
+        ) : (
+          <AssessmentResultPaywall
+            slug={pack.slug}
+            attemptId={attempt.id}
+            priceIrr={executionTariff ? String(executionTariff.priceIrr) : null}
+            initialDiscountCode={attempt.discountCode}
+            canPurchase={attempt.executionPaymentMode !== "before_start"}
+          />
+        )}
         <AssessmentOffers slug={pack.slug} attemptId={attempt.id} accountId={account.id} />
         <RetakeButton api={`/api/analyzers/${pack.slug}`} href={`/analyzers/${pack.slug}`} />
       </div>

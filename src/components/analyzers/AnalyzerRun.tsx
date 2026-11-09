@@ -66,6 +66,7 @@ export function AnalyzerRun({ pack, isOwner = false }: { pack: AnalyzerPack; isO
     available: boolean;
     priceIrr: string | null;
     entitled: boolean;
+    paymentMode: "before_start" | "before_result";
   } | null>(null);
   const [answers, setAnswers] = useState<AnswerMap>({});
   const [index, setIndex] = useState(0);
@@ -85,7 +86,7 @@ export function AnalyzerRun({ pack, isOwner = false }: { pack: AnalyzerPack; isO
     });
     const data = (await res.json()) as {
       attempt?: AttemptView;
-      executionOffer?: { available: boolean; priceIrr: string | null; entitled: boolean } | null;
+      executionOffer?: { available: boolean; priceIrr: string | null; entitled: boolean; paymentMode: "before_start" | "before_result" } | null;
       error?: string;
     };
     if ("executionOffer" in data) setExecutionOffer(data.executionOffer ?? null);
@@ -120,12 +121,13 @@ export function AnalyzerRun({ pack, isOwner = false }: { pack: AnalyzerPack; isO
       if (!res.ok) return;
       const data = (await res.json()) as {
         attempt: AttemptView | null;
-        executionOffer?: { available: boolean; priceIrr: string | null; entitled: boolean } | null;
+        executionOffer?: { available: boolean; priceIrr: string | null; entitled: boolean; paymentMode: "before_start" | "before_result" } | null;
       };
       setExecutionOffer(data.executionOffer ?? null);
       const attempt = data.attempt;
       if (!attempt) return;
       setAttemptId(attempt.id);
+      setDiscountCode(attempt.discountCode ?? "");
       if (attempt.status === "submitted") {
         clearDraft(draftKey);
         router.replace(reportHref);
@@ -275,11 +277,18 @@ export function AnalyzerRun({ pack, isOwner = false }: { pack: AnalyzerPack; isO
         {executionOffer ? (
           <div className="mt-5 rounded-[var(--radius-md)] border border-line bg-elev p-4 text-sm">
             {executionOffer.available && executionOffer.priceIrr ? (
-              <p className="text-ink">اجرای آزمون همراه نتیجهٔ پایه: {financeMoney(executionOffer.priceIrr, "IRR")}.</p>
+              <p className="text-ink">
+                {executionOffer.paymentMode === "before_start"
+                  ? "برای آغاز پاسخ‌گویی باید ابتدا اجرای آزمون و نتیجهٔ پایه را فعال کنید: "
+                  : "پاسخ‌ها را ثبت کنید؛ نتیجهٔ پایه پس از پرداخت نمایش داده می‌شود: "}
+                {financeMoney(executionOffer.priceIrr, "IRR")}.
+              </p>
             ) : isOwner ? (
               <p className="text-muted">تعرفهٔ اجرا هنوز تعریف نشده است. مالک می‌تواند این آزمون را فقط برای بررسی داخلی اجرا کند؛ اجرای اعضا تا تعیین تعرفه بسته می‌ماند.</p>
+            ) : executionOffer.paymentMode === "before_start" ? (
+              <p className="text-mark">تعرفهٔ اجرا هنوز فعال نیست؛ در مدل پرداخت پیش از آغاز، تا تعریف تعرفه پاسخ‌گویی ممکن نیست.</p>
             ) : (
-              <p className="text-mark">تعرفهٔ اجرا هنوز تعریف و فعال نشده؛ در وضعیت فعلی این آزمون قابل ثبت نیست.</p>
+              <p className="text-muted">می‌توانی پاسخ‌ها را ثبت و آزمون را کامل کنی؛ نتیجهٔ پایه تا فعال‌شدن تعرفه و پرداخت پنهان می‌ماند.</p>
             )}
           </div>
         ) : null}
@@ -316,6 +325,38 @@ export function AnalyzerRun({ pack, isOwner = false }: { pack: AnalyzerPack; isO
         >
           {busy ? "در حال ثبت…" : pack.consent.acceptLabelFa}
         </button>
+      </section>
+    );
+  }
+
+  const executionPaymentMode = executionOffer?.paymentMode ?? pack.executionPaymentMode ?? "before_result";
+  if (!isOwner && executionPaymentMode === "before_start" && !executionOffer?.entitled) {
+    return (
+      <section className="surface p-6 sm:p-8">
+        <h2 className="text-xl font-bold leading-[1.7] text-ink">پرداخت پیش از آغاز آزمون</h2>
+        <p className="mt-3 text-sm leading-7 text-muted">
+          رضایت ثبت شده، اما تا فعال‌شدن دسترسی این نوبت هیچ پاسخی آغاز یا ذخیره نمی‌شود.
+        </p>
+        {executionOffer?.priceIrr ? (
+          <p className="mt-3 text-sm text-ink">هزینهٔ اجرای این نوبت: {financeMoney(executionOffer.priceIrr, "IRR")}.</p>
+        ) : !executionOffer ? (
+          <p className="mt-3 text-sm text-muted">در حال بررسی تعرفه…</p>
+        ) : (
+          <p className="mt-3 text-sm text-mark">تعرفهٔ اجرا فعال نیست؛ شروع آزمون ممکن نیست.</p>
+        )}
+        {error ? <p className="mt-3 text-sm text-mark">{persianError(error)}</p> : null}
+        {attemptId && executionOffer?.available && executionOffer.priceIrr ? (
+          <AssessmentPurchasePanel
+            slug={pack.slug}
+            attemptId={attemptId}
+            service="execution"
+            title="فعال‌سازی اجرای همین نوبت"
+            payableIrr={executionOffer.priceIrr}
+            entitled={false}
+            initialDiscountCode={discountCode}
+            onEntitled={() => setExecutionOffer((current) => (current ? { ...current, entitled: true } : current))}
+          />
+        ) : null}
       </section>
     );
   }
@@ -487,6 +528,7 @@ export function AnalyzerRun({ pack, isOwner = false }: { pack: AnalyzerPack; isO
           title="اجرای آزمون همراه نتیجهٔ پایه"
           payableIrr={executionOffer.priceIrr}
           entitled={false}
+          initialDiscountCode={discountCode}
           onEntitled={() => setExecutionOffer((current) => (current ? { ...current, entitled: true } : current))}
         />
       ) : null}

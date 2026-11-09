@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAccount } from "@/lib/auth/guard";
 import { isAssessmentService } from "@/lib/commerce/assessment-policy";
-import { AssessmentError, createAssessmentOrder } from "@/lib/finance/assessment-orders";
+import { AssessmentError, assessmentDiscountNotice, createAssessmentOrder } from "@/lib/finance/assessment-orders";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +35,7 @@ export async function POST(request: Request) {
       id: order.id,
       state: order.state,
       payableIrr: String(order.payableIrr),
+      discountNotice: assessmentDiscountNotice(order),
     });
   } catch (error) {
     if (error instanceof AssessmentError) {

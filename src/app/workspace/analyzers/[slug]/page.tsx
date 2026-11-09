@@ -77,6 +77,7 @@ export default async function EditAnalyzerPage({ params }: Props) {
             priceToman: row ? irrToTomanInput(row.priceIrr) : "",
             commissionPercent:
               row?.commissionBps == null ? "" : (row.commissionBps / 100).toFixed(row.commissionBps % 100 ? 2 : 0),
+            discountCapPercent: String(row?.creatorDiscountCapPercent ?? 0),
             rounding: row?.rounding === "floor" || row?.rounding === "ceil" ? row.rounding : "",
             active: Boolean(row?.active),
             version: row?.version ?? null,

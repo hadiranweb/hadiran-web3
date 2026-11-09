@@ -46,15 +46,25 @@ export function quoteAssessmentSale(input: {
   priceIRR: bigint;
   discountIRR: bigint;
   commissionBasisPoints: number;
+  /** Integer percent of the discount absorbed by reducing the creator's pending earnings. */
+  creatorDiscountCapPercent?: number;
   rounding?: "floor" | "ceil";
 }) {
   const { priceIRR, discountIRR, commissionBasisPoints, rounding } = input;
+  const creatorDiscountCapPercent = input.creatorDiscountCapPercent ?? 0;
   if (typeof priceIRR !== "bigint" || priceIRR <= ZERO) throw new Error("invalid_price");
   if (typeof discountIRR !== "bigint" || discountIRR < ZERO || discountIRR > priceIRR) {
     throw new Error("invalid_discount");
   }
   if (!Number.isInteger(commissionBasisPoints) || commissionBasisPoints < 0 || commissionBasisPoints > 10000) {
     throw new Error("invalid_commission");
+  }
+  if (
+    !Number.isInteger(creatorDiscountCapPercent) ||
+    creatorDiscountCapPercent < 0 ||
+    creatorDiscountCapPercent > Math.floor((10000 - commissionBasisPoints) / 100)
+  ) {
+    throw new Error("invalid_discount_cap");
   }
   if (rounding !== undefined && rounding !== "floor" && rounding !== "ceil") {
     throw new Error("invalid_rounding");
@@ -66,10 +76,19 @@ export function quoteAssessmentSale(input: {
   if (remainder !== ZERO && rounding === undefined) throw new Error("commission_rounding_required");
   const platformFeeIRR = feeNumerator / feeDenominator + (rounding === "ceil" && remainder !== ZERO ? ONE : ZERO);
   const authorCreditBeforeDiscountIRR = priceIRR - platformFeeIRR;
+  const creatorDiscountAllowanceIRR =
+    (priceIRR * BigInt(creatorDiscountCapPercent)) / BigInt(100) < discountIRR
+      ? (priceIRR * BigInt(creatorDiscountCapPercent)) / BigInt(100)
+      : discountIRR;
+  const creatorDiscountDebitIRR = discountIRR - creatorDiscountAllowanceIRR;
+  const authorCreditIRR = authorCreditBeforeDiscountIRR - creatorDiscountAllowanceIRR;
   return {
     currency: "IRR" as const,
     priceIRR,
     discountIRR,
+    discountCapPercent: creatorDiscountCapPercent,
+    creatorDiscountAllowanceIRR,
+    creatorDiscountDebitIRR,
     commissionBasisPoints,
     feeNumerator,
     feeDenominator,
@@ -77,9 +96,9 @@ export function quoteAssessmentSale(input: {
     payableIRR: priceIRR - discountIRR,
     platformFeeIRR,
     authorCreditBeforeDiscountIRR,
-    creatorDiscountDebitIRR: discountIRR,
-    // Explicitly signed: creator-funded coupons may create an author debt.
-    authorNetIRR: authorCreditBeforeDiscountIRR - discountIRR,
+    authorCreditIRR,
+    // The cap-covered part lowers pending earnings; only the excess is debited to available/receivable.
+    authorNetIRR: authorCreditIRR - creatorDiscountDebitIRR,
   };
 }
 

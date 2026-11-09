@@ -27,6 +27,7 @@ import type { WorkspaceAttemptRow } from "@/lib/analyzers/workspace-attempt-type
 import { clipDocumentChrome, ensureDocumentTemplateRecord, readDocumentChrome } from "@/lib/analyzers/document-templates-store";
 import { ensureInterpretationDocumentsSchema } from "@/lib/auth/schema-guard";
 
+type DocumentTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type StoredKeyword = { id: string; titleFa: string; children: { id: string; titleFa: string }[] };
 
 export type ConvertedDocumentRef = {
@@ -34,6 +35,7 @@ export type ConvertedDocumentRef = {
   attemptId: number;
   templateId: string;
   href: string;
+  sponsored?: boolean;
 };
 
 function actionTitles(text: string): string[] {
@@ -254,11 +256,11 @@ async function attemptOwnerId(attemptId: number): Promise<number | null> {
   return row?.accountId ?? null;
 }
 
-async function writeChildren(reportId: number, doc: InterpretationDocument) {
-  await db.delete(analyzerReportActions).where(eq(analyzerReportActions.reportId, reportId));
-  await db.delete(analyzerReportLayers).where(eq(analyzerReportLayers.reportId, reportId));
+async function writeChildren(tx: DocumentTx, reportId: number, doc: InterpretationDocument) {
+  await tx.delete(analyzerReportActions).where(eq(analyzerReportActions.reportId, reportId));
+  await tx.delete(analyzerReportLayers).where(eq(analyzerReportLayers.reportId, reportId));
   if (doc.layers.length) {
-    await db.insert(analyzerReportLayers).values(
+    await tx.insert(analyzerReportLayers).values(
       doc.layers.map((layer, index) => ({
         reportId,
         layerId: layer.id,
@@ -286,18 +288,21 @@ async function writeChildren(reportId: number, doc: InterpretationDocument) {
       });
     }
   }
-  if (actionRows.length) await db.insert(analyzerReportActions).values(actionRows);
+  if (actionRows.length) await tx.insert(analyzerReportActions).values(actionRows);
 }
 
-async function upsertSnapshot(input: {
-  pack: AnalyzerPack;
-  accountId: number;
-  attemptId: number;
-  attemptKind: "analyzer";
-  templateId: string;
-  doc: InterpretationDocument;
-  chromeSnapshot: Record<string, unknown>;
-}): Promise<number> {
+async function upsertSnapshot(
+  tx: DocumentTx,
+  input: {
+    pack: AnalyzerPack;
+    accountId: number;
+    attemptId: number;
+    attemptKind: "analyzer";
+    templateId: string;
+    doc: InterpretationDocument;
+    chromeSnapshot: Record<string, unknown>;
+  },
+): Promise<number> {
   const values = {
     slug: input.pack.slug,
     accountId: input.accountId,
@@ -321,22 +326,17 @@ async function upsertSnapshot(input: {
     patterns: input.doc.patterns,
     chromeSnapshot: input.chromeSnapshot,
   };
-  const [existing] = await db
-    .select({ id: analyzerReports.id })
-    .from(analyzerReports)
-    .where(
-      and(eq(analyzerReports.attemptKind, input.attemptKind), eq(analyzerReports.attemptId, input.attemptId)),
-    )
-    .limit(1);
-  if (existing) {
-    await db.update(analyzerReports).set(values).where(eq(analyzerReports.id, existing.id));
-    await writeChildren(existing.id, input.doc);
-    return existing.id;
-  }
-  const [inserted] = await db.insert(analyzerReports).values(values).returning({ id: analyzerReports.id });
-  if (!inserted) throw new Error("insert_failed");
-  await writeChildren(inserted.id, input.doc);
-  return inserted.id;
+  const [saved] = await tx
+    .insert(analyzerReports)
+    .values(values)
+    .onConflictDoUpdate({
+      target: [analyzerReports.attemptKind, analyzerReports.attemptId],
+      set: values,
+    })
+    .returning({ id: analyzerReports.id });
+  if (!saved) throw new Error("insert_failed");
+  await writeChildren(tx, saved.id, input.doc);
+  return saved.id;
 }
 
 export async function convertAttemptDocument(input: {
@@ -345,6 +345,8 @@ export async function convertAttemptDocument(input: {
   templateId: string;
   row: WorkspaceAttemptRow;
   converterAccountId: number;
+  sponsorUnpaid?: boolean;
+  sponsorTariffId?: string;
 }): Promise<ConvertedDocumentRef> {
   await ensureInterpretationDocumentsSchema();
   if (!templateAllowedForPack(input.pack, input.templateId)) throw new Error("bad_template");
@@ -355,24 +357,73 @@ export async function convertAttemptDocument(input: {
   const row = input.row;
   if (row.status !== "submitted") throw new Error("not_submitted");
   const attemptKind = "analyzer" as const;
+  const finance = await import("@/lib/finance/assessment-orders");
+  const sponsorshipQuote = await finance.quoteDocumentSponsorship({
+    slug: input.pack.slug,
+    attemptId: input.attemptId,
+    actorId: input.converterAccountId,
+  });
+  if (sponsorshipQuote.required && !input.sponsorUnpaid) {
+    throw new finance.AssessmentError("sponsorship_confirmation_required", 409, {
+      tariffId: sponsorshipQuote.tariffId,
+      amountIrr: sponsorshipQuote.amountIrr,
+    });
+  }
+  if (sponsorshipQuote.required && input.sponsorUnpaid && input.sponsorTariffId !== sponsorshipQuote.tariffId) {
+    throw new finance.AssessmentError("sponsorship_quote_changed", 409, {
+      tariffId: sponsorshipQuote.tariffId,
+      amountIrr: sponsorshipQuote.amountIrr,
+    });
+  }
   const accountId = await attemptOwnerId(input.attemptId);
   if (!accountId) throw new Error("missing_account");
   const doc = buildInterpretationDocument(input.pack, row, templateId);
   // Only template metadata is materialized; no new schema or legacy assessment is created.
   await ensureDocumentTemplateRecord(templateId);
   const chrome = clipDocumentChrome(await readDocumentChrome(templateId, input.converterAccountId));
-  const id = await upsertSnapshot({
-    pack: input.pack,
-    accountId,
-    attemptId: input.attemptId,
-    attemptKind,
-    templateId,
-    doc,
-    chromeSnapshot: chrome as unknown as Record<string, unknown>,
+  const { id, sponsored } = await db.transaction(async (tx) => {
+    const currentQuote = await finance.quoteDocumentSponsorship({
+      slug: input.pack.slug,
+      attemptId: input.attemptId,
+      actorId: input.converterAccountId,
+      executor: tx,
+    });
+    if (currentQuote.required && !input.sponsorUnpaid) {
+      throw new finance.AssessmentError("sponsorship_confirmation_required", 409, {
+        tariffId: currentQuote.tariffId,
+        amountIrr: currentQuote.amountIrr,
+      });
+    }
+    if (currentQuote.required && input.sponsorUnpaid && input.sponsorTariffId !== currentQuote.tariffId) {
+      throw new finance.AssessmentError("sponsorship_quote_changed", 409, {
+        tariffId: currentQuote.tariffId,
+        amountIrr: currentQuote.amountIrr,
+      });
+    }
+
+    const snapshotId = await upsertSnapshot(tx, {
+      pack: input.pack,
+      accountId,
+      attemptId: input.attemptId,
+      attemptKind,
+      templateId,
+      doc,
+      chromeSnapshot: chrome as unknown as Record<string, unknown>,
+    });
+    let wasSponsored = false;
+    if (currentQuote.required && input.sponsorUnpaid && input.sponsorTariffId) {
+      const result = await finance.sponsorDocumentForAssessmentInTransaction(tx, {
+        slug: input.pack.slug,
+        attemptId: input.attemptId,
+        actorId: input.converterAccountId,
+        confirmedTariffId: input.sponsorTariffId,
+      });
+      wasSponsored = result.sponsored;
+    }
+    return { id: snapshotId, sponsored: wasSponsored };
   });
-  const { tryDeliverCapturedDocument } = await import("@/lib/finance/assessment-orders");
-  await tryDeliverCapturedDocument({ attemptKind, attemptId: input.attemptId, accountId });
-  return { id, attemptId: input.attemptId, templateId, href: documentHref(id) };
+  await finance.tryDeliverCapturedDocument({ attemptKind, attemptId: input.attemptId, accountId });
+  return { id, attemptId: input.attemptId, templateId, href: documentHref(id), sponsored };
 }
 
 export async function readMemberConvertedDocument(

@@ -316,6 +316,12 @@ async function paintRangeSelection(
 }
 
 function doneText(pack: AnalyzerPack, attempt: AttemptView): string {
+  if (attempt.status === "submitted" && !attempt.results) {
+    return [
+      "پاسخ‌های این نوبت ثبت شد؛ نتیجهٔ پایه تا پرداخت اجرای همین نوبت پنهان است.",
+      `برای پرداخت و مشاهدهٔ نتیجه: ${absoluteUrl(`/analyzers/${pack.slug}/report`)}`,
+    ].join("\n");
+  }
   const summary = renderUserSummary(pack, attempt.answers, attempt.results);
   return [summary, "", `بازخوانی: ${absoluteUrl(`/analyzers/${pack.slug}/report`)}`].join("\n");
 }
@@ -366,6 +372,20 @@ async function promptQuestion(
   telegramUserId: string,
   index?: number,
 ) {
+  if (attempt.executionPaymentMode === "before_start") {
+    const accountId = await accountIdByTelegramUserId(telegramUserId);
+    const { hasAssessmentEntitlement } = await import("@/lib/finance/assessment-orders");
+    if (!accountId || !(await hasAssessmentEntitlement(accountId, "analyzer", attempt.id, "execution"))) {
+      await say(
+        token,
+        botId,
+        chatId,
+        `برای آغاز پاسخ‌گویی ابتدا باید هزینهٔ اجرای این نوبت را در وب پرداخت کنید: ${absoluteUrl(`/analyzers/${pack.slug}`)}`,
+        keysMarkup(script),
+      );
+      return;
+    }
+  }
   const items = itemsOf(pack);
   if (attempt.status === "submitted" || isComplete(pack, attempt.answers)) {
     await say(token, botId, chatId, doneText(pack, attempt), keysMarkup(script));

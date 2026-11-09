@@ -237,6 +237,25 @@ export function AnalyzerEditor({
             </label>
           </div>
           <label className="block text-sm">
+            <span className="mb-1 block text-slate-600">زمان پرداخت هزینهٔ اجرای آزمون</span>
+            <select
+              className={fieldClass}
+              value={pack.executionPaymentMode ?? "before_result"}
+              onChange={(event) =>
+                patch({
+                  ...pack,
+                  executionPaymentMode: event.target.value as AnalyzerPack["executionPaymentMode"],
+                })
+              }
+            >
+              <option value="before_start">پیش از آغاز — اول پرداخت، بعد پاسخ‌گویی</option>
+              <option value="before_result">پیش از نمایش نتیجه — پاسخ‌ها ثبت می‌شوند؛ نتیجه پس از پرداخت باز می‌شود</option>
+            </select>
+            <span className="mt-1 block text-xs leading-6 text-slate-500">
+              این تنظیم برای نوبت‌های تازه ثبت می‌شود؛ نوبت‌های قبلی همان قاعدهٔ زمان شروع خود را نگه می‌دارند. تفسیر و سند تعرفه‌های جدا دارند.
+            </span>
+          </label>
+          <label className="block text-sm">
             <span className="mb-1 block text-slate-600">عنوان رضایت</span>
             <input
               className={fieldClass}
